@@ -85,17 +85,33 @@ export async function assertProductionReady(origin: string): Promise<Pricing> {
   return price;
 }
 
-export function describePayerKey(): { kind: "missing" | "address" | "private_key" | "invalid"; hexChars: number } {
-  const raw = (process.env["TEST_PAYER_PRIVATE_KEY"] || loadDevVars()["TEST_PAYER_PRIVATE_KEY"] || "").trim();
+/** Strip quotes/whitespace and accept 64 hex with or without a 0x prefix. Never log the value. */
+export function normalizePayerKeyInput(raw: string): string {
+  const compact = raw.trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
+  if (!compact) return "";
+  return compact.toLowerCase().startsWith("0x") ? `0x${compact.slice(2)}` : compact;
+}
+
+export function describePayerKey(): {
+  kind: "missing" | "address" | "private_key" | "invalid";
+  hexChars: number;
+  derivedAddress?: string;
+} {
+  const raw = normalizePayerKeyInput(process.env["TEST_PAYER_PRIVATE_KEY"] || loadDevVars()["TEST_PAYER_PRIVATE_KEY"] || "");
   if (!raw) return { kind: "missing", hexChars: 0 };
-  if (/^0x[0-9a-fA-F]{64}$/.test(raw)) return { kind: "private_key", hexChars: 64 };
-  if (/^0x[0-9a-fA-F]{40}$/.test(raw)) return { kind: "address", hexChars: 40 };
-  const hex = raw.startsWith("0x") ? raw.slice(2) : raw;
+  const prefixed = raw.startsWith("0x") ? raw : `0x${raw}`;
+  if (/^0x[0-9a-fA-F]{64}$/.test(prefixed)) {
+    const account = privateKeyToAccount(prefixed as `0x${string}`);
+    return { kind: "private_key", hexChars: 64, derivedAddress: account.address };
+  }
+  if (/^0x[0-9a-fA-F]{40}$/.test(prefixed)) return { kind: "address", hexChars: 40 };
+  const hex = prefixed.startsWith("0x") ? prefixed.slice(2) : prefixed;
   return { kind: "invalid", hexChars: hex.length };
 }
 
 export function readPayerPrivateKey(): `0x${string}` {
-  const key = (process.env["TEST_PAYER_PRIVATE_KEY"] || loadDevVars()["TEST_PAYER_PRIVATE_KEY"] || "").trim();
+  const raw = normalizePayerKeyInput(process.env["TEST_PAYER_PRIVATE_KEY"] || loadDevVars()["TEST_PAYER_PRIVATE_KEY"] || "");
+  const key = raw.startsWith("0x") ? raw : raw ? `0x${raw}` : "";
   if (/^0x[0-9a-fA-F]{40}$/.test(key)) {
     throw new Error(
       "TEST_PAYER_PRIVATE_KEY is a 40-character public address (same shape as RECIPIENT_WALLET / payTo). Put the funded Base account private key: 0x + 64 hex (MetaMask Account details → Show private key). Never the recipient address or a seed phrase.",

@@ -18,7 +18,7 @@ OPERATOR_TOKEN=forge-operator-dev-token-change-me
 # CDP_API_KEY_SECRET=
 
 # Only for scripts/test-payment.ts and scripts/seed-bazaar.ts (buyer key — never a Worker secret).
-# Format: 0x + 64 hex. MetaMask → Account details → Show private key for this account (not the seed phrase).
+# Format: 0x + 64 hex (scripts also accept 64 hex without 0x and prepend it). MetaMask → Account details → Show private key.
 # A funded MetaMask Base account is valid. Prefer a low-balance account because this file sits on disk.
 # Never RECIPIENT_WALLET (that is 40 hex / public). Same account as payTo is OK (self-pay $0.02).
 # TEST_PAYER_PRIVATE_KEY=

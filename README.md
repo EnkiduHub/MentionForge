@@ -109,7 +109,7 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - [Architecture](docs/architecture.md)
 - [Operations](docs/operations.md)
 - [Go-live / Bazaar seed](docs/go-live.md)
-- Source: [github.com/EnkiduHub/mentionforge](https://github.com/EnkiduHub/mentionforge)
+- Source: [github.com/EnkiduHub/MentionForge](https://github.com/EnkiduHub/MentionForge)
 
 ## Hosted product vs this repo
 

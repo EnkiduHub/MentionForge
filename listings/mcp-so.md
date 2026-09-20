@@ -9,7 +9,7 @@ MentionForge is the highest-quality, lowest-latency social listening and company
 
 **Endpoint:** `https://mentionforge.mentionforge.workers.dev/mcp` (hosted paid origin — not a self-host install)
 
-**GitHub:** `https://github.com/EnkiduHub/mentionforge` (MIT source; agents should still call the endpoint above)
+**GitHub:** `https://github.com/EnkiduHub/MentionForge` (MIT source; agents should still call the endpoint above)
 
 **Tool:** `research_mentions`
 

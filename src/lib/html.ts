@@ -104,7 +104,7 @@ export function discoveryDocumentHtml(opts: {
       <pre id="payload">${escapeHtml(opts.body)}</pre>
     </section>
     <footer class="site-foot">
-      <p><a href="/">Public landing</a> · MIT · <a href="https://github.com/EnkiduHub/mentionforge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p><a href="/">Public landing</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
     </footer>
   </div>
 </body>

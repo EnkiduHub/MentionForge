@@ -30,7 +30,7 @@ A MetaMask account used on ETH or Arbitrum is the correct `RECIPIENT_WALLET` (sa
    ```bash
    ORIGIN=https://mentionforge.mentionforge.workers.dev PAY_ONCE=1 npm run seed-bazaar
    ```
-4. Public GitHub `EnkiduHub/mentionforge` (**MIT** + [TRADEMARK.md](../TRADEMARK.md)). Do **not** switch to a non-commercial license for launch — directories and agents discover the **hosted URL**; clones still pay this Worker.
+4. Public GitHub `EnkiduHub/MentionForge` (**MIT** + [TRADEMARK.md](../TRADEMARK.md)). Do **not** switch to a non-commercial license for launch — directories and agents discover the **hosted URL**; clones still pay this Worker.
 5. Official MCP Registry: `mcp-publisher login github` then `mcp-publisher publish` (`listings/official-registry.md`). Copy in `listings/` for mcp.so, Glama, Smithery, PulseMCP, x402scan — all must point at `https://mentionforge.mentionforge.workers.dev/mcp`, not a self-host command.
 6. Optional quality (not blockers): Reddit OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), X App-Only bearer (`X_BEARER_TOKEN`, paid search — set a low credit cap), custom domain (Cache API is a no-op on `workers.dev`), Workers Paid ($5/mo) before production CPU volume.
 

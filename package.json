@@ -8,10 +8,10 @@
   "homepage": "https://mentionforge.mentionforge.workers.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/EnkiduHub/mentionforge.git"
+    "url": "git+https://github.com/EnkiduHub/MentionForge.git"
   },
   "bugs": {
-    "url": "https://github.com/EnkiduHub/mentionforge/issues"
+    "url": "https://github.com/EnkiduHub/MentionForge/issues"
   },
   "engines": {
     "node": ">=20"
