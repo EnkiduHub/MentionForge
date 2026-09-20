@@ -14,7 +14,7 @@ import {
 import { canonicalJson, sha256Hex } from "./lib/crypto";
 import { pricingPayload } from "./routes/pricing";
 import { openApiDocument } from "./lib/openapi";
-import { bazaarExtension, getResourceServer, paymentConfig, paymentsReady, paymentHint } from "./lib/x402";
+import { bazaarExtension, decodeHeader, getResourceServer, paymentConfig, paymentsReady, paymentHint } from "./lib/x402";
 import { sandboxOk, trialRemaining } from "./lib/trial";
 import { sourceBackends } from "./lib/source-backends";
 import { limitOrThrow } from "./lib/rate-limit";
@@ -50,6 +50,25 @@ function originHostnames(env: Env): string[] | "*" {
       return s.replace(/^https?:\/\//, "").split("/")[0] ?? s;
     }
   });
+}
+
+/** MCP SDK v2 puts request `_meta` on `ctx.mcpReq._meta`; @x402/mcp still reads `extra._meta`. */
+export function mcpPaymentExtraFromContext(ctx: {
+  mcpReq?: { _meta?: Record<string, unknown> };
+  http?: { req?: Request };
+}): { _meta: Record<string, unknown> } {
+  const meta: Record<string, unknown> = { ...(ctx.mcpReq?._meta ?? {}) };
+  if (meta["x402/payment"] == null) {
+    const header = ctx.http?.req?.headers.get("PAYMENT-SIGNATURE") ?? ctx.http?.req?.headers.get("X-PAYMENT");
+    if (header) {
+      try {
+        meta["x402/payment"] = decodeHeader(header);
+      } catch {
+        /* wrapper returns payment-required */
+      }
+    }
+  }
+  return { _meta: meta };
 }
 
 export async function handleMcp(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -351,7 +370,9 @@ async function wrapPaid(env: Env, origin: string, request: Request, ctx: Executi
       return result;
     };
 
-    return paid(engineOnly as never);
+    const wrapped = paid(engineOnly as never);
+    return async (args: unknown, toolCtx: { mcpReq?: { _meta?: Record<string, unknown> }; http?: { req?: Request } }) =>
+      wrapped(args as Record<string, unknown>, mcpPaymentExtraFromContext(toolCtx));
   } catch (err) {
     if (err instanceof AgentError) {
       return async () => {

@@ -1,5 +1,6 @@
 import { x402ResourceServer, type Network, type PaymentPayload, type PaymentRequirements } from "@x402/hono";
 import { HTTPFacilitatorClient } from "@x402/core/server";
+import { VerifyError } from "@x402/core/types";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { bazaarResourceServerExtension, declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import {
@@ -299,12 +300,27 @@ export async function verifyPayment(
       throw new AgentError("PAYMENT_REQUIRED", "Payment signature invalid.", {
         request_id: requestId,
         hint: paymentHint(env, origin),
+        details: {
+          invalidReason: result.invalidReason,
+          invalidMessage: result.invalidMessage,
+        },
       });
     }
     return payload;
   } catch (err) {
     if (err instanceof AgentError) throw err;
-    const msg = String(err);
+    if (err instanceof VerifyError) {
+      throw new AgentError("PAYMENT_REQUIRED", "Payment signature invalid.", {
+        request_id: requestId,
+        hint: paymentHint(env, origin),
+        details: {
+          invalidReason: err.invalidReason,
+          invalidMessage: err.invalidMessage,
+          statusCode: err.statusCode,
+        },
+      });
+    }
+    const msg = publicFacilitatorError(err);
     if (/unreachable|failed to fetch|network|timeout|ECONN|ENOTFOUND/i.test(msg)) {
       throw new AgentError("PAYMENT_UNAVAILABLE", "Facilitator unreachable.", {
         request_id: requestId,
@@ -314,6 +330,7 @@ export async function verifyPayment(
     throw new AgentError("PAYMENT_REQUIRED", "Payment could not be verified.", {
       request_id: requestId,
       hint: paymentHint(env, origin),
+      details: { err: msg },
     });
   }
 }

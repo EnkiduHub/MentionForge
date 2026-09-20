@@ -30,6 +30,7 @@
     "d1:local": "wrangler d1 migrations apply mentionforge --local",
     "seed-bazaar": "tsx scripts/seed-bazaar.ts",
     "test-payment": "tsx scripts/test-payment.ts",
+    "fund-seed-payer": "tsx scripts/fund-seed-payer.ts",
     "secret-scan": "bash scripts/check-secrets.sh"
   },
   "dependencies": {

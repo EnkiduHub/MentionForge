@@ -26,11 +26,13 @@ done
 
 if git grep -nE -I \
   -e 'TEST_PAYER_PRIVATE_KEY=0x[0-9a-fA-F]{64}' \
+  -e 'TEST_SEED_PAYER_PRIVATE_KEY=0x[0-9a-fA-F]{64}' \
   -e 'CLOUDFLARE_API_TOKEN=cfat_[A-Za-z0-9_-]{20,}' \
   -e '-----BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY-----' \
   -- . ':!scripts/check-secrets.sh' >/dev/null 2>&1; then
   git grep -nE -I \
     -e 'TEST_PAYER_PRIVATE_KEY=0x[0-9a-fA-F]{64}' \
+    -e 'TEST_SEED_PAYER_PRIVATE_KEY=0x[0-9a-fA-F]{64}' \
     -e 'CLOUDFLARE_API_TOKEN=cfat_[A-Za-z0-9_-]{20,}' \
     -e '-----BEGIN (OPENSSH |RSA |EC )?PRIVATE KEY-----' \
     -- . ':!scripts/check-secrets.sh' >&2 || true

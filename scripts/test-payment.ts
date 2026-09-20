@@ -7,6 +7,7 @@
  */
 import {
   assertAcceptsMainnet,
+  assertPayerDiffersFromPayTo,
   assertProductionReady,
   describePayerKey,
   encodePaymentHeader,
@@ -36,8 +37,9 @@ async function main() {
     body: BODY,
   });
   const unpaidJson = (await unpaid.json()) as {
-    error?: { hint?: string; code?: string };
+    error?: { hint?: string; code?: string; details?: { err?: string; invalidReason?: string; payment?: unknown } };
     payment?: {
+      x402Version?: number;
       resource?: unknown;
       accepts?: Array<{ network?: string; asset?: string; extra?: { name?: string } }>;
     };
@@ -57,7 +59,8 @@ async function main() {
 
   if (!wantPayOnce()) {
     console.log("Dry-run complete. Next: GET /health?deep=1 with OPERATOR_TOKEN (facilitator_live.ok).");
-    console.log("Then PAY_ONCE=1 with TEST_PAYER_PRIVATE_KEY (0x + 64 hex, Base USDC + Base ETH). Default is dry-run.");
+    console.log("Then: npm run fund-seed-payer  (CDP rejects payer === payTo).");
+    console.log("Then PAY_ONCE=1 with TEST_SEED_PAYER_PRIVATE_KEY (0x + 64 hex, Base USDC). Default is dry-run.");
     return;
   }
   if (!price.payments_ready) {
@@ -66,34 +69,47 @@ async function main() {
   }
 
   const { account, client } = payerClient(readPayerPrivateKey());
+  assertPayerDiffersFromPayTo(account.address, price.pay_to);
   console.log("payer", account.address);
-  const paymentRequired = {
-    x402Version: 2,
-    error: "PAYMENT-SIGNATURE header is required",
-    resource:
-      unpaidJson.payment && "resource" in unpaidJson.payment
-        ? unpaidJson.payment.resource
-        : {
-            url: `${origin}/v1/research`,
-            description: "research",
-            mimeType: "application/json",
-          },
-    accepts: unpaidJson.payment?.accepts ?? [],
+  const required = unpaidJson.payment;
+  if (!required?.accepts?.length) {
+    throw new Error("402 payment.accepts missing; cannot sign");
+  }
+  const payload = await client.createPaymentPayload(required as never);
+  const rec = payload as {
+    x402Version?: number;
+    accepted?: { amount?: string; network?: string; payTo?: string };
+    resource?: { description?: string };
+    payload?: { authorization?: { value?: string; to?: string } };
   };
-  const payload = await client.createPaymentPayload(paymentRequired as never);
+  console.log("payload_shape", {
+    x402Version: rec.x402Version,
+    amount: rec.accepted?.amount ?? rec.payload?.authorization?.value,
+    network: rec.accepted?.network,
+    payTo: rec.accepted?.payTo,
+    descLen: rec.resource?.description?.length ?? 0,
+  });
   const sig = encodePaymentHeader(payload);
   const paid = await fetch(`${origin}/v1/research`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "Idempotency-Key": "00000000-0000-4000-8000-0000000000b1",
+      "Idempotency-Key": crypto.randomUUID(),
       "PAYMENT-SIGNATURE": sig,
     },
     body: BODY,
   });
   const paidText = await paid.text();
-  console.log("paid", paid.status, paidText.slice(0, 800));
-  if (paid.status !== 200) process.exit(1);
+  console.log("paid", paid.status, paidText.slice(0, 1200));
+  if (paid.status !== 200) {
+    try {
+      const fail = JSON.parse(paidText) as { error?: { message?: string; details?: unknown } };
+      console.log("verify_details", fail.error?.details ?? fail.error?.message);
+    } catch {
+      /* not JSON */
+    }
+    process.exit(1);
+  }
 }
 
 main().catch((err) => {

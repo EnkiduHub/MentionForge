@@ -17,8 +17,11 @@ OPERATOR_TOKEN=forge-operator-dev-token-change-me
 # CDP_API_KEY_ID=
 # CDP_API_KEY_SECRET=
 
-# Only for scripts/test-payment.ts and scripts/seed-bazaar.ts (buyer key — never a Worker secret).
+# Only for scripts/test-payment.ts and scripts/seed-bazaar.ts (buyer keys — never Worker secrets).
 # Format: 0x + 64 hex (scripts also accept 64 hex without 0x and prepend it). MetaMask → Account details → Show private key.
-# A funded MetaMask Base account is valid. Prefer a low-balance account because this file sits on disk.
-# Never RECIPIENT_WALLET (that is 40 hex / public). Same account as payTo is OK (self-pay $0.02).
+# TEST_PAYER_PRIVATE_KEY may be the same MetaMask account as RECIPIENT_WALLET — use it only to *fund* the seed payer.
+# CDP returns self_send_not_allowed if the x402 payer equals payTo. Run `npm run fund-seed-payer` to write
+# TEST_SEED_PAYER_PRIVATE_KEY (a different EOA) and send it Base USDC. PAY_ONCE uses that key first.
+# Never RECIPIENT_WALLET (that is 40 hex / public).
 # TEST_PAYER_PRIVATE_KEY=
+# TEST_SEED_PAYER_PRIVATE_KEY=

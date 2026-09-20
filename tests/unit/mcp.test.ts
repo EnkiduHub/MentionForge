@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { handleMcp, TOOL_DESC } from "../../src/mcp";
+import { handleMcp, mcpPaymentExtraFromContext, TOOL_DESC } from "../../src/mcp";
 import { executionCtx, mockEnv, stubCaches, stubSourcesFetch } from "../helpers/env";
 
 describe("MCP origin + factory", () => {
@@ -32,5 +32,12 @@ describe("MCP origin + factory", () => {
     const b = await handleMcp(new Request("https://mentionforge.test/mcp", { method: "POST", headers, body }), env, executionCtx());
     expect(a.status).not.toBe(403);
     expect(b.status).not.toBe(403);
+  });
+
+  it("maps SDK v2 ctx.mcpReq._meta onto the x402 wrapper extra", () => {
+    const extra = mcpPaymentExtraFromContext({
+      mcpReq: { _meta: { "x402/payment": { x402Version: 2, payload: { signature: "sig" } } } },
+    });
+    expect(extra._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "sig" } });
   });
 });

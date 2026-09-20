@@ -1,3 +1,5 @@
+import { getAddress } from "viem";
+
 export const SERVICE_NAME = "MentionForge";
 export const SERVICE_VERSION = "1.0.0";
 export const DEFAULT_PRICE_USDC = "0.02";
@@ -63,8 +65,16 @@ export function isWallet(addr: string | undefined): addr is `0x${string}` {
   return !!addr && /^0x[a-fA-F0-9]{40}$/.test(addr.trim());
 }
 
-/** Lowercase so a mixed-case EIP-55 typo cannot make the facilitator reject payTo. */
+/**
+ * EIP-55 checksum. CDP documents payTo as a checksummed 0x address.
+ * Invalid mixed-case checksums fall back to lowercase so a typo cannot take the Worker down.
+ */
 export function normalizePayTo(addr: string): string {
   const t = addr.trim();
-  return isWallet(t) ? t.toLowerCase() : t;
+  if (!isWallet(t)) return t;
+  try {
+    return getAddress(t);
+  } catch {
+    return t.toLowerCase();
+  }
 }

@@ -10,10 +10,13 @@ describe("recipient wallet + EIP-712 extras", () => {
     expect(isWallet("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")).toBe(true);
     expect(isPlaceholderWallet("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")).toBe(false);
     expect(normalizePayTo("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")).toBe(
-      "0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed",
+      "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
+    );
+    expect(normalizePayTo("0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed")).toBe(
+      "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed",
     );
     const env = mockEnv({ RECIPIENT_WALLET: "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed" });
-    expect(paymentConfig(env).payTo).toBe("0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed");
+    expect(paymentConfig(env).payTo).toBe("0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed");
   });
 
   it("rejects ENS and the zero placeholder", () => {

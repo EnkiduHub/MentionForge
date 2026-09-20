@@ -9,8 +9,10 @@
  */
 import {
   assertAcceptsMainnet,
+  assertPayerDiffersFromPayTo,
   assertProductionReady,
   describePayerKey,
+  encodePaymentHeader,
   payerClient,
   readPayerPrivateKey,
   serviceOrigin,
@@ -131,7 +133,7 @@ async function main() {
   console.log("payTo", price.pay_to);
 
   if (!wantPayOnce()) {
-    console.log("Dry-run complete. Then PAY_ONCE=1 with TEST_PAYER_PRIVATE_KEY (0x + 64 hex).");
+    console.log("Dry-run complete. Then npm run fund-seed-payer and PAY_ONCE=1 (payer must differ from payTo).");
     return;
   }
   if (!price.payments_ready) {
@@ -140,6 +142,7 @@ async function main() {
   }
 
   const { account, client } = payerClient(readPayerPrivateKey());
+  assertPayerDiffersFromPayTo(account.address, price.pay_to);
   console.log("payer", account.address);
   const payload = await client.createPaymentPayload(required as never);
   const paid = await mcpRpc(
@@ -156,9 +159,14 @@ async function main() {
     {
       ...sessionHeaders,
       "Idempotency-Key": crypto.randomUUID(),
+      "PAYMENT-SIGNATURE": encodePaymentHeader(payload),
     },
   );
   console.log("paid", paid.res.status, paid.text.slice(0, 2000));
+  if (asPaymentRequired(paid.parsed)) {
+    console.error("MCP still returned payment-required after PAYMENT-SIGNATURE / _meta.");
+    process.exit(1);
+  }
   const rec = asRecord(paid.parsed);
   const result = asRecord(rec?.result);
   if (!paid.res.ok || rec?.error || result?.isError) process.exit(1);

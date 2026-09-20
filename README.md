@@ -1,6 +1,6 @@
 # MENTION//FORGE
 
-[![CI](https://img.shields.io/badge/ci-vitest-5CE1E6?style=flat-square)](./.github/workflows/ci.yml)
+[![CI](https://github.com/EnkiduHub/MentionForge/actions/workflows/ci.yml/badge.svg)](https://github.com/EnkiduHub/MentionForge/actions/workflows/ci.yml)
 [![x402](https://img.shields.io/badge/x402-%240.02%20USDC-E8A87C?style=flat-square)](./docs/payments.md)
 [![MCP](https://img.shields.io/badge/MCP-streamable--http-D4A017?style=flat-square)](./docs/mcp.md)
 [![license](https://img.shields.io/badge/license-MIT-F4EFE6?style=flat-square)](./LICENSE)
@@ -44,6 +44,24 @@ and retry with PAYMENT-SIGNATURE. Read GET /v1/research/example first.
 - `GET /stats` — public call count
 - `POST /mcp` — Streamable HTTP MCP (`research_mentions`)
 - `GET /.well-known/x402` — IETF resource-server card (origin from `request.url`)
+
+## Hosted MCP
+
+Point clients at the paid origin (not `npx`):
+
+```bash
+claude mcp add --transport http mentionforge https://mentionforge.mentionforge.workers.dev/mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "mentionforge": {
+      "url": "https://mentionforge.mentionforge.workers.dev/mcp"
+    }
+  }
+}
+```
 
 ## Architecture
 

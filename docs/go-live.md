@@ -14,24 +14,16 @@ A MetaMask account used on ETH or Arbitrum is the correct `RECIPIENT_WALLET` (sa
 3. Worker secrets: `SANDBOX_KEY`, `OPERATOR_TOKEN`, production `CDP_API_KEY_ID` / `CDP_API_KEY_SECRET`, `BRAVE_API_KEY` on staging and production.
 4. Production `NETWORK=base` + CDP facilitator. Shallow `/health` reports `payments_ready: true`. Unpaid POST `/v1/research` returns 402 with mainnet USDC / `USD Coin` / `20000` atomic (no funds moved). MCP `initialize` succeeds. Sandbox research returns 200 without Reddit or X keys.
 5. Operator deep health: `d1: "ok"` and `facilitator_live.ok: true` with `network_supported: true`.
+6. Distinct seed payer funded (`npm run fund-seed-payer`). CDP [`self_send_not_allowed`](https://docs.cdp.coinbase.com/x402/support/troubleshooting) forbids payer === `payTo`.
+7. Paid REST `POST /v1/research` settled **$0.02 USDC** on Base (HTTP 200). Settlement tx [`0xb342cd0c02b339d2393a39daec69a214cdbccb0df8804ca1438edd0dfa36309d`](https://basescan.org/tx/0xb342cd0c02b339d2393a39daec69a214cdbccb0df8804ca1438edd0dfa36309d).
+8. Paid MCP `research_mentions` settled **$0.02 USDC** on Base. Settlement tx [`0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7`](https://basescan.org/tx/0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7). Bazaar `extensionResponses.bazaar.status` was `processing` (CDP indexes after settle). **Do not re-run `PAY_ONCE`.**
+9. Public GitHub [`EnkiduHub/MentionForge`](https://github.com/EnkiduHub/MentionForge) (**MIT** + [TRADEMARK.md](../TRADEMARK.md)).
 
 ## Remaining (in order)
 
-1. Use a **funded Base account** as the seed payer (a MetaMask account on Base is valid). It needs Base USDC plus a little Base ETH for gas. Export **that account’s private key** (`0x` + 64 hex) into local `.dev.vars` as `TEST_PAYER_PRIVATE_KEY`. MetaMask → Account details → Show private key. Never the 12/24-word seed, and never the public `RECIPIENT_WALLET` address (40 hex). Same account as `payTo` is fine (self-transfer of $0.02). A dedicated low-balance account is safer only because this key sits on disk.
-2. One paid REST call (moves **$0.02 USDC** to yourself):
+1. Official MCP Registry — **publish now**, do not wait for traction. PulseMCP’s form is paused and they ingest this registry. Push to `main` runs `.github/workflows/publish-mcp.yml` (GitHub OIDC, no secret, **no npm publish**). Confirm the workflow is green, then search `https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge`. Interactive fallback is in `listings/official-registry.md`.
+2. GitHub About — paste from `listings/github.md` (homepage `https://mentionforge.mentionforge.workers.dev`, topics `mcp` / `x402` / `cloudflare-workers`). Needs an EnkiduHub-signed `gh` session or the repo gear UI.
+3. Directory paste in `listings/` (mcp.so, Glama connector, Smithery URL publish). All must point at `https://mentionforge.mentionforge.workers.dev/mcp`, not a self-host command. PulseMCP waits on the Official Registry. x402scan Bazaar seed already ran; optional SIWX origin register is extra.
+4. Optional quality (not blockers): Reddit OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), X App-Only bearer (`X_BEARER_TOKEN`, paid search — set a low credit cap), custom domain (Cache API is a no-op on `workers.dev`), Workers Paid ($5/mo) before production CPU volume.
 
-   ```bash
-   ORIGIN=https://mentionforge.mentionforge.workers.dev PAY_ONCE=1 npm run test-payment
-   ```
-
-   Expect HTTP 200 and `meta.billing.tx_hash`. Check `/operator` (Bearer `OPERATOR_TOKEN`) for USDC earned.
-3. **One Bazaar-seeding paid MCP call** (second **$0.02 USDC**; `_meta["x402/payment"]` is the payload object):
-
-   ```bash
-   ORIGIN=https://mentionforge.mentionforge.workers.dev PAY_ONCE=1 npm run seed-bazaar
-   ```
-4. Public GitHub `EnkiduHub/MentionForge` (**MIT** + [TRADEMARK.md](../TRADEMARK.md)). Do **not** switch to a non-commercial license for launch — directories and agents discover the **hosted URL**; clones still pay this Worker.
-5. Official MCP Registry: `mcp-publisher login github` then `mcp-publisher publish` (`listings/official-registry.md`). Copy in `listings/` for mcp.so, Glama, Smithery, PulseMCP, x402scan — all must point at `https://mentionforge.mentionforge.workers.dev/mcp`, not a self-host command.
-6. Optional quality (not blockers): Reddit OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), X App-Only bearer (`X_BEARER_TOKEN`, paid search — set a low credit cap), custom domain (Cache API is a no-op on `workers.dev`), Workers Paid ($5/mo) before production CPU volume.
-
-Do not run `PAY_ONCE` until the payer wallet has Base USDC + Base ETH and `TEST_PAYER_PRIVATE_KEY` is `0x` + 64 hex (never the public payTo address). Keep the code MIT; the paid product is the production origin.
+Keep the code MIT; the paid product is the production origin. Re-running `PAY_ONCE` spends another $0.02 — do not repeat the seeds unless you intend to.

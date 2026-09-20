@@ -13,7 +13,9 @@ The same 0x address exists on every EVM chain (ETH, Arbitrum, and Base share one
 - Default + staging: **Base Sepolia** test USDC `0x036CbD53842c5426634e7929541eC2318f3dCF7e`. Add the Base Sepolia network in MetaMask (Base mainnet is not enough) and import that token.
 - Production (`--env production`): **Base** USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`. Import that token on Base to see paid volume.
 
-Wrangler `env.staging` / `env.production` **do not inherit** top-level `vars` — set `RECIPIENT_WALLET` in each block. The collection wallet does not need ETH to *receive* USDC; the *payer* needs Base USDC + Base ETH for gas. A MetaMask account is a valid payer if you export **one account’s private key** (`0x` + 64 hex) into local `.dev.vars` as `TEST_PAYER_PRIVATE_KEY`. Do not paste the public 40-hex address there. Avoid centralized-exchange deposit addresses unless that exchange credits **Base USDC**.
+Wrangler `env.staging` / `env.production` **do not inherit** top-level `vars` — set `RECIPIENT_WALLET` in each block. The collection wallet does not need ETH to *receive* USDC. EIP-3009 x402 settlement is facilitator-gas; the **buyer** needs Base USDC. A MetaMask account is a valid *revenue* address and a valid USDC source for `npm run fund-seed-payer`.
+
+The CDP facilitator returns [`self_send_not_allowed`](https://docs.cdp.coinbase.com/x402/support/troubleshooting) when `authorization.from` equals `payTo`. Do **not** sign production PAY_ONCE with the same key as `RECIPIENT_WALLET`. Put a **different** funded Base account in `TEST_SEED_PAYER_PRIVATE_KEY` (`0x` + 64 hex), or run `npm run fund-seed-payer` to create one and send it 0.10 USDC from `TEST_PAYER_PRIVATE_KEY`. Do not paste the public 40-hex address as a private key. Avoid centralized-exchange deposit addresses unless that exchange credits **Base USDC**.
 
 Placeholder `0x000…0` → paid routes `503 PAYMENT_UNAVAILABLE`, `/health` `degraded`.
 
@@ -39,4 +41,4 @@ Key is bound to SHA-256 of the canonical request body. Conflict → `409` (no se
 
 ## Bazaar
 
-Does **not** auto-list until a real 402/paid flow runs. After deploy, `PAY_ONCE=1 npm run seed-bazaar` seeds `research_mentions` (MCP payload object in `_meta["x402/payment"]`). See [go-live](go-live.md).
+Does **not** auto-list until a real 402/paid flow runs. Production was seeded (`PAY_ONCE=1 npm run seed-bazaar`); do not repeat that unless you intend to spend another $0.02. MCP clients send the payment payload object in `_meta["x402/payment"]`. See [go-live](go-live.md).
