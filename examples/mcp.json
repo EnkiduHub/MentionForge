@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "mentionforge": {
+      "url": "https://YOUR_WORKER/mcp"
+    }
+  }
+}

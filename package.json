@@ -1,0 +1,66 @@
+{
+  "name": "mentionforge",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Highest-quality, lowest-latency, agent-optimized social listening and company research. Structured, cited, multi-source intelligence in a single x402-paid call.",
+  "license": "MIT",
+  "homepage": "https://mentionforge.mentionforge.workers.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EnkiduHub/mentionforge.git"
+  },
+  "bugs": {
+    "url": "https://github.com/EnkiduHub/mentionforge/issues"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy --env staging",
+    "deploy:staging": "wrangler deploy --env staging",
+    "deploy:production": "wrangler deploy --env production",
+    "types": "wrangler types",
+    "check": "wrangler check",
+    "test": "vitest run --project unit",
+    "test:worker": "vitest run --project worker",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p scripts/tsconfig.json && tsc --noEmit -p tsconfig.node.json",
+    "d1:local": "wrangler d1 migrations apply mentionforge --local",
+    "seed-bazaar": "tsx scripts/seed-bazaar.ts",
+    "test-payment": "tsx scripts/test-payment.ts",
+    "secret-scan": "bash scripts/check-secrets.sh"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.24.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "@x402/core": "^2.23.0",
+    "@x402/evm": "^2.23.0",
+    "@x402/extensions": "^2.23.0",
+    "@x402/hono": "^2.23.0",
+    "@x402/mcp": "^2.23.0",
+    "agents": "^0.20.0",
+    "hono": "^4.9.0",
+    "viem": "^2.48.11",
+    "zod": "^4.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-pool-workers": "^0.8.0",
+    "@cloudflare/workers-types": "5.20260918.1",
+    "@types/node": "^22.20.3",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.34.0"
+  },
+  "overrides": {
+    "zod": "^4.5.0",
+    "miniflare": {
+      "zod": "^3.25.0"
+    },
+    "wrangler": {
+      "zod": "^3.25.0"
+    }
+  }
+}

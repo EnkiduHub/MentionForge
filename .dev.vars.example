@@ -1,0 +1,24 @@
+# MentionForge local wrangler secrets. Copy from .dev.vars.example.
+SANDBOX_KEY=forge-sandbox-dev-key-change-me
+OPERATOR_TOKEN=forge-operator-dev-token-change-me
+
+# Public payTo (also in wrangler.jsonc vars). MetaMask Account details → copy 0x address.
+# Same address works on Base and Base Sepolia; USDC lands on whichever NETWORK is set.
+# RECIPIENT_WALLET=0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77
+
+# Optional source upgrades (local wrangler dev only; production uses `wrangler secret put`).
+# BRAVE_API_KEY=          # https://api.search.brave.com/app/keys  (Search plan, not Answers)
+# REDDIT_CLIENT_ID=       # https://www.reddit.com/prefs/apps  + https://developers.reddit.com/
+# REDDIT_CLIENT_SECRET=   # same Reddit app; use "web app" or "script" so a secret exists
+# X_BEARER_TOKEN=         # https://console.x.com/  (OAuth 2.0 App-Only bearer; search is paid)
+
+# Required for Base mainnet x402 (not for Base Sepolia / x402.org).
+# Create a CDP Secret API key at https://portal.cdp.coinbase.com/ — no wallet connect.
+# CDP_API_KEY_ID=
+# CDP_API_KEY_SECRET=
+
+# Only for scripts/test-payment.ts and scripts/seed-bazaar.ts (buyer key — never a Worker secret).
+# Format: 0x + 64 hex. MetaMask → Account details → Show private key for this account (not the seed phrase).
+# A funded MetaMask Base account is valid. Prefer a low-balance account because this file sits on disk.
+# Never RECIPIENT_WALLET (that is 40 hex / public). Same account as payTo is OK (self-pay $0.02).
+# TEST_PAYER_PRIVATE_KEY=

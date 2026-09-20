@@ -1,0 +1,82 @@
+# MentionForge — public GitHub ignore list.
+# Secrets never leave this machine. Worker secrets are set with `wrangler secret put`.
+
+# --- Local secrets / env (never commit) ---
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+.secrets-tmp-*
+secrets/
+*.secret
+*.secrets
+credentials.json
+**/service-account*.json
+**/google-services.json
+
+# Cloudflare / Wrangler
+.wrangler/
+.mf/
+.cloudflare/
+wrangler.toml.bak
+worker-configuration.d.ts.bak
+
+# Keys, wallets, certs
+*.pem
+*.p12
+*.pfx
+*.p8
+*.key
+!*.key.ts
+id_rsa
+id_rsa.pub
+id_ed25519
+id_ed25519.pub
+*.keystore
+utc--*
+wallet.json
+*.wallet
+
+# Node / build / test
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.pnp.*
+dist/
+build/
+coverage/
+.nyc_output/
+.turbo/
+.vite/
+*.tsbuildinfo
+*.lcov
+
+# Logs / OS / editors
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+*.swp
+*.swo
+*~
+
+# Cursor / local agent noise (not the product)
+.cursor/
+canvases/
+agent-transcripts/
+
+# Optional local dumps
+*.sqlite
+*.sqlite-journal
+.dump/
+tmp/
+temp/

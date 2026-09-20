@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="MentionForge">
+  <defs>
+    <radialGradient id="g" cx="50%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#5CE1E6" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#0B0C0F" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="64" height="64" fill="#0B0C0F"/>
+  <circle cx="32" cy="28" r="22" fill="url(#g)"/>
+  <path d="M8 48 L32 12 L56 48" fill="none" stroke="#E8A87C" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M18 48 L32 26 L46 48" fill="none" stroke="#D4A017" stroke-width="2" stroke-linejoin="round"/>
+  <circle cx="32" cy="20" r="4" fill="#5CE1E6"/>
+  <rect x="12" y="50" width="40" height="2" fill="#F4EFE6" opacity="0.7"/>
+</svg>
