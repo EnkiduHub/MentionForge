@@ -5,6 +5,7 @@
 - Glama TDQS: front-load rate limits in the paid-tool tail (`get_digest` Behavior was 4 for missing limits) and mark compare's vs-join as a cross-field rule the schema cannot encode
 - Keep purpose-first copy and optional free-tool flags from 1.2.1 so the next connector sweep can score Parameters and Conciseness above the stale 10-tool snapshot
 - Official MCP Registry: publish `server.json` `1.2.2` (was left at `1.1.0` after the Worker bumps). GitHub Actions OIDC republishes on this file change. Glama GitHub-listing Available Tools still need Deploy + Make Release — Sync Server only refreshes the README scrape
+- Glama Dockerfile: `WORKDIR /app` + relative `CMD ["node", "scripts/glama-stdio.mjs"]` so a generated clone-into-`/app` inspect does not look for `/home/node/glama-stdio.mjs` and keep the v1.0.0 three-tool snapshot
 - Price remains $0.02 USDC; the 10-call trial stays shared
 
 ## Unreleased

@@ -63,7 +63,7 @@ Do **not** use `pnpm install`, `npm ci`, `npm run dev`, `wrangler`, or `["mcp-pr
 4. **Deploy** (build test: start + `initialize` / `tools/list`).
 5. **Make Release** → version → publish. That is when the quality badge becomes a letter, not `?`.
 
-The root `Dockerfile` uses `CMD` (not `ENTRYPOINT`) and starts `scripts/glama-stdio.mjs` so `Cmd` is non-empty. `get_health` / `get_pricing` stay free; unpaid `research_mentions` is payment-required. Do not leave CMD as `[]`.
+The root `Dockerfile` uses `WORKDIR /app` and `CMD ["node", "scripts/glama-stdio.mjs"]` (not `ENTRYPOINT`, not `/home/node/glama-stdio.mjs`) so Glama’s generated clone-into-`/app` image and this file share the same command. `get_health` / `get_pricing` stay free; unpaid `research_mentions` is payment-required. Do not leave CMD as `[]`.
 
 ## Form fields (connector)
 

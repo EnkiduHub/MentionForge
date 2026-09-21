@@ -205,7 +205,9 @@ describe("agent discoverability", () => {
     expect(readme).toContain("`get_pricing` — free catalog");
     expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");
-    expect(dockerfile).toMatch(/^CMD \["node", "\/home\/node\/glama-stdio.mjs"\]$/m);
+    expect(dockerfile).toMatch(/^WORKDIR \/app$/m);
+    expect(dockerfile).toMatch(/^CMD \["node", "scripts\/glama-stdio\.mjs"\]$/m);
+    expect(dockerfile).not.toMatch(/\/home\/node\/glama-stdio/);
     expect(dockerfile).not.toMatch(/^ENTRYPOINT /m);
     expect(dockerfile).not.toMatch(/wrangler|CDP_API_KEY|TEST_PAYER_PRIVATE_KEY/);
     expect(glamaStdio).toContain("https://mentionforge.mentionforge.workers.dev/mcp");
