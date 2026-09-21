@@ -15,7 +15,7 @@ These two URLs are different Glama products. Resyncing GitHub updates only the R
 | Push `server.json` to `main` | Official MCP Registry version (PulseMCP / connector namespace). Not the GitHub listing inspect |
 | **Deploy** then **Make Release** on [admin/dockerfile](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/admin/dockerfile) | Available Tools, Schema, TDQS, and the quality-score letter on `/mcp/servers/EnkiduHub/MentionForge` |
 
-A Glama release is **not** a GitHub release ([How to make a release](https://glama.ai/blog/2026-03-15-how-to-make-a-release)). The GitHub listing still showing three tools (`get_pricing`, `health`, `research_mentions`, changelog `v1.0.0`) after Sync means the last **successful sandbox inspect** is stale — not that production `/mcp` is stale. Worker deploy is already 1.2.2. There is no extra `wrangler` / `npm` command that refreshes that inspect; paste the stdio-bridge form below, Deploy, then Make Release as `1.2.2`.
+A Glama release is **not** a GitHub release ([How to make a release](https://glama.ai/blog/2026-03-15-how-to-make-a-release)). GitHub listing **1.2.2** (2026-09-21 15:15 UTC) is the last successful sandbox inspect. Sync still does not replace that inspect. Worker deploy is already 1.2.2. There is no extra `wrangler` / `npm` command that refreshes Available Tools; paste the stdio-bridge form below, Deploy, then Make Release.
 
 **Connector form:** https://glama.ai/mcp/connectors (Add MCP Server → Connector)  
 GitHub topics + README also feed Glama’s open-source index after About is set.
@@ -27,7 +27,7 @@ Do not treat these as the same score. punkpeye’s awesome-mcp-servers bot wants
 | Surface | URL | What it measures | Status |
 | --- | --- | --- | --- |
 | Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy; 12 tools after the 1.2.2 recrawl — this is **not** the GitHub listing inspect |
-| GitHub server listing | https://glama.ai/mcp/servers/EnkiduHub/MentionForge | Last Deploy + Make Release sandbox `tools/list` (README is Sync-only) | Stale until a new Deploy + Release; Sync will not replace the v1.0.0 three-tool inspect |
+| GitHub server listing | https://glama.ai/mcp/servers/EnkiduHub/MentionForge | Last Deploy + Make Release sandbox `tools/list` (README is Sync-only) | **1.2.2** published 2026-09-21 15:15 UTC (build `01a0c607-9a8e-75a1-83ac-0299d948a8c2`); 12 tools on the listing |
 | Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | README has both `score.svg` and `card.svg`; letter grade after a Glama **release** succeeds |
 
 ## Getting paid (wallet is on the Worker, not in Glama)
@@ -50,7 +50,7 @@ After `glama.json` + `Dockerfile` + `scripts/glama-stdio.mjs` are on GitHub `mai
 
 | Field | Value |
 | --- | --- |
-| **Build steps** | `["npm install -g mcp-remote@0.14.3"]` |
+| **Build steps** | `["npm ci --omit=dev"]` (1.2.2 release). Alternate: `["npm install -g mcp-remote@0.14.3"]` |
 | **CMD arguments** | `["node", "scripts/glama-stdio.mjs"]` |
 | Environment variables JSON schema | `{"type":"object","properties":{},"required":[]}` |
 | Placeholder parameters | `{}` |
@@ -58,7 +58,7 @@ After `glama.json` + `Dockerfile` + `scripts/glama-stdio.mjs` are on GitHub `mai
 | Python version | leave default (unused) |
 | Pinned commit SHA | empty (latest HEAD after Sync) |
 
-Do **not** use `pnpm install`, `npm ci`, `npm run dev`, `wrangler`, or `["mcp-proxy", "--", "pnpm", "run", "start"]`. Do **not** add `RECIPIENT_WALLET`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`, or CDP keys to the env schema. Those belong on the Worker (`wrangler secret put` / `vars`), not in Glama. Glama already prepends `mcp-proxy --`; the CMD field is only the bridge.
+Do **not** use `pnpm install`, `npm run dev`, `wrangler`, or `["mcp-proxy", "--", "pnpm", "run", "start"]`. `npm ci --omit=dev` is the 1.2.2 release build (installs `mcp-remote` from `package.json`). Do **not** add `RECIPIENT_WALLET`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`, or CDP keys to the env schema. Those belong on the Worker (`wrangler secret put` / `vars`), not in Glama. Glama already prepends `mcp-proxy --`; the CMD field is only the bridge.
 
 4. **Deploy** (build test: start + `initialize` / `tools/list`).
 5. **Make Release** → version → publish. That is when the quality badge becomes a letter, not `?`.
