@@ -47,6 +47,8 @@ const DISCOVERY_NAV: Array<[string, string]> = [
   ["/.well-known/x402", "x402"],
   ["/v1/pricing", "pricing"],
   ["/v1/research/example", "example"],
+  ["/v1/entity", "entity"],
+  ["/v1/suggest", "suggest"],
   ["/health", "health"],
 ];
 

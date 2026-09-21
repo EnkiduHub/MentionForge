@@ -8,7 +8,7 @@ export type IdempotencyRecord = {
   key: string;
   body_hash: string;
   status: string;
-  response: ResearchResponse | null;
+  response: ResearchResponse | Record<string, unknown> | null;
   billing: Billing | null;
 };
 
@@ -48,7 +48,7 @@ export async function lookupIdempotency(
       key: row.key,
       body_hash: row.body_hash,
       status: row.status,
-      response: row.response ? (JSON.parse(row.response) as ResearchResponse) : null,
+      response: row.response ? (JSON.parse(row.response) as ResearchResponse | Record<string, unknown>) : null,
       billing: row.billing ? (JSON.parse(row.billing) as Billing) : null,
     };
   } catch (err) {
@@ -61,7 +61,7 @@ export async function storeIdempotency(
   env: Env,
   key: string | null,
   bodyHash: string,
-  response: ResearchResponse,
+  response: ResearchResponse | Record<string, unknown>,
   billing: Billing,
 ): Promise<void> {
   if (!key) return;

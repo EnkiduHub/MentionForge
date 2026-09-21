@@ -16,7 +16,7 @@ Publish the **already-hosted** Streamable HTTP server. Do not upload a local std
 | Repository | `https://github.com/EnkiduHub/MentionForge` |
 | MCP URL (upstream) | `https://mentionforge.mentionforge.workers.dev/mcp` |
 | Transport | Streamable HTTP |
-| Tools | `research_mentions`, `health`, `get_pricing` |
+| Tools | `health`, `get_pricing`, `get_example`, `suggest_tool`, `entity_profile`, `research_mentions`, `compare_brands`, `get_digest`, `detect_risk`, `draft_reply` |
 | License | MIT |
 
 ```json
@@ -27,7 +27,7 @@ Publish the **already-hosted** Streamable HTTP server. Do not upload a local std
   "homepage": "https://mentionforge.mentionforge.workers.dev",
   "repository": "https://github.com/EnkiduHub/MentionForge",
   "mcp": "https://mentionforge.mentionforge.workers.dev/mcp",
-  "tools": ["research_mentions", "health", "get_pricing"]
+  "tools": ["health", "get_pricing", "get_example", "suggest_tool", "entity_profile", "research_mentions", "compare_brands", "get_digest", "detect_risk", "draft_reply"]
 }
 ```
 

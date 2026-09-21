@@ -35,6 +35,7 @@ export type QueryPlan = {
   unquoted: string;
   brand: string;
   vs?: { a: string; b: string };
+  brands?: string[];
   reddit: string;
   news: string;
   web: string;
@@ -42,24 +43,39 @@ export type QueryPlan = {
   x: string;
 };
 
+function quoteBrand(s: string): string {
+  return `"${s.replace(/"/g, "").trim()}"`;
+}
+
+/** 2–3 brand names from `A vs B` / `A versus B`. Extra segments are ignored. */
+export function splitBrands(query: string): string[] | undefined {
+  const parts = query
+    .split(/\s+(?:vs\.?|versus)\s+/i)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (parts.length < 2) return undefined;
+  return parts.slice(0, 3);
+}
+
 export function planQuery(req: ResearchRequest): QueryPlan {
   const original = req.query.trim();
-  const vsMatch = original.split(/\s+vs\.?\s+/i);
-  const vs = vsMatch.length === 2 ? { a: vsMatch[0]!.trim(), b: vsMatch[1]!.trim() } : undefined;
-  const brand = vs?.a ?? original.split(/\s+/).slice(0, 4).join(" ");
-  const quoted = `"${brand.replace(/"/g, "")}"`;
+  const brands = splitBrands(original);
+  const brand = brands?.[0] ?? original.split(/\s+/).slice(0, 4).join(" ");
+  const quoted = quoteBrand(brand);
   const unquoted = brand;
+  const orQuoted = brands ? brands.map(quoteBrand).join(" OR ") : quoted;
   return {
     original,
     quoted,
     unquoted,
     brand,
-    vs,
-    reddit: vs ? `${quoted} OR "${vs.b}"` : quoted,
-    news: unquoted,
-    web: unquoted,
-    reviews: `${quoted} (review OR reviews OR "customer service")`,
-    x: unquoted,
+    vs: brands && brands.length === 2 ? { a: brands[0]!, b: brands[1]! } : undefined,
+    brands,
+    reddit: orQuoted,
+    news: orQuoted,
+    web: orQuoted,
+    reviews: `${orQuoted} (review OR reviews OR "customer service")`,
+    x: orQuoted,
   };
 }
 

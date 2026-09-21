@@ -123,7 +123,7 @@ export function mockEnv(over: Partial<Env> = {}): Env {
     FACILITATOR_URL: "https://x402.org/facilitator",
     RECIPIENT_WALLET: "0x1111111111111111111111111111111111111111",
     ALLOWED_ORIGINS: "*",
-    SERVICE_VERSION: "1.0.0",
+    SERVICE_VERSION: "1.1.0",
     SANDBOX_KEY: "test-sandbox",
     OPERATOR_TOKEN: "test-operator",
     ...over,
@@ -246,6 +246,34 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
       const d = new Date().toUTCString();
       return new Response(`<rss><item><title>ForgeCo ships</title><link>https://example.com/n</link><pubDate>${d}</pubDate></item></rss>`, {
         headers: { "content-type": "application/xml" },
+      });
+    }
+    if (url.includes("api.github.com")) {
+      return jsonResponse({
+        items: [
+          {
+            html_url: "https://github.com/cloudflare/workers-sdk/issues/1",
+            title: "ForgeCo workers issue",
+            body: "ForgeCo API discussion",
+            user: { login: "ops" },
+            comments: 2,
+            created_at: new Date().toISOString(),
+          },
+        ],
+      });
+    }
+    if (url.includes("api.stackexchange.com")) {
+      return jsonResponse({
+        items: [
+          {
+            link: "https://stackoverflow.com/q/1",
+            title: "ForgeCo workers",
+            body: "How to use ForgeCo",
+            owner: { display_name: "ops" },
+            score: 4,
+            creation_date: now,
+          },
+        ],
       });
     }
     if (url.includes("gdeltproject.org") || url.includes("algolia.com") || url.includes("duckduckgo.com") || url.includes("brave.com") || url.includes("x.com")) {

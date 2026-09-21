@@ -13,11 +13,20 @@
     return location.host.includes("-staging.") ? "Base Sepolia" : "Base";
   }
 
-  function paintCurl(netName) {
+  const PRESETS = {
+    brand: { query: "Cloudflare Workers", timeframe: "7d", note: "brand" },
+    vs: { query: "Cloudflare Workers vs AWS Lambda", timeframe: "7d", note: "vs" },
+    reviews: { query: "Cloudflare Workers reviews", timeframe: "30d", note: "reviews" },
+    risk: { query: "Cloudflare Workers", timeframe: "24h", note: "24h risk" },
+  };
+
+  function paintCurl(netName, preset) {
     const el = document.getElementById("curl");
     if (!el) return;
+    const spec = preset || PRESETS.brand;
     const uuid = crypto.randomUUID();
-    const line = `curl -sS -X POST ${origin}/v1/research -H 'content-type: application/json' -H 'Idempotency-Key: ${uuid}' -d '{"query":"Cloudflare Workers","timeframe":"7d","limit":20,"include_summary":true}'`;
+    const body = JSON.stringify({ query: spec.query, timeframe: spec.timeframe, limit: 20, include_summary: true });
+    const line = `curl -sS -X POST ${origin}/v1/research -H 'content-type: application/json' -H 'Idempotency-Key: ${uuid}' -d '${body}'`;
     el.dataset.copyLine = [
       line,
       `# HTTP 402 → retry with PAYMENT-SIGNATURE (x402 exact 0.02 USDC on ${netName})`,
@@ -27,7 +36,7 @@
       `POST ${origin}/v1/research`,
       `content-type: application/json`,
       `Idempotency-Key: ${uuid}`,
-      `{"query":"Cloudflare Workers","timeframe":"7d","limit":20,"include_summary":true}`,
+      body,
       `# HTTP 402 → PAYMENT-SIGNATURE · 0.02 USDC on ${netName}`,
       `# trial → X-Wallet`,
     ].join("\n");
@@ -45,6 +54,26 @@
   paintCurl(named);
   const chip0 = document.getElementById("network-chip");
   if (chip0) chip0.textContent = named;
+
+  document.querySelectorAll("[data-preset]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const key = btn.getAttribute("data-preset");
+      const spec = PRESETS[key];
+      if (!spec) return;
+      paintCurl(networkLabel(), spec);
+      const mcp = document.getElementById("mcp");
+      if (mcp) {
+        mcp.textContent = JSON.stringify(
+          {
+            mcpServers: { mentionforge: { url: `${origin}/mcp` } },
+            example: { query: spec.query, timeframe: spec.timeframe, include_summary: true },
+          },
+          null,
+          2,
+        );
+      }
+    });
+  });
 
   document.querySelectorAll("[data-copy]").forEach((btn) => {
     btn.addEventListener("click", async () => {
@@ -242,6 +271,50 @@
     }
   });
 
+  function sparkline(host, counts, label) {
+    if (!host) return;
+    host.replaceChildren();
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 120 40");
+    svg.setAttribute("role", "img");
+    svg.setAttribute("aria-label", label || "volume sparkline");
+    const max = Math.max(1, ...counts);
+    const pts = counts
+      .map((n, i) => {
+        const x = counts.length <= 1 ? 0 : (i / (counts.length - 1)) * 120;
+        const y = 36 - (n / max) * 32;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      })
+      .join(" ");
+    const poly = document.createElementNS(ns, "polyline");
+    poly.setAttribute("fill", "none");
+    poly.setAttribute("stroke", "currentColor");
+    poly.setAttribute("stroke-width", "2");
+    poly.setAttribute("points", pts || "0,36 120,36");
+    svg.append(poly);
+    host.append(svg);
+  }
+
+  function renderBars(root, rows, title) {
+    if (!rows.length) return;
+    const box = el("div", "bars");
+    box.setAttribute("aria-label", title);
+    for (const [label, pct] of rows) {
+      const row = el("div", "bar-row");
+      row.append(el("span", "", label));
+      const bar = el("div", "bar");
+      bar.setAttribute("role", "img");
+      bar.setAttribute("aria-label", `${label} ${Math.round(pct)} percent`);
+      const fill = document.createElement("span");
+      fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      bar.append(fill);
+      row.append(bar, el("span", "bar-n", `${Math.round(pct)}%`));
+      box.append(row);
+    }
+    root.append(box);
+  }
+
   function renderFixture(body) {
     const root = document.getElementById("fixture-root");
     if (!root) return;
@@ -261,8 +334,24 @@
       li.textContent = t.theme;
       themes.append(li);
     }
-    summary.append(h, p, meta, themes);
+    summary.append(h, p, meta);
     root.append(summary);
+    renderBars(root, [
+      ["positive", Number(body.sentiment?.positive) || 0],
+      ["neutral", Number(body.sentiment?.neutral) || 0],
+      ["negative", Number(body.sentiment?.negative) || 0],
+    ], "Sentiment mix");
+    renderBars(
+      root,
+      (body.share_of_voice ?? []).map((r) => [r.brand, (Number(r.share) || 0) * 100]),
+      "Share of voice",
+    );
+    sparkline(
+      document.getElementById("sparkline"),
+      (body.volume?.trend ?? []).map((t) => Number(t.count) || 0),
+      "Volume sparkline",
+    );
+    summary.append(themes);
 
     const cites = body.citations ?? [];
     if (cites.length) {
@@ -288,6 +377,7 @@
       const left = el("span", "", `${m.platform} · ${m.author}`);
       const right = el("span", "", fmtTime(m.timestamp));
       head.append(left, right);
+      if (m.intent) head.append(el("span", "intent", String(m.intent)));
       const href = httpUrl(m.url);
       const text = href ? link(href, m.text ?? href, "mention-link") : el("p", "", m.text ?? "");
       if (href && text.tagName === "A") {

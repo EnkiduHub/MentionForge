@@ -35,7 +35,7 @@ describe("research schemas", () => {
 
   it("describes every research request field for MCP JSON Schema", () => {
     const props = jsonProps(researchRequestSchema);
-    for (const key of ["query", "platforms", "timeframe", "limit", "include_summary", "min_engagement", "language"] as const) {
+    for (const key of ["query", "platforms", "timeframe", "limit", "include_summary", "min_engagement", "language", "view", "focus", "include_markdown"] as const) {
       expect(props[key]?.description?.length ?? 0, key).toBeGreaterThan(20);
     }
     expect(props.query?.description).toBe(REQUEST_FIELD_DESC.query);
@@ -57,6 +57,9 @@ describe("research schemas", () => {
     expect(openapi.include_summary.description).toBe(REQUEST_FIELD_DESC.include_summary);
     expect(openapi.min_engagement.description).toBe(REQUEST_FIELD_DESC.min_engagement);
     expect(openapi.language.description).toBe(REQUEST_FIELD_DESC.language);
+    expect(openapi.view.description).toBe(REQUEST_FIELD_DESC.view);
+    expect(openapi.focus.description).toBe(REQUEST_FIELD_DESC.focus);
+    expect(openapi.include_markdown.description).toBe(REQUEST_FIELD_DESC.include_markdown);
   });
 
   it("maps PAYMENT_REQUIRED to 402", () => {

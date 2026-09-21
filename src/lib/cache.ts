@@ -69,6 +69,9 @@ export function researchOnly(body: CachedResearch): CachedResearch {
     mentions: body.mentions,
     summary: body.summary,
     citations: body.citations,
+    ...(body.share_of_voice ? { share_of_voice: body.share_of_voice } : {}),
+    ...(body.signals ? { signals: body.signals } : {}),
+    ...(body.voices ? { voices: body.voices } : {}),
     meta: {
       sources_used: meta.sources_used,
       confidence: meta.confidence,

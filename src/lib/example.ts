@@ -42,6 +42,9 @@ export const EXAMPLE_RESPONSE: ResearchResponse = {
       "by_platform": {
         "web": 11
       }
+    },
+    "by_platform": {
+      "web": -0.016
     }
   },
   "themes": [
@@ -119,7 +122,9 @@ export const EXAMPLE_RESPONSE: ResearchResponse = {
       "timestamp": "2026-09-20T04:04:57.900Z",
       "text": "Cloudflare Workers official site",
       "engagement": 9,
-      "sentiment": 0
+      "sentiment": 0,
+      "intent": "other",
+      "relevance": 1
     },
     {
       "id": "mf_ff71f1de",
@@ -199,7 +204,10 @@ export const EXAMPLE_RESPONSE: ResearchResponse = {
       "timestamp": "2026-09-20T04:04:58.651Z",
       "text": "r/node on Reddit: Can anyone say me some pro and cons of cloudflare workers — Haha, better late than never! To clarify, I meant impractical for larger, more tangled real-world apps with tons of dependencies, but for small-scale APIs or solo dev stuff, Cloudflare Workers are absolutely viable — I've been running a few of my own projects fully on them without issues.",
       "engagement": 3,
-      "sentiment": -0.2
+      "sentiment": -0.2,
+      "intent": "complaint",
+      "aspects": ["reliability"],
+      "relevance": 0.8
     },
     {
       "id": "mf_6fce2cdb",
@@ -291,6 +299,15 @@ export const EXAMPLE_RESPONSE: ResearchResponse = {
       "accessed_at": "2026-09-20T04:04:58.651Z"
     }
   ],
+  "share_of_voice": [
+    { "brand": "Cloudflare Workers", "mentions": 9, "engagement": 40, "share": 0.8182 },
+    { "brand": "other", "mentions": 2, "engagement": 6, "share": 0.1818 }
+  ],
+  "signals": {
+    "risk": "low",
+    "spike": false,
+    "reasons": ["no spike or negative concentration"]
+  },
   "meta": {
     "sources_used": [
       "web"

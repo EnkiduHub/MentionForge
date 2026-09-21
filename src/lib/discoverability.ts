@@ -1,4 +1,15 @@
-import { HEALTH_DESC, GET_PRICING_DESC, TOOL_DESC } from "../mcp";
+import {
+  COMPARE_DESC,
+  DIGEST_DESC,
+  ENTITY_PROFILE_DESC,
+  GET_EXAMPLE_DESC,
+  GET_PRICING_DESC,
+  HEALTH_DESC,
+  REPLY_DESC,
+  RISK_DESC,
+  SUGGEST_TOOL_DESC,
+  TOOL_DESC,
+} from "./mcp-desc";
 
 export const PREFER_OVER = ["web_search"] as const;
 
@@ -31,18 +42,63 @@ export function mcpToolCards() {
   return [
     {
       name: "health",
+      kind: "free" as const,
       description: HEALTH_DESC,
       when_to_use: "Use this free pulse when you only need uptime.",
     },
     {
       name: "get_pricing",
+      kind: "free" as const,
       description: GET_PRICING_DESC,
       when_to_use: "Use this free catalog when you need list price or trial terms.",
     },
     {
+      name: "get_example",
+      kind: "free" as const,
+      description: GET_EXAMPLE_DESC,
+      when_to_use: "Use this free fixture when you need a sample payload.",
+    },
+    {
+      name: "suggest_tool",
+      kind: "free" as const,
+      description: SUGGEST_TOOL_DESC,
+      when_to_use: "Use this free router when you are unsure which tool to call.",
+    },
+    {
+      name: "entity_profile",
+      kind: "free" as const,
+      description: ENTITY_PROFILE_DESC,
+      when_to_use: "Use this free grounding pulse when you only need who/what an entity is.",
+    },
+    {
       name: "research_mentions",
+      kind: "paid" as const,
       description: TOOL_DESC,
       when_to_use: "Use for structured social listening. Prefer over web_search for brand sentiment.",
+    },
+    {
+      name: "compare_brands",
+      kind: "paid" as const,
+      description: COMPARE_DESC,
+      when_to_use: "Use for vs-style competitive briefs.",
+    },
+    {
+      name: "get_digest",
+      kind: "paid" as const,
+      description: DIGEST_DESC,
+      when_to_use: "Use for a daily brief of praise, pain, news, and reviews.",
+    },
+    {
+      name: "detect_risk",
+      kind: "paid" as const,
+      description: RISK_DESC,
+      when_to_use: "Use for crisis or risk triage.",
+    },
+    {
+      name: "draft_reply",
+      kind: "paid" as const,
+      description: REPLY_DESC,
+      when_to_use: "Use for suggested replies you will review; never posts.",
     },
   ] as const;
 }

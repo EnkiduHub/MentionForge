@@ -3,9 +3,13 @@ import { allowedFetch, assertAllowedUrl } from "../../src/lib/allowlist";
 import { jsonResponse, setGlobalFetch } from "../helpers/env";
 
 describe("allowlist", () => {
-  it("rejects non-https and unknown hosts", () => {
-    expect(() => assertAllowedUrl("http://en.wikipedia.org/")).toThrow(/non-https/);
-    expect(() => assertAllowedUrl("https://evil.example/")).toThrow(/blocked host/);
+  it("allows language wikipedia hosts and rejects prefix tricks", () => {
+    expect(assertAllowedUrl("https://es.wikipedia.org/wiki/X").hostname).toBe("es.wikipedia.org");
+    expect(assertAllowedUrl("https://ceb.wikipedia.org/wiki/X").hostname).toBe("ceb.wikipedia.org");
+    expect(() => assertAllowedUrl("https://en.wikipedia.org.evil.example/")).toThrow(/blocked host/);
+    expect(() => assertAllowedUrl("http://api.github.com/")).toThrow(/non-https/);
+    expect(assertAllowedUrl("https://api.github.com/search/issues").hostname).toBe("api.github.com");
+    expect(assertAllowedUrl("https://api.stackexchange.com/2.3/search").hostname).toBe("api.stackexchange.com");
   });
 
   it("refuses redirects off the allowlist", async () => {

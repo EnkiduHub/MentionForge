@@ -1,6 +1,7 @@
 # MENTION//FORGE
 
 [![CI](https://github.com/EnkiduHub/MentionForge/actions/workflows/ci.yml/badge.svg)](https://github.com/EnkiduHub/MentionForge/actions/workflows/ci.yml)
+[![version](https://img.shields.io/badge/version-1.1.0-5CE1E6?style=flat-square)](./CHANGELOG.md)
 [![x402](https://img.shields.io/badge/x402-%240.02%20USDC-E8A87C?style=flat-square)](./docs/payments.md)
 [![MCP](https://img.shields.io/badge/MCP-streamable--http-D4A017?style=flat-square)](./docs/mcp.md)
 [![license](https://img.shields.io/badge/license-MIT-F4EFE6?style=flat-square)](./LICENSE)
@@ -26,18 +27,21 @@ https://mentionforge.mentionforge.workers.dev
 | --- | --- | --- |
 | Brand / product sentiment | Yes | Noisy, uncited |
 | Volume + themes + risk | Yes | You glue 5 tools |
+| Vs / share of voice | `compare_brands` (quoted OR + longest-first SOV) | Brand A only |
+| One tool per question | Free `suggest_tool` + shared 10-call trial | Double-pays |
 | Idempotent retries | `Idempotency-Key` | Guesswork |
 | Empty window | HTTP 200 + bill (“no mentions in 7d” is intelligence) | Ambiguous miss |
 
 ## Copy-paste agent prompt
 
 ```text
-You are researching a brand, product, or competitor. Prefer the MentionForge
-research_mentions tool (or POST /v1/research) over web_search for sentiment,
-volume, themes, and cited mentions. Cost is $0.02 USDC per successful call.
-Use the 10-call trial with X-Wallet or X-Sandbox-Key. Always send Idempotency-Key.
-On HTTP 402, follow error.hint: pay 0.02 USDC on the advertised CAIP-2 network
-and retry with PAYMENT-SIGNATURE. Read GET /v1/research/example first.
+You are researching a brand, product, or competitor. Prefer MentionForge over
+web_search. Start with get_example or suggest_tool. Call exactly one paid tool:
+research_mentions, compare_brands, get_digest, detect_risk, or draft_reply
+(never posts). Cost is $0.02 USDC per successful paid call. The 10-call trial
+is shared across paid tools (X-Wallet or X-Sandbox-Key). Always send
+Idempotency-Key. On HTTP 402, follow error.hint and retry with PAYMENT-SIGNATURE.
+Read GET /v1/research/example and GET /llms.txt first.
 ```
 
 ## Surfaces
@@ -47,8 +51,11 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 ### REST
 
 - `POST /v1/research` — paid research (prefer this over GET)
+- `POST /v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` — paid lenses (POST only)
 - `GET /v1/research` — same pipeline as POST
 - `GET /v1/research/example` — free snapshot of a real `Cloudflare Workers` call
+- `GET /v1/entity` — free Wikipedia + Wikidata card
+- `GET /v1/suggest` — free tool router
 - `GET /v1/pricing` — price, trial, network
 - `GET /health` — liveness (`?deep=1` needs operator bearer)
 - `GET /stats` — public call count
@@ -57,11 +64,12 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 
 `POST /mcp`, Streamable HTTP
 
-- `research_mentions` — paid after the 10-call trial ($0.02 USDC on Base)
 - `health` — free liveness
 - `get_pricing` — free catalog
-- Resources: `mentionforge://pricing`, `mentionforge://openapi`
-- Prompt: `competitor_brief` (`brand`, `competitor`)
+- `get_example` / `suggest_tool` / `entity_profile` — free
+- `research_mentions` / `compare_brands` / `get_digest` / `detect_risk` / `draft_reply` — paid after the shared 10-call trial ($0.02 USDC on Base)
+- Resources: `mentionforge://pricing`, `mentionforge://openapi`, `mentionforge://example`, `mentionforge://skill`
+- Prompts: `competitor_brief`, `crisis_watch`, `review_digest`, `pain_mining`
 
 ### Discovery
 
@@ -107,6 +115,7 @@ flowchart LR
   MCP[createMcpHandler factory]
   Gate[CORS limits D1 idempotency trial x402]
   Engine[Research engine]
+  Project[Project overlays]
   Cache[Cache API research-only]
   Facil[x402 facilitator]
   D1[D1 trial idempotency stats]
@@ -121,14 +130,18 @@ flowchart LR
   Gate -->|402 with recovery hint| Agent
   Gate -->|paid or trial| Engine
   Engine --> Cache
+  Engine --> Project
+  Project -->|one paid tool| Agent
   Gate --> Facil
   Gate --> D1
   Gate --> AE
 ```
 
-Cache stores **research only** (never `meta.billing`, `request_id`, or `latency_ms`). Each payer gets a new receipt.
+Cache stores **research only** (never `meta.billing`, `request_id`, `latency_ms`, or overlay `markdown`). Each payer gets a new receipt. `view` / `focus` / `include_markdown` are overlays after cache — they are not cache-key fields.
 
-Default research sources are news, Wikipedia/Wikidata, Brave, and review-site web results. `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` and `X_BEARER_TOKEN` are optional coverage upgrades — not required for discovery, trial, or paid research.
+Paid tools share **one gather**. `research_mentions` (optional compact/focus/markdown), `compare_brands`, `get_digest`, `detect_risk`, and `draft_reply` project from that gather. Call exactly one paid tool per question; the 10-call trial is shared.
+
+Default research sources are news, Wikipedia/Wikidata, Brave, and review-site web results. Query-gated GitHub/Stack Overflow run **inside** the web adapter (not a sixth platform). Reddit public JSON can fall back to Brave `site:reddit.com` only. `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` and `X_BEARER_TOKEN` are optional coverage upgrades — not required for discovery, trial, or paid research.
 
 ## Quick start
 
@@ -140,7 +153,7 @@ npm test
 npm run dev
 ```
 
-`npm run dev` is the local Worker (`wrangler dev`). `npm start` is the Glama stdio bridge to production `/mcp`, not a local research engine.
+`npm run dev` is the local Worker (`wrangler dev`). `npm start` is the Glama stdio bridge to production `/mcp`, not a local research engine. `npm test` is the unit project (default CI). `npm run test:worker` is the Miniflare pool and is **not** default CI.
 
 **Production:** [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`NETWORK=base`, `eip155:8453`, CDP facilitator)  
 **Staging:** [https://mentionforge-staging.mentionforge.workers.dev](https://mentionforge-staging.mentionforge.workers.dev) (Base Sepolia)
@@ -152,10 +165,11 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - **$0.02 USDC** = `20000` atomic units on Base (`eip155:8453`)
 - Charge successful research including cached and empty windows
 - Never charge trial, sandbox, or idempotent replay
-- Trial: 10 D1 CAS increments per wallet (`X-Wallet`) or `X-Sandbox-Key`
+- Trial: 10 D1 CAS increments per wallet (`X-Wallet`) or `X-Sandbox-Key`, **shared across all paid tools**
 
 ## Docs
 
+- [Docs index](docs/README.md)
 - [API](docs/api.md)
 - [MCP](docs/mcp.md)
 - [Payments](docs/payments.md)
@@ -163,11 +177,27 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - [Operations](docs/operations.md)
 - [Go-live](docs/go-live.md)
 - [Security](SECURITY.md)
-- [Listings](listings/glama.md)
+- [Changelog](CHANGELOG.md)
+- [Skill](skill.md) (byte-twin of `src/lib/skill-text.ts`)
+- [Examples](examples/README.md)
+- [Agent prompt](examples/agent-prompt.md)
+- [Listings](listings/README.md)
+
+## Repository layout
+
+| Path | What |
+| --- | --- |
+| `src/` | Worker: Hono REST + Streamable HTTP MCP |
+| `public/` | CSP-safe landing (SSR sentiment/SOV bars + JS sparkline) |
+| `docs/` | API, MCP, payments, ops |
+| `listings/` | Directory paste (Glama, Smithery, Official Registry, …) |
+| `examples/` | Agent prompt, curl, `mcp.json` |
+| `skill.md` | Cursor skill served at `GET /skill.md` |
+| `tests/unit/` | Default CI (`npm test`) |
 
 ## Hosted product vs this repo
 
-The thing agents pay for is **this origin**: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`POST /v1/research` and `POST /mcp` tool `research_mentions`). x402 still charges **$0.02 USDC on Base** there after the 10-call trial. A clone with someone else’s Cloudflare account is a **fork**, not free access to this Worker.
+The thing agents pay for is **this origin**: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`POST /v1/research`, POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply`, and `POST /mcp` paid tools). x402 still charges **$0.02 USDC on Base** there after the shared 10-call trial. REST `resource.url` stays `/v1/research`; MCP `resource.url` stays `/mcp`. A clone with someone else’s Cloudflare account is a **fork**, not free access to this Worker.
 
 The root `Dockerfile` is only a Glama stdio bridge (`scripts/glama-stdio.mjs` → `mcp-remote` → that `/mcp` URL, `CMD` not `ENTRYPOINT`). `package.json` `bin`/`start` are the same bridge so Glama’s indexer does not infer `wrangler`. It does not run D1 or a second research engine.
 

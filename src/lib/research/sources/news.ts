@@ -42,7 +42,9 @@ export async function fetchNews(
   let degraded = false;
 
   const rssQ = encodeURIComponent(plan.news);
-  const rss = await getText(ctx, `https://news.google.com/rss/search?q=${rssQ}&hl=en-US&gl=US&ceid=US:en`);
+  const lang = req.language && /^[a-z]{2}$/.test(req.language) ? req.language : "en";
+  const gl = lang === "en" ? "US" : lang.toUpperCase();
+  const rss = await getText(ctx, `https://news.google.com/rss/search?q=${rssQ}&hl=${lang}&gl=${gl}&ceid=${gl}:${lang}`);
   if (rss) {
     const items = [...rss.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 25);
     for (const item of items) {

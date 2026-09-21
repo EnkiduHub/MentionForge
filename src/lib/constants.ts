@@ -1,7 +1,7 @@
 import { getAddress } from "viem";
 
 export const SERVICE_NAME = "MentionForge";
-export const SERVICE_VERSION = "1.0.0";
+export const SERVICE_VERSION = "1.1.0";
 export const DEFAULT_PRICE_USDC = "0.02";
 export const DEFAULT_TRIAL_CALLS = 10;
 export const USDC_DECIMALS = 6;
@@ -20,7 +20,7 @@ export const ENGINE_BUDGET_MS = 8000;
 export const AI_TIMEOUT_MS = 250;
 export const FETCH_POOL_MAX = 5;
 export const GDELT_THROTTLE_S = 5;
-export const USER_AGENT = "MentionForge/1.0 (research; +https://mentionforge.mentionforge.workers.dev)";
+export const USER_AGENT = "MentionForge/1.1.0 (research; +https://mentionforge.mentionforge.workers.dev)";
 /** Public sample query — a real product, used in docs, OpenAPI, and GET /v1/research/example. */
 export const SAMPLE_QUERY = "Cloudflare Workers";
 

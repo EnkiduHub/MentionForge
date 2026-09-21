@@ -22,12 +22,26 @@ export async function fetchWikidata(ctx: SourceCtx, plan: QueryPlan, win: TimeWi
   const mentions: SourceMention[] = [];
   const citations: SourceResult["citations"] = [];
 
-  const wd = await getJson<WikidataSearch>(
-    ctx,
-    `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(plan.brand)}&language=en&format=json&limit=3`,
+  const lang = ctx.lang && /^[a-z]{2}$/.test(ctx.lang) ? ctx.lang : "en";
+  const names = (plan.brands?.length ? plan.brands : [plan.brand]).slice(0, 3);
+  const searches = await Promise.all(
+    names.map((name) =>
+      getJson<WikidataSearch>(
+        ctx,
+        `https://www.wikidata.org/w/api.php?action=wbsearchentities&search=${encodeURIComponent(name)}&language=${lang}&format=json&limit=2`,
+      ),
+    ),
   );
 
-  const entities = wd?.search ?? [];
+  const entities: NonNullable<WikidataSearch["search"]> = [];
+  const seen = new Set<string>();
+  for (const hit of searches.flatMap((wd) => wd?.search ?? [])) {
+    const key = hit.id || hit.concepturi || "";
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    entities.push(hit);
+    if (entities.length >= 5) break;
+  }
   for (const e of entities) {
     if (!e.concepturi) continue;
     const entityUrl = asHttpsWikidata(e.concepturi);
@@ -47,7 +61,7 @@ export async function fetchWikidata(ctx: SourceCtx, plan: QueryPlan, win: TimeWi
   const qid = officialEntity?.id?.match(/^Q\d+$/i)?.[0];
   if (qid) {
     const sparql = encodeURIComponent(
-      `SELECT ?site ?label WHERE { wd:${qid} wdt:P856 ?site. OPTIONAL { wd:${qid} rdfs:label ?label FILTER(LANG(?label)="en") } } LIMIT 1`,
+      `SELECT ?site ?label WHERE { wd:${qid} wdt:P856 ?site. OPTIONAL { wd:${qid} rdfs:label ?label FILTER(LANG(?label)="${lang}") } } LIMIT 1`,
     );
     const official = await getJson<Sparql>(
       ctx,
@@ -73,8 +87,8 @@ export async function fetchWikidata(ctx: SourceCtx, plan: QueryPlan, win: TimeWi
     source: "wikidata",
     mentions,
     citations,
-    degraded: !wd,
-    error: wd ? undefined : "wikidata_unavailable",
+    degraded: searches.every((wd) => !wd),
+    error: searches.every((wd) => !wd) ? "wikidata_unavailable" : undefined,
   };
 }
 

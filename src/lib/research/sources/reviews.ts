@@ -8,8 +8,8 @@ import { cite } from "../http";
 export async function fetchReviews(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): Promise<SourceResult> {
   const reviewPlan: QueryPlan = {
     ...plan,
-    reddit: `${plan.quoted} (review OR reviews OR "customer service" OR subreddit:reviews)`,
-    web: `${plan.unquoted} site:trustpilot.com OR site:g2.com OR site:capterra.com review`,
+    reddit: `${plan.reddit} (review OR reviews OR "customer service" OR subreddit:reviews)`,
+    web: `${plan.web} site:trustpilot.com OR site:g2.com OR site:capterra.com review`,
   };
   const [reddit, web] = await Promise.all([fetchReddit(ctx, reviewPlan, win), fetchWeb(ctx, reviewPlan, win)]);
   const mentions = [...reddit.mentions, ...web.mentions].map((m) => ({ ...m, platform: "reviews" as const }));

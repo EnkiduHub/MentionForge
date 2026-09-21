@@ -4,6 +4,8 @@ import { corsMiddleware } from "./lib/cors";
 import { apiSecurityHeaders, htmlSecurityHeaders, WWW_AUTHENTICATE } from "./lib/security-headers";
 import { AgentError } from "./schemas/errors";
 import { researchRoutes } from "./routes/research";
+import { lensRoutes } from "./routes/lenses";
+import { entityRoutes } from "./routes/entity";
 import { discoveryRoutes } from "./routes/discovery";
 import { exampleRoutes } from "./routes/example";
 import { pricingRoutes } from "./routes/pricing";
@@ -39,7 +41,9 @@ export function createApp() {
       path === "/skill.md" ||
       path === "/server-card.json" ||
       path === "/v1/pricing" ||
-      path === "/v1/research/example";
+      path === "/v1/research/example" ||
+      path === "/v1/entity" ||
+      path === "/v1/suggest";
     const id = c.get("requestId") as string;
     if (discovery) await limitOrThrow(c.env.DISCOVERY_LIMIT, c.req.header("cf-connecting-ip") ?? "disc", id, 10);
     await next();
@@ -49,6 +53,8 @@ export function createApp() {
   app.route("/", exampleRoutes);
   app.route("/", pricingRoutes);
   app.route("/", operatorRoutes);
+  app.route("/", entityRoutes);
+  app.route("/", lensRoutes);
   app.route("/", researchRoutes);
 
   app.notFound((c) => {

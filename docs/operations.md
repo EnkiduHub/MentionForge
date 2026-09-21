@@ -12,6 +12,8 @@ Optional source APIs (not required for agents — production already serves REST
 - X recent search: [X Developer Console](https://console.x.com/), [Bearer token docs](https://docs.x.com/resources/fundamentals/authentication/oauth-2-0/bearer-tokens). App-only Bearer. Search is pay-per-use; set a low credit cap. Without a working bearer, X falls back to web mentions (`degraded`).
 - Brave Search (not Answers): [api.search.brave.com/app/keys](https://api.search.brave.com/app/keys). Already on staging and production.
 
+GitHub and Stack Overflow do **not** need secrets. They are query-gated inside the web adapter (dev-shaped queries, skip `site:` scoped). `GET /health` `sources` stays `reddit`, `news`, `web`, `reviews`, `x`.
+
 `GET /health` reports `source_backends` (no secret values). `GET /health?deep=1` adds `sources_configured` booleans (reddit / x / brave / sandbox / cdp).
 
 Public vars: `RECIPIENT_WALLET` (MetaMask/EVM 0x payTo — public, not a secret), `NETWORK`, `PRICE_USDC`, `FREE_TRIAL_CALLS`, `FACILITATOR_URL`.
@@ -27,7 +29,7 @@ Put the real `database_id` in `wrangler.jsonc` (top-level, `env.staging`, `env.p
 
 ## Dashboard
 
-`GET /operator` with `Authorization: Bearer $OPERATOR_TOKEN` reads D1 `stats_daily` (calls, paid, USDC micros, trial, errors). Analytics Engine is not queried from the Worker.
+`GET /operator` with `Authorization: Bearer $OPERATOR_TOKEN` reads D1 `stats_daily` (calls, paid, USDC micros, trial, errors) and draws a 30-day sparkline from `days` reversed into chronological order. Analytics Engine is not queried from the Worker.
 
 ## Health
 
@@ -42,4 +44,4 @@ npx wrangler deploy --env staging
 npx wrangler deploy --env production
 ```
 
-`npm run deploy` is staging-only so a bare deploy cannot overwrite production with Sepolia vars. Production is Base + CDP (`https://mentionforge.mentionforge.workers.dev`).
+`npm run deploy` is staging-only so a bare deploy cannot overwrite production with Sepolia vars. Production is Base + CDP (`https://mentionforge.mentionforge.workers.dev`). Default CI is `npm test` (unit). `npm run test:worker` is not default CI.

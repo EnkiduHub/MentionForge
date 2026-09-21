@@ -1,4 +1,5 @@
 import type { QueryPlan } from "../query-plan";
+import { stampInWindow } from "../query-plan";
 import type { TimeWindow } from "../types";
 import type { SourceCtx } from "../http";
 import { cite, emptyResult, getJson } from "../http";
@@ -6,6 +7,7 @@ import type { SourceMention, SourceResult } from "../types";
 import { allowedFetch } from "../../allowlist";
 import { abortMs } from "../../fetch-pool";
 import { SOURCE_TIMEOUT_MS, UNAUTH_SOURCE_TIMEOUT_MS, USER_AGENT } from "../../constants";
+import { cleanSnippet } from "../../html";
 
 type RedditListing = {
   data?: {
@@ -27,6 +29,7 @@ type RedditListing = {
 };
 
 type TokenJson = { access_token?: string; expires_in?: number };
+type BraveWeb = { web?: { results?: Array<{ title?: string; url?: string; description?: string }> } };
 
 export async function fetchReddit(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): Promise<SourceResult> {
   const q = encodeURIComponent(plan.reddit);
@@ -36,7 +39,7 @@ export async function fetchReddit(ctx: SourceCtx, plan: QueryPlan, win: TimeWind
     : `https://www.reddit.com/search.json?q=${q}&sort=relevance&t=year&limit=50&raw_json=1`;
   const headers: Record<string, string> = token ? { authorization: `Bearer ${token}` } : {};
   const json = await getJson<RedditListing>(ctx, url, headers, token ? SOURCE_TIMEOUT_MS : UNAUTH_SOURCE_TIMEOUT_MS);
-  if (!json) return emptyResult("reddit", true, "reddit_unavailable");
+  if (!json) return redditBraveFallback(ctx, plan, win);
   const mentions: SourceMention[] = [];
   for (const child of json.data?.children ?? []) {
     const d = child.data;
@@ -59,6 +62,45 @@ export async function fetchReddit(ctx: SourceCtx, plan: QueryPlan, win: TimeWind
     source: "reddit",
     mentions,
     citations: mentions.slice(0, 8).map((m) => cite(m.url, m.title ?? m.text.slice(0, 80), "reddit")),
+  };
+}
+
+/** Brave `site:reddit.com` only. Never encyclopedia, never permalink fetches. */
+async function redditBraveFallback(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): Promise<SourceResult> {
+  if (!ctx.env.BRAVE_API_KEY) return emptyResult("reddit", true, "reddit_unavailable");
+  const lang = ctx.lang && /^[a-z]{2}$/.test(ctx.lang) ? `&search_lang=${ctx.lang}` : "";
+  const brave = await getJson<BraveWeb>(
+    ctx,
+    `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(`${plan.reddit} site:reddit.com`)}&count=8${lang}`,
+    { "X-Subscription-Token": ctx.env.BRAVE_API_KEY },
+  );
+  const mentions: SourceMention[] = [];
+  for (const r of brave?.web?.results ?? []) {
+    if (!r.url) continue;
+    let host = "";
+    try {
+      host = new URL(r.url).hostname.replace(/^www\./, "").toLowerCase();
+    } catch {
+      continue;
+    }
+    if (host !== "reddit.com" && !host.endsWith(".reddit.com")) continue;
+    mentions.push({
+      platform: "reddit",
+      url: r.url,
+      author: "reddit",
+      timestamp: stampInWindow(win),
+      text: cleanSnippet([r.title, r.description].filter(Boolean).join(" — ")),
+      engagement: 2,
+      title: r.title ? cleanSnippet(r.title) : r.title,
+    });
+  }
+  if (!mentions.length) return emptyResult("reddit", true, "reddit_unavailable");
+  return {
+    source: "reddit",
+    mentions,
+    citations: mentions.slice(0, 8).map((m) => cite(m.url, m.title ?? m.text.slice(0, 80), "reddit-brave")),
+    degraded: true,
+    degradedFlags: ["reddit_brave"],
   };
 }
 

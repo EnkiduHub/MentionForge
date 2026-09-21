@@ -76,6 +76,17 @@
       </ul>
     </section>
 
+    <section aria-labelledby="builder-title">
+      <h2 id="builder-title">Query builder</h2>
+      <p class="muted">Fills the curl and MCP JSON only. These buttons never call paid research from the browser.</p>
+      <div class="presets" role="group" aria-label="Query presets">
+        <button type="button" class="copy" data-preset="brand">Brand</button>
+        <button type="button" class="copy" data-preset="vs">Vs</button>
+        <button type="button" class="copy" data-preset="reviews">Reviews</button>
+        <button type="button" class="copy" data-preset="risk">24h risk</button>
+      </div>
+    </section>
+
     <section aria-labelledby="curl-title">
       <div class="section-head">
         <h2 id="curl-title">Live curl — POST, 402, retry</h2>
@@ -109,6 +120,13 @@ Idempotency-Key: (new UUID per unique body)
       <div id="fixture-root" class="fixture">
         <p class="muted">Loading snapshot…</p>
       </div>
+      <div id="sparkline" class="sparkline" role="img" aria-label="Volume sparkline"></div>
+    </section>
+
+    <section aria-labelledby="tools-title">
+      <h2 id="tools-title">Tools</h2>
+      <p class="muted">Free tools first. Paid tools share one 10-call trial at $0.02 USDC. Call exactly one paid tool per question.</p>
+      <div id="tool-gallery" class="tool-gallery"></div>
     </section>
 
     <section aria-labelledby="volume-title">

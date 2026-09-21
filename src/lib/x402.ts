@@ -609,6 +609,13 @@ const BAZAAR_INPUT_SCHEMA = {
     include_summary: { type: "boolean", description: REQUEST_FIELD_DESC.include_summary },
     min_engagement: { type: "number", minimum: 0, description: REQUEST_FIELD_DESC.min_engagement },
     language: { type: "string", description: REQUEST_FIELD_DESC.language },
+    view: { type: "string", enum: ["full", "compact"], description: REQUEST_FIELD_DESC.view },
+    focus: {
+      type: "string",
+      enum: ["praise", "complaint", "question", "buying", "news", "other"],
+      description: REQUEST_FIELD_DESC.focus,
+    },
+    include_markdown: { type: "boolean", description: REQUEST_FIELD_DESC.include_markdown },
   },
 } as const;
 

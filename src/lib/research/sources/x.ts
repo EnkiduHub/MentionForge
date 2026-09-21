@@ -47,7 +47,7 @@ export async function fetchX(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): 
     }
   }
 
-  const web = await fetchWeb(ctx, { ...plan, web: `${plan.unquoted} site:x.com OR site:twitter.com` }, win);
+  const web = await fetchWeb(ctx, { ...plan, web: `${plan.web} site:x.com OR site:twitter.com` }, win);
   const mentions = web.mentions
     .filter((m) => {
       try {

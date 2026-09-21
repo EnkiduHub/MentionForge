@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { createApp } from "../../src/app";
-import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC } from "../../src/mcp";
+import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
 import { DIRECTORY_LINKS, mcpToolCards } from "../../src/lib/discoverability";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
@@ -75,10 +75,19 @@ describe("agent discoverability", () => {
       directories: { github: string };
       pricing: { pay_to: string; tool: string };
     };
-    expect(card.tools.map((t) => t.name)).toEqual(["health", "get_pricing", "research_mentions"]);
+    expect(card.tools.map((t) => t.name).slice(0, 5)).toEqual([
+      "health",
+      "get_pricing",
+      "get_example",
+      "suggest_tool",
+      "entity_profile",
+    ]);
+    expect(card.tools.map((t) => t.name)).toContain("research_mentions");
     expect(card.tools[0]?.description).toBe(HEALTH_DESC);
     expect(card.tools[1]?.description).toBe(GET_PRICING_DESC);
-    expect(card.tools[2]?.description).toBe(TOOL_DESC);
+    expect(card.tools[2]?.description).toBe(GET_EXAMPLE_DESC);
+    const research = card.tools.find((t) => t.name === "research_mentions");
+    expect(research?.description).toBe(TOOL_DESC);
     for (const tool of card.tools) {
       expect(tool.when_to_use.length).toBeGreaterThan(8);
       expect(tool.when_to_use).not.toMatch(/0x[a-fA-F0-9]{40}/);
@@ -134,7 +143,7 @@ describe("agent discoverability", () => {
     expect(txt).toMatch(/## MCP/);
     expect(txt).toMatch(/"mcpServers"/);
     expect(txt).toMatch(/claude mcp add --transport http mentionforge/);
-    expect(txt).toMatch(/Free first: health \+ get_pricing/);
+    expect(txt).toMatch(/Free first: health \+ get_pricing \+ get_example/);
     expect(txt).toMatch(/\/skill\.md/);
     expect(txt).toMatch(/Do NOT use for live trading execution/);
   });
@@ -145,6 +154,8 @@ describe("agent discoverability", () => {
     const txt = await res.text();
     expect(txt).toMatch(/Allow: \/skill\.md/);
     expect(txt).toMatch(/Allow: \/server-card\.json/);
+    expect(txt).toMatch(/Allow: \/v1\/entity/);
+    expect(txt).toMatch(/Allow: \/v1\/suggest/);
   });
 
   it("operator HTML uses the 96px chrome mark and PNG favicon", async () => {
@@ -161,7 +172,14 @@ describe("agent discoverability", () => {
 
   it("mcp tool cards stay free-first without wallets in when_to_use", () => {
     const cards = mcpToolCards();
-    expect(cards.map((c) => c.name)).toEqual(["health", "get_pricing", "research_mentions"]);
+    expect(cards.map((c) => c.name).slice(0, 5)).toEqual([
+      "health",
+      "get_pricing",
+      "get_example",
+      "suggest_tool",
+      "entity_profile",
+    ]);
+    expect(cards.map((c) => c.name)).toContain("research_mentions");
     expect(JSON.stringify(cards)).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
 

@@ -450,7 +450,7 @@ describe("HTTP surfaces", () => {
     expect(txt).toMatch(/Reddit OAuth and X recent-search are optional/);
     expect(txt).toMatch(/claude mcp add --transport http mentionforge/);
     expect(txt).toMatch(/"mcpServers"/);
-    expect(txt).toMatch(/Free first: health \+ get_pricing/);
+    expect(txt).toMatch(/Free first: health, get_pricing/);
     expect(txt).toMatch(/\/skill\.md/);
   });
 

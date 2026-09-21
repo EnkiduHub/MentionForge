@@ -21,6 +21,9 @@ import { fetchReviews } from "./sources/reviews";
 import { fetchX } from "./sources/x";
 import type { SourceCtx } from "./http";
 import type { SourceMention, SourceResult } from "./types";
+import { relevantToBrands, shareOfVoice } from "./sov";
+import { classifyIntent, relevanceScore } from "./intent";
+import { detectSignals, sentimentByPlatform, topVoices } from "./signals";
 
 const failCounts = new Map<string, number>();
 
@@ -80,7 +83,9 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
     ...results.flatMap((r) => r.degradedFlags ?? []),
   ]);
 
-  const qTokens = tokenize(plan.brand);
+  const qTokens = tokenize((plan.brands ?? [plan.brand]).join(" "));
+  const onTopic = (item: { text: string; url: string; title?: string }) =>
+    plan.brands && plan.brands.length >= 2 ? relevantToBrands(item, plan.brands) : relevantToQuery(item, qTokens);
   let fused: SourceMention[] = [];
   const seen = new Set<string>();
   for (const r of results) {
@@ -88,7 +93,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
       const url = canonicalizeUrl(m.url);
       const item = { ...m, url, text: truncate(cleanSnippet(m.text.replace(/\s+/g, " ").trim()), MAX_MENTION_CHARS) };
       if (isSpam(item)) continue;
-      if (!relevantToQuery(item, qTokens)) continue;
+      if (!onTopic(item)) continue;
       if (req.min_engagement && item.engagement < req.min_engagement) continue;
       const fp = fingerprint(item);
       if (seen.has(fp) || seen.has(url)) continue;
@@ -109,16 +114,22 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
 
   let scored = fused.map((m) => ({ m, s: scoreText(m.text, qTokens) }));
   scored = await maybeDistilbert(env, scored);
-  const mentions: Mention[] = scored.slice(0, req.limit).map(({ m, s }) => ({
-    id: idFor(m),
-    platform: m.platform,
-    url: m.url,
-    author: m.author,
-    timestamp: m.timestamp,
-    text: m.text,
-    engagement: m.engagement,
-    sentiment: s.score,
-  }));
+  const mentions: Mention[] = scored.slice(0, req.limit).map(({ m, s }) => {
+    const tagged = classifyIntent(m.text, s.score);
+    return {
+      id: idFor(m),
+      platform: m.platform,
+      url: m.url,
+      author: m.author,
+      timestamp: m.timestamp,
+      text: m.text,
+      engagement: m.engagement,
+      sentiment: s.score,
+      intent: tagged.intent,
+      aspects: tagged.aspects.length ? tagged.aspects : undefined,
+      relevance: relevanceScore(m, qTokens),
+    };
+  });
 
   const by = emptyPlatformCounts();
   for (const m of fused) by[m.platform] += 1;
@@ -146,7 +157,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   const trend = bucketTrend(fused, req.timeframe === "24h");
 
   const citations = dedupeCites(results.flatMap((r) => r.citations))
-    .filter((c) => relevantToQuery({ text: c.title, url: c.url }, qTokens))
+    .filter((c) => onTopic({ text: c.title, url: c.url }))
     .slice(0, 40);
 
   const fusedUrls = new Set(fused.map((m) => m.url));
@@ -172,21 +183,31 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
     throw new AgentError("SOURCE_UNAVAILABLE", "All upstream sources failed.", { request_id: requestId });
   }
 
+  const volume = { total: fused.length, by_platform: by, trend };
+  const sentiment = {
+    overall,
+    positive: pct(pos),
+    neutral: pct(neu),
+    negative: pct(neg),
+    distribution: { positive: pct(pos), neutral: pct(neu), negative: pct(neg), by_platform: distPlat },
+    by_platform: sentimentByPlatform(scored.map(({ m, s }) => ({ platform: m.platform, score: s.score }))),
+  };
+  const sov = plan.brands?.length ? shareOfVoice(fused, plan.brands) : undefined;
+  const signals = detectSignals(volume, sentiment);
+  const voices = topVoices(mentions);
+
   return {
     query: req.query,
     timeframe: req.timeframe,
-    volume: { total: fused.length, by_platform: by, trend },
-    sentiment: {
-      overall,
-      positive: pct(pos),
-      neutral: pct(neu),
-      negative: pct(neg),
-      distribution: { positive: pct(pos), neutral: pct(neu), negative: pct(neg), by_platform: distPlat },
-    },
+    volume,
+    sentiment,
     themes,
     mentions,
     summary,
     citations,
+    ...(sov ? { share_of_voice: sov } : {}),
+    signals,
+    ...(voices?.length ? { voices } : {}),
     meta: {
       sources_used: sourcesUsed.length ? sourcesUsed : ["none"],
       confidence: Number(confidence.toFixed(3)),

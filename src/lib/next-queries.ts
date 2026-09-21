@@ -1,13 +1,15 @@
 import type { ResearchRequest } from "../schemas/research";
+import { splitBrands } from "./research/query-plan";
 
 export function nextQueries(req: ResearchRequest): string[] {
   const q = req.query.trim();
-  const vs = /\s+vs\.?\s+/i.exec(q);
-  const brand = vs ? q.slice(0, vs.index).trim() : q.split(/\s+/).slice(0, 3).join(" ");
+  const brands = splitBrands(q);
+  const brand = brands?.[0] || q.split(/\s+/).slice(0, 3).join(" ");
+  const counterpart = brands?.[1];
   const out = [
-    `${brand} vs competitors`,
     `${brand} complaints`,
-    `${brand} last 24 hours`,
+    req.timeframe === "24h" ? `${brand} reviews` : `${brand} last 24 hours`,
+    counterpart ? `${brand} vs ${counterpart}` : `${brand} vs competitors`,
   ];
   return out.slice(0, 3);
 }

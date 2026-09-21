@@ -10,15 +10,31 @@ const ALLOWED = new Set([
   "api.search.brave.com",
   "api.x.com",
   "api.twitter.com",
+  "api.github.com",
+  "api.stackexchange.com",
 ]);
 
 const MAX_REDIRECTS = 3;
+
+const WIKI_LANG_HOST = /^[a-z]{2,3}\.wikipedia\.org$/;
+
+export function wikipediaHost(lang?: string): string {
+  const code = (lang ?? "en").toLowerCase();
+  if (/^[a-z]{2}$/.test(code) && WIKI_LANG_HOST.test(`${code}.wikipedia.org`)) return `${code}.wikipedia.org`;
+  return "en.wikipedia.org";
+}
+
+function isAllowedHost(host: string): boolean {
+  const h = host.toLowerCase();
+  if (ALLOWED.has(h)) return true;
+  return WIKI_LANG_HOST.test(h);
+}
 
 export function assertAllowedUrl(url: string): URL {
   const u = new URL(url);
   if (u.protocol !== "https:") throw new Error("blocked: non-https");
   const host = u.hostname.toLowerCase();
-  if (!ALLOWED.has(host)) throw new Error(`blocked host: ${host}`);
+  if (!isAllowedHost(host)) throw new Error(`blocked host: ${host}`);
   return u;
 }
 

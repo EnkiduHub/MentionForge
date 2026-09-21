@@ -6,6 +6,7 @@ const POS: Record<string, number> = {
   win: 2, won: 2, success: 2, successful: 2, solid: 1, clean: 1, easy: 1, useful: 2,
   perfect: 3, wonderful: 3, fantastic: 3, delighted: 2, pleased: 2, outstanding: 3,
   brilliant: 3, enjoy: 2, enjoyed: 2, favorite: 2, favourite: 2, wow: 2, yes: 1,
+  worth: 1, stable: 2, smooth: 1, fair: 1, polite: 1,
 };
 
 const NEG: Record<string, number> = {
@@ -14,7 +15,8 @@ const NEG: Record<string, number> = {
   issues: -1, problem: -1, problems: -1, disappointing: -2, disappointed: -2, poor: -2,
   fail: -2, failed: -2, failure: -2, angry: -2, annoying: -2, useless: -2, refund: -1,
   outage: -2, down: -1, lag: -1, laggy: -1, overpriced: -2, regret: -2, avoid: -2,
-  never: -1, no: -1, not: 0,
+  never: -1, no: -1, not: 0, rude: -2, downtime: -2, insecure: -2, pricey: -1,
+  unfair: -2, unreliable: -2, complaint: -1,
 };
 
 const NEGATORS = new Set(["not", "never", "no", "n't", "cannot", "cant", "hardly"]);

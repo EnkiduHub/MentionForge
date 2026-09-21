@@ -27,6 +27,18 @@ operatorRoutes.get("/operator", async (c) => {
   gate(c);
   const s = await operatorStats(c.env);
   const usdc = (s.totals.usdc_micros / 1_000_000).toFixed(2);
+  const days = [...(s.days ?? [])].reverse();
+  const max = Math.max(1, ...days.map((d) => d.calls));
+  const sparkPts = days
+    .map((d, i) => {
+      const x = days.length <= 1 ? 0 : (i / (days.length - 1)) * 240;
+      const y = 54 - (d.calls / max) * 48;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  const spark = days.length
+    ? `<div class="op-spark"><svg viewBox="0 0 240 64" role="img" aria-label="30-day call sparkline"><polyline fill="none" stroke="currentColor" stroke-width="2" points="${sparkPts}"/></svg></div>`
+    : "";
   const asOf = escapeHtml(s.as_of);
   const html = `<!doctype html>
 <html lang="en">
@@ -66,6 +78,7 @@ operatorRoutes.get("/operator", async (c) => {
       <article class="card"><h2>Trial</h2><p class="stat">${s.totals.trial}</p></article>
       <article class="card"><h2>Errors</h2><p class="stat">${s.totals.errors}</p></article>
     </section>
+    ${spark}
     <p class="muted">as_of ${asOf}</p>
   </div>
 </body>

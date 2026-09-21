@@ -5,8 +5,8 @@ Production Bazaar seed must run **after** a Worker deploy that changes settle ca
 | Field | Value |
 | --- | --- |
 | Origin | `https://mentionforge.mentionforge.workers.dev` |
-| REST resource | `POST /v1/research` (type `http`) |
-| MCP resource | `POST /mcp` (type `mcp`; Bazaar indexes `research_mentions`) |
+| REST resource | `POST /v1/research` (type `http`; paid lenses `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` verify against this same URL) |
+| MCP resource | `POST /mcp` (type `mcp`; Bazaar indexes `research_mentions`; specialty tools share this URL) |
 | Amount | `20000` atomic USDC (`$0.02`) |
 | Network | `eip155:8453` (Base). Staging remains `eip155:84532` (Base Sepolia). |
 | Asset | Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |

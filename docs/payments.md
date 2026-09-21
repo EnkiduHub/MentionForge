@@ -33,12 +33,12 @@ EIP-712 token name is `USDC` on Base Sepolia and `USD Coin` on Base mainnet (req
 
 ## Trial
 
-10 D1 CAS updates per wallet (`X-Wallet`) **or** `X-Sandbox-Key` (`timingSafeEqual`). Fail closed if D1 is down.
+10 D1 CAS updates per wallet (`X-Wallet`) **or** `X-Sandbox-Key` (`timingSafeEqual`), **shared across all paid tools** (`research_mentions`, `compare_brands`, `get_digest`, `detect_risk`, `draft_reply`). Not 10 each. Fail closed if D1 is down.
 
 ## Idempotency
 
-Key is bound to SHA-256 of the canonical request body. Conflict → `409` (no settle). Replay returns the **original** billing.
+Key is bound to SHA-256 of the canonical body. `research_mentions` hashes `canonicalJson(researchRequest)` (unchanged). Specialized lenses prefix `tool` in the hash. New UUID per unique tool+body; retry of the same tool+body keeps the key. Conflict → `409` (no settle). Replay returns the **original** billing.
 
 ## Bazaar
 
-Does **not** auto-list until a real 402/paid flow runs. CDP indexes the settle payload, not verify: `paymentPayload.resource` must be an absolute `https://` URL and `extensions.bazaar` must be present (the Worker re-attaches both on settle if a client omits them). REST POST `/v1/research` advertises `type: "http"` (preferred by discovery search); MCP `research_mentions` advertises `type: "mcp"` / `transport: "streamable-http"`. Production seed: `PAY_ONCE=1 npm run seed-bazaar` (MCP then REST, **$0.04**). MCP clients send the payment payload object in `_meta["x402/payment"]`. See [go-live](go-live.md).
+Does **not** auto-list until a real 402/paid flow runs. CDP indexes the settle payload, not verify: `paymentPayload.resource` must be an absolute `https://` URL and `extensions.bazaar` must be present (the Worker re-attaches both on settle if a client omits them). REST POST `/v1/research` advertises `type: "http"` (preferred by discovery search); MCP `research_mentions` advertises `type: "mcp"` / `transport: "streamable-http"`. Production seed: `PAY_ONCE=1 npm run seed-bazaar` (MCP then REST, **$0.04**). Do not re-run `PAY_ONCE` for specialty tools. MCP clients send the payment payload object in `_meta["x402/payment"]`. See [go-live](go-live.md).
