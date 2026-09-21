@@ -11,8 +11,8 @@ import { EXAMPLE_RESPONSE } from "../../src/lib/example";
 import { SAMPLE_QUERY } from "../../src/lib/constants";
 import { AgentError } from "../../src/schemas/errors";
 
-function jsonProps(schema: z.ZodType): Record<string, { description?: string }> {
-  const json = z.toJSONSchema(schema) as {
+function jsonProps(schema: z.ZodType, io: "input" | "output" = "input"): Record<string, { description?: string }> {
+  const json = z.toJSONSchema(schema, { target: "draft-2020-12", io }) as {
     properties?: Record<string, { description?: string }>;
   };
   return json.properties ?? {};
@@ -42,7 +42,7 @@ describe("research schemas", () => {
   });
 
   it("describes key research response fields for MCP JSON Schema", () => {
-    const props = jsonProps(researchResponseSchema);
+    const props = jsonProps(researchResponseSchema, "output");
     for (const key of ["query", "timeframe", "volume", "sentiment", "themes", "mentions", "summary", "citations", "meta"] as const) {
       expect(props[key]?.description?.length ?? 0, key).toBeGreaterThan(8);
     }

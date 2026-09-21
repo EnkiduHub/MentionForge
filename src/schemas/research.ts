@@ -50,16 +50,16 @@ export const timeframeSchema = z
 export const researchRequestSchema = z
   .object({
     query: z.string().trim().min(1).max(MAX_QUERY_CHARS).describe(REQUEST_FIELD_DESC.query),
-    platforms: z.array(platformSchema).min(1).max(5).default([...PLATFORMS]).describe(REQUEST_FIELD_DESC.platforms),
-    timeframe: timeframeSchema.default("7d").describe(REQUEST_FIELD_DESC.timeframe),
-    limit: z.number().int().min(1).max(50).default(20).describe(REQUEST_FIELD_DESC.limit),
-    include_summary: z.boolean().default(true).describe(REQUEST_FIELD_DESC.include_summary),
-    min_engagement: z.number().min(0).optional().describe(REQUEST_FIELD_DESC.min_engagement),
+    platforms: z.array(platformSchema).min(1).max(5).describe(REQUEST_FIELD_DESC.platforms).default([...PLATFORMS]),
+    timeframe: timeframeSchema.describe(REQUEST_FIELD_DESC.timeframe).default("7d"),
+    limit: z.number().int().min(1).max(50).describe(REQUEST_FIELD_DESC.limit).default(20),
+    include_summary: z.boolean().describe(REQUEST_FIELD_DESC.include_summary).default(true),
+    min_engagement: z.number().min(0).describe(REQUEST_FIELD_DESC.min_engagement).optional(),
     language: z
       .string()
       .regex(/^[a-z]{2}$/, "ISO 639-1 two-letter code")
-      .optional()
-      .describe(REQUEST_FIELD_DESC.language),
+      .describe(REQUEST_FIELD_DESC.language)
+      .optional(),
   })
   .strip();
 

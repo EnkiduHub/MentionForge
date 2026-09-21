@@ -6,9 +6,10 @@ Transport: **Streamable HTTP** at `POST /mcp`. Stateless per-request factory via
 
 ### `research_mentions`
 
-First 200 characters of the description include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. The rest states when-to-use, when-not vs `health` / `get_pricing`, trial headers, `Idempotency-Key`, 402/x402 retry, read-only / open-world / non-idempotent-without-key, and the return shape. Native Reddit OAuth and X API are **optional operator upgrades**, not the default (public Reddit search + web X).
+First 200 characters of the description include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. The rest states when-to-use, explicit when-not vs `health` / `get_pricing` (`use … instead`), trial headers, `Idempotency-Key`, 402/x402 retry, optional filters vs the $0.02 price, and that native Reddit/X APIs are optional upgrades. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
 
-- `readOnlyHint: true`, `openWorldHint: true`, `idempotentHint: false`
+- `title`: Research social mentions
+- `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: true`, `idempotentHint: false`
 - `inputSchema` — Zod request (`.strip()`) with `.describe()` on every field
 - `outputSchema` — research response with `.describe()` on key fields
 - Result = `structuredContent` + compact JSON `text`
@@ -19,11 +20,11 @@ Clients send `_meta["x402/payment"]` as the **payload object** (not REST base64)
 
 ### `health`
 
-Free, read-only liveness (`payments_ready`, `source_backends`). Use before paid research; do not use for price (that's `get_pricing`) or mentions (`research_mentions`). `openWorldHint: false`, `idempotentHint: true`.
+Free liveness. Use when you only need uptime; for price use `get_pricing` instead; for mentions use `research_mentions`. Takes no arguments, never charges, no payment headers. `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`, `idempotentHint: true`.
 
 ### `get_pricing`
 
-Free, read-only catalog ($0.02 USDC, trial headers, CAIP-2 network). Use before paying; do not use for liveness (`health`) or mentions (`research_mentions`). Never charges. `openWorldHint: false`, `idempotentHint: true`.
+Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Use when you need list price or trial terms; for liveness use `health` instead; for mentions use `research_mentions`. Takes no arguments, never charges. Same annotation pattern as `health`.
 
 ## Resources
 
