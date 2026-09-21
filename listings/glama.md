@@ -4,6 +4,19 @@ List MentionForge as a **remote connector** at the hosted URL. The GitHub listin
 
 Glama [prices open-source hosting as free](https://glama.ai/pricing). Paid `research_mentions` still settles **$0.02 USDC on Base** against `https://mentionforge.mentionforge.workers.dev/mcp` (clients pay). Do not tell Glama to run `wrangler` or `npm run dev`.
 
+## Sync Server does not update Available Tools
+
+These two URLs are different Glama products. Resyncing GitHub updates only the README scrape on the servers page.
+
+| What you did | What actually updates |
+| --- | --- |
+| Recrawl / resync the **connector** | Live `POST /mcp` `tools/list` on the Worker (12 tools after 1.2.2) |
+| **Sync Server** on the GitHub listing | Git mirror + Overview README only |
+| Push `server.json` to `main` | Official MCP Registry version (PulseMCP / connector namespace). Not the GitHub listing inspect |
+| **Deploy** then **Make Release** on [admin/dockerfile](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/admin/dockerfile) | Available Tools, Schema, TDQS, and the quality-score letter on `/mcp/servers/EnkiduHub/MentionForge` |
+
+A Glama release is **not** a GitHub release ([How to make a release](https://glama.ai/blog/2026-03-15-how-to-make-a-release)). The GitHub listing still showing three tools (`get_pricing`, `health`, `research_mentions`, changelog `v1.0.0`) after Sync means the last **successful sandbox inspect** is stale — not that production `/mcp` is stale. Worker deploy is already 1.2.2. There is no extra `wrangler` / `npm` command that refreshes that inspect; paste the stdio-bridge form below, Deploy, then Make Release as `1.2.2`.
+
 **Connector form:** https://glama.ai/mcp/connectors (Add MCP Server → Connector)  
 GitHub topics + README also feed Glama’s open-source index after About is set.
 
@@ -13,8 +26,8 @@ Do not treat these as the same score. punkpeye’s awesome-mcp-servers bot wants
 
 | Surface | URL | What it measures | Status |
 | --- | --- | --- | --- |
-| Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy; recrawl after 1.2.2 so TDQS sees 12 `verb_noun` tools and the parameter-interaction copy — not the quality-score badge |
-| GitHub server listing | https://glama.ai/mcp/servers/@EnkiduHub/MentionForge | README scrape / deployability | Landing/server-card stay on this `@` URL unless a quality-score badge requires the non-`@` twin |
+| Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy; 12 tools after the 1.2.2 recrawl — this is **not** the GitHub listing inspect |
+| GitHub server listing | https://glama.ai/mcp/servers/EnkiduHub/MentionForge | Last Deploy + Make Release sandbox `tools/list` (README is Sync-only) | Stale until a new Deploy + Release; Sync will not replace the v1.0.0 three-tool inspect |
 | Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | README has both `score.svg` and `card.svg`; letter grade after a Glama **release** succeeds |
 
 ## Getting paid (wallet is on the Worker, not in Glama)
@@ -67,4 +80,4 @@ The root `Dockerfile` uses `CMD` (not `ENTRYPOINT`) and starts `scripts/glama-st
 
 Do **not** paste private test credentials (CDP, sandbox, or wallet keys) into Glama. `initialize` / `get_health` / `get_pricing` are free and enough to prove the endpoint is up. Paid `research_mentions` returns HTTP 402 until the client attaches x402.
 
-Official Registry publish (`io.github.EnkiduHub/MentionForge`) is the other Glama ingest path — do not wait for traction before that publish.
+Official Registry publish (`io.github.EnkiduHub/MentionForge`) updates PulseMCP and the connector namespace version. It does **not** replace Deploy + Make Release for GitHub-listing Available Tools. Do not wait for traction before that publish.

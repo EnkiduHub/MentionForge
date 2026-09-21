@@ -217,6 +217,24 @@ describe("agent discoverability", () => {
     expect(listing).toContain('["node", "scripts/glama-stdio.mjs"]');
     expect(listing).toContain('{"type":"object","properties":{},"required":[]}');
     expect(listing).toMatch(/Do \*\*not\*\* add `RECIPIENT_WALLET`/);
+    expect(listing).toContain("Sync Server does not update Available Tools");
+    expect(readme).toContain("Sync Server does not update Available Tools");
+
+    const official = JSON.parse(readFileSync(new URL("../../server.json", import.meta.url), "utf8")) as {
+      version?: string;
+      remotes?: Array<{ type?: string; url?: string }>;
+    };
+    const pkgVersion = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
+      version?: string;
+    };
+    const constants = readFileSync(new URL("../../src/lib/constants.ts", import.meta.url), "utf8");
+    const serviceVersion = /export const SERVICE_VERSION = "([^"]+)"/.exec(constants)?.[1];
+    expect(official.version).toBe(pkgVersion.version);
+    expect(official.version).toBe(serviceVersion);
+    expect(official.remotes?.[0]).toEqual({
+      type: "streamable-http",
+      url: "https://mentionforge.mentionforge.workers.dev/mcp",
+    });
 
     const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
       bin?: Record<string, string>;

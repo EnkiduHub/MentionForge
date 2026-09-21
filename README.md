@@ -104,6 +104,8 @@ Smithery: [servers/enkiduhub/mentionforge](https://smithery.ai/servers/enkiduhub
 
 Glama’s GitHub **Deploy Server** speaks stdio. `npm start` / the `mentionforge` bin / the root `Dockerfile` run `scripts/glama-stdio.mjs` (`mcp-remote` → that `/mcp` URL). They do not boot Wrangler and do not take `RECIPIENT_WALLET` — `payTo` stays on the production Worker, so Glama users still settle $0.02 USDC on Base to this origin. Local Worker remains `npm run dev`. Admin form values: [listings/glama.md](listings/glama.md).
 
+**Sync Server does not update Available Tools.** The [hosted connector](https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge) recrawls live `/mcp`. [servers/EnkiduHub/MentionForge](https://glama.ai/mcp/servers/EnkiduHub/MentionForge) only refreshes this README on Sync; Available Tools and TDQS there change after Deploy + Make Release on the [admin Dockerfile form](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/admin/dockerfile), not after a git resync or a Worker deploy.
+
 ## Architecture
 
 ```mermaid
