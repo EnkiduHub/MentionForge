@@ -1,7 +1,6 @@
-import { SAMPLE_QUERY } from "./constants";
+import { SAMPLE_QUERY, isWallet, MAX_BODY_BYTES } from "./constants";
 import { canonicalJson, sha256Hex } from "./crypto";
-import { parseResearchInput } from "../schemas/research";
-import type { ResearchRequest, ResearchResponse } from "../schemas/research";
+import { parseResearchInput, type ResearchRequest, type ResearchResponse } from "../schemas/research";
 import { consumeTrial, sandboxOk } from "./trial";
 import { lookupIdempotency, storeIdempotency } from "./idempotency";
 import { limitOrThrow } from "./rate-limit";
@@ -21,7 +20,6 @@ import {
 } from "./x402";
 import { AgentError } from "../schemas/errors";
 import { bumpStats } from "./analytics";
-import { isWallet, MAX_BODY_BYTES } from "./constants";
 import { PAYMENT_EXPOSE_HEADERS } from "./cors";
 import { logRequest } from "./logger";
 

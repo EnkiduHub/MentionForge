@@ -14,7 +14,7 @@ Production Bazaar seed must run **after** a Worker deploy that changes settle ca
 | REST seed tx | [`0xb342cd0c02b339d2393a39daec69a214cdbccb0df8804ca1438edd0dfa36309d`](https://basescan.org/tx/0xb342cd0c02b339d2393a39daec69a214cdbccb0df8804ca1438edd0dfa36309d) |
 | MCP seed tx | [`0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7`](https://basescan.org/tx/0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7) |
 
-Optional extra origin register (SIWX wallet login, not required for Bazaar): https://www.x402scan.com/resources/register
+Optional extra origin register (SIWX wallet login, not required for Bazaar): <https://www.x402scan.com/resources/register>
 
 CDP Bazaar indexes on settle when `paymentPayload.resource` is absolute HTTPS and `extensions.bazaar` is present. The Worker re-attaches both on settle. After deploy, confirm:
 

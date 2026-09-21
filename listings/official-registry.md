@@ -26,7 +26,7 @@ Triggers: `workflow_dispatch`, push of `server.json` / this workflow to `main`, 
 
 After billing is current, the next qualifying push publishes. Confirm at:
 
-- Actions: https://github.com/EnkiduHub/MentionForge/actions/workflows/publish-mcp.yml
+- Actions: <https://github.com/EnkiduHub/MentionForge/actions/workflows/publish-mcp.yml>
 - Registry search: `https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge`
 
 ## Fallback: interactive GitHub OAuth (local machine)

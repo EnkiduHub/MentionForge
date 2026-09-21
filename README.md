@@ -44,7 +44,7 @@ and retry with PAYMENT-SIGNATURE. Read GET /v1/research/example first.
 
 Production origin: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev)
 
-**REST**
+### REST
 
 - `POST /v1/research` — paid research (prefer this over GET)
 - `GET /v1/research` — same pipeline as POST
@@ -53,7 +53,9 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 - `GET /health` — liveness (`?deep=1` needs operator bearer)
 - `GET /stats` — public call count
 
-**MCP** (`POST /mcp`, Streamable HTTP)
+### MCP
+
+`POST /mcp`, Streamable HTTP
 
 - `research_mentions` — paid after the 10-call trial ($0.02 USDC on Base)
 - `health` — free liveness
@@ -61,7 +63,7 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 - Resources: `mentionforge://pricing`, `mentionforge://openapi`
 - Prompt: `competitor_brief` (`brand`, `competitor`)
 
-**Discovery**
+### Discovery
 
 - `GET /llms.txt` — agent install (Cursor JSON + Claude CLI)
 - `GET /llms-full.txt` — longer agent card

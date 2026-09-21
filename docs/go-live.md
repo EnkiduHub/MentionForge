@@ -19,7 +19,7 @@ A MetaMask account used on ETH or Arbitrum is the correct `RECIPIENT_WALLET` (sa
 8. Paid MCP `research_mentions` settled **$0.02 USDC** on Base. Live `PAY_ONCE=1 npm run seed-bazaar` against production returned **`paid MCP ok 200`** after the CDP `resource.description` cap fix (Worker version `0d200450`). Prior settlement txs: [`0xd93d14b8e19c57a79034f69128212eebe68c6d241f49d2f56faa62386a4b4f3f`](https://basescan.org/tx/0xd93d14b8e19c57a79034f69128212eebe68c6d241f49d2f56faa62386a4b4f3f), [`0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7`](https://basescan.org/tx/0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7). Re-running `PAY_ONCE` now spends **$0.04** (MCP + REST HTTP Bazaar).
 9. Public GitHub [`EnkiduHub/MentionForge`](https://github.com/EnkiduHub/MentionForge) (**MIT** + [TRADEMARK.md](../TRADEMARK.md)).
 
-10. Official MCP Registry: `io.github.EnkiduHub/MentionForge` is **active** at https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge (published 2026-09-20 via GitHub Actions OIDC). Do not re-run interactive `mcp-publisher` unless the listing disappears.
+10. Official MCP Registry: [`io.github.EnkiduHub/MentionForge`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge) is **active** (published 2026-09-20 via GitHub Actions OIDC). Do not re-run interactive `mcp-publisher` unless the listing disappears.
 11. GitHub About: homepage `https://mentionforge.mentionforge.workers.dev`, description, and topics `mcp` / `x402` / `cloudflare-workers` / `model-context-protocol` / `social-listening` / `ai-agents` / `typescript`.
 
 ## Remaining (in order)
