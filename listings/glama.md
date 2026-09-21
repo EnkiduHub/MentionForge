@@ -13,7 +13,7 @@ Do not treat these as the same score. punkpeye’s awesome-mcp-servers bot wants
 
 | Surface | URL | What it measures | Status |
 | --- | --- | --- | --- |
-| Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy; recrawl after 1.2.0 so TDQS sees 12 `verb_noun` tools — not the quality-score badge |
+| Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy; recrawl after 1.2.1 so TDQS sees 12 `verb_noun` tools and the parameter-interaction copy — not the quality-score badge |
 | GitHub server listing | https://glama.ai/mcp/servers/@EnkiduHub/MentionForge | README scrape / deployability | Landing/server-card stay on this `@` URL unless a quality-score badge requires the non-`@` twin |
 | Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | README has both `score.svg` and `card.svg`; letter grade after a Glama **release** succeeds |
 

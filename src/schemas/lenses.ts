@@ -50,7 +50,7 @@ export const compareInputSchema = z
       .array(z.string().trim().min(1).max(80))
       .min(1)
       .max(2)
-      .describe("One or two competitor names. Combined vs-query cannot exceed 200 characters."),
+      .describe("One or two competitor names. Required."),
     timeframe: timeframeSchema.describe(REQUEST_FIELD_DESC.timeframe).optional(),
     platforms: z.array(platformSchema).min(1).max(5).describe(REQUEST_FIELD_DESC.platforms).optional(),
     limit: z.number().int().min(1).max(50).describe(REQUEST_FIELD_DESC.limit).optional(),
@@ -114,7 +114,7 @@ export const trendsInputSchema = z
       .int()
       .min(1)
       .max(50)
-      .describe("Accepted for schema compatibility. Ignored: trend aggregates stay on the full fused set and do not change the $0.02 USDC price.")
+      .describe("Optional integer 1–50. Does not change the $0.02 USDC price.")
       .optional(),
   })
   .strip();
@@ -130,12 +130,12 @@ export const replyInputSchema = z
     mention_id: z
       .string()
       .max(80)
-      .describe("Optional mention id from this gather only. Ignored when it is not in this response.")
+      .describe("Optional mention id from this gather.")
       .optional(),
     quote: z
       .string()
       .max(500)
-      .describe("Optional quote to reply to. Never fetched as a URL. Used when mention_id is absent.")
+      .describe("Optional quote text. Never fetched as a URL.")
       .optional(),
     mention_url: z
       .string()
@@ -159,7 +159,7 @@ export const suggestInputSchema = z
       .trim()
       .min(1)
       .max(MAX_QUERY_CHARS)
-      .describe("What you want to learn or do. Required. Max 200 characters. URLs and wallets are stripped."),
+      .describe("Goal sentence describing what you want to learn or do. Required. Max 200 characters."),
   })
   .strip();
 
@@ -174,7 +174,7 @@ export const entityInputSchema = z
     language: z
       .string()
       .regex(/^[a-z]{2}$/, "ISO 639-1 two-letter code")
-      .describe("Optional ISO 639-1 two-letter Wikipedia language. Default en.")
+      .describe("Optional ISO 639-1 two-letter Wikipedia language code.")
       .optional(),
   })
   .strip();
@@ -286,6 +286,36 @@ export const entityOutputSchema = z.object({
   as_of: z.string().describe("When this card was produced (ISO-8601)"),
 });
 
+export const healthInputSchema = z
+  .object({
+    include_backends: z
+      .boolean()
+      .describe("Optional boolean. Default true.")
+      .optional(),
+  })
+  .strip();
+
+export const pricingInputSchema = z
+  .object({
+    include_catalog: z
+      .boolean()
+      .describe("Optional boolean. Default true.")
+      .optional(),
+  })
+  .strip();
+
+export const exampleInputSchema = z
+  .object({
+    view: z
+      .enum(["full", "compact"])
+      .describe("Optional snapshot size: full or compact.")
+      .optional(),
+  })
+  .strip();
+
+export type HealthInput = z.infer<typeof healthInputSchema>;
+export type PricingInput = z.infer<typeof pricingInputSchema>;
+export type ExampleInput = z.infer<typeof exampleInputSchema>;
 export type CompareInput = z.infer<typeof compareInputSchema>;
 export type DigestInput = z.infer<typeof digestInputSchema>;
 export type RiskInput = z.infer<typeof riskInputSchema>;

@@ -1,6 +1,17 @@
 import type { ResearchRequest, ResearchResponse } from "../schemas/research";
 import { SAMPLE_QUERY } from "./constants";
 
+/** Overlay for MCP `get_example`. `full` is the frozen snapshot; `compact` slices rows only. */
+export function projectExample(res: ResearchResponse, view: "full" | "compact" = "full"): ResearchResponse {
+  if (view !== "compact") return res;
+  return {
+    ...res,
+    mentions: res.mentions.slice(0, 8),
+    citations: res.citations.slice(0, 8),
+    themes: res.themes.map((t) => ({ ...t, examples: [] })),
+  };
+}
+
 /** Snapshot of a real sandbox call on production (query "Cloudflare Workers", platforms web, $0). */
 export const SAMPLE_REQUEST: ResearchRequest = {
   query: SAMPLE_QUERY,

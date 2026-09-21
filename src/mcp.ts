@@ -16,7 +16,7 @@ import { paymentHint, paymentsReady } from "./lib/x402";
 import { sandboxOk, trialRemaining } from "./lib/trial";
 import { sourceBackends } from "./lib/source-backends";
 import { limitOrThrow } from "./lib/rate-limit";
-import { EXAMPLE_RESPONSE } from "./lib/example";
+import { EXAMPLE_RESPONSE, projectExample } from "./lib/example";
 import { SKILL_MARKDOWN } from "./lib/skill-text";
 import { suggestTool } from "./lib/suggest";
 import { entityProfile } from "./lib/entity";
@@ -52,8 +52,11 @@ import {
   digestOutputSchema,
   entityInputSchema,
   entityOutputSchema,
+  exampleInputSchema,
+  healthInputSchema,
   listInputSchema,
   listOutputSchema,
+  pricingInputSchema,
   replyInputSchema,
   replyOutputSchema,
   riskInputSchema,
@@ -223,7 +226,7 @@ async function buildMcpServer(opts: {
     {
       title: "Check Worker liveness",
       description: HEALTH_DESC,
-      inputSchema: z.object({}).describe("No arguments. Free liveness pulse."),
+      inputSchema: healthInputSchema,
       outputSchema: z.object({
         status: z.string().describe("`ok` when the MCP factory ran"),
         payments_ready: z.boolean().describe("True when paid research_mentions can settle on this origin"),
@@ -235,12 +238,18 @@ async function buildMcpServer(opts: {
             news: z.string().describe("news adapter mode"),
             reviews: z.string().describe("reviews adapter mode"),
           })
-          .describe("Non-secret adapter modes. Native Reddit/X are optional operator upgrades."),
+          .optional()
+          .describe("Non-secret adapter modes. Native Reddit/X are optional operator upgrades. Omitted when include_backends is false."),
       }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async () => {
-      const body = { status: "ok", payments_ready: paymentsReady(env), source_backends: sourceBackends(env) };
+    async (args) => {
+      const includeBackends = healthInputSchema.parse(args ?? {}).include_backends !== false;
+      const body = {
+        status: "ok",
+        payments_ready: paymentsReady(env),
+        ...(includeBackends ? { source_backends: sourceBackends(env) } : {}),
+      };
       return { content: [{ type: "text", text: JSON.stringify(body) }], structuredContent: body };
     },
   );
@@ -250,7 +259,7 @@ async function buildMcpServer(opts: {
     {
       title: "Get price and trial terms",
       description: GET_PRICING_DESC,
-      inputSchema: z.object({}).describe("No arguments. Free price catalog."),
+      inputSchema: pricingInputSchema,
       outputSchema: z.object({
         name: z.string().describe("Product name"),
         price_usdc: z.string().describe("List price in USDC (`0.02`)"),
@@ -283,7 +292,8 @@ async function buildMcpServer(opts: {
               price_usdc: z.string().optional().describe("List price when paid (`0.02`)"),
             }),
           )
-          .describe("Catalog of MCP tools. Paid tools share one 10-call trial."),
+          .optional()
+          .describe("Catalog of MCP tools. Paid tools share one 10-call trial. Omitted when include_catalog is false."),
         endpoints: z
           .array(
             z.object({
@@ -292,14 +302,16 @@ async function buildMcpServer(opts: {
               kind: z.enum(["free", "paid"]).describe("free never charges; paid shares the $0.02 resource"),
             }),
           )
-          .describe("REST surfaces. Paid POST routes verify against /v1/research x402 requirements."),
+          .optional()
+          .describe("REST surfaces. Paid POST routes verify against /v1/research x402 requirements. Omitted when include_catalog is false."),
         payments_ready: z.boolean().describe("True when this origin can verify/settle x402"),
         idempotency_header: z.string().describe("Send this header on every research call (`Idempotency-Key`)"),
       }),
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async () => {
-      const body = pricingPayload(env, origin);
+    async (args) => {
+      const includeCatalog = pricingInputSchema.parse(args ?? {}).include_catalog !== false;
+      const body = pricingPayload(env, origin, { includeCatalog });
       return { content: [{ type: "text", text: JSON.stringify(body) }], structuredContent: body };
     },
   );
@@ -309,12 +321,13 @@ async function buildMcpServer(opts: {
     {
       title: "Get a frozen research snapshot",
       description: GET_EXAMPLE_DESC,
-      inputSchema: z.object({}).describe("No arguments. Free fixture payload."),
+      inputSchema: exampleInputSchema,
       outputSchema: researchResponseSchema,
       annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
     },
-    async () => {
-      const body = EXAMPLE_RESPONSE;
+    async (args) => {
+      const view = exampleInputSchema.parse(args ?? {}).view ?? "full";
+      const body = projectExample(EXAMPLE_RESPONSE, view);
       return { content: [{ type: "text", text: JSON.stringify(body) }], structuredContent: body };
     },
   );

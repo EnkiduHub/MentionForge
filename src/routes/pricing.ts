@@ -5,9 +5,10 @@ import { sendPublic } from "../lib/http-json";
 
 export const pricingRoutes = new Hono<{ Bindings: Env }>();
 
-export function pricingPayload(env: Env, origin: string) {
+export function pricingPayload(env: Env, origin: string, opts?: { includeCatalog?: boolean }) {
   const cfg = paymentConfig(env);
-  return {
+  const includeCatalog = opts?.includeCatalog !== false;
+  const payload = {
     name: "MentionForge",
     price_usdc: cfg.price,
     amount_atomic: cfg.amount,
@@ -54,6 +55,9 @@ export function pricingPayload(env: Env, origin: string) {
     payments_ready: paymentsReady(env),
     idempotency_header: "Idempotency-Key",
   };
+  if (includeCatalog) return payload;
+  const { tools: _tools, endpoints: _endpoints, ...settlement } = payload;
+  return settlement;
 }
 
 pricingRoutes.get("/v1/pricing", (c) => {

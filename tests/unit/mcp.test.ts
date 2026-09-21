@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { GET_PRICING_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC } from "../../src/mcp";
+import { GET_PRICING_DESC, GET_EXAMPLE_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC, ENTITY_PROFILE_DESC, SUGGEST_TOOL_DESC } from "../../src/mcp";
 import { bazaarExtension, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TOOL_DESC, encodeHeader } from "../../src/lib/x402";
 import { createApp } from "../../src/app";
 import { executionCtx, mockEnv, stubCaches, stubSourcesFetch } from "../helpers/env";
@@ -215,8 +215,9 @@ describe("MCP origin + factory", () => {
     expect(HEALTH_DESC).toMatch(/free/i);
     expect(HEALTH_DESC).toMatch(/instead/);
     expect(HEALTH_DESC).toMatch(/never charges/i);
-    expect(HEALTH_DESC).toMatch(/takes no arguments/i);
-    expect(HEALTH_DESC).toMatch(/Call with \{\}/);
+    expect(HEALTH_DESC).toMatch(/include_backends/);
+    expect(HEALTH_DESC).toMatch(/\{\} is valid/);
+    expect(HEALTH_DESC).not.toMatch(/takes no arguments/i);
     expect(HEALTH_DESC).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
 
@@ -229,9 +230,46 @@ describe("MCP origin + factory", () => {
     expect(GET_PRICING_DESC).toMatch(/X-Wallet/);
     expect(GET_PRICING_DESC).toMatch(/Idempotency-Key/);
     expect(GET_PRICING_DESC).toMatch(/never charges/i);
-    expect(GET_PRICING_DESC).toMatch(/takes no arguments/i);
+    expect(GET_PRICING_DESC).toMatch(/include_catalog/);
     expect(GET_PRICING_DESC).toMatch(/those paid tools/);
+    expect(GET_PRICING_DESC).toMatch(/\{\} is valid/);
+    expect(GET_PRICING_DESC).not.toMatch(/takes no arguments/i);
     expect(GET_PRICING_DESC).not.toMatch(/0x[a-fA-F0-9]{40}/);
+  });
+
+  it("get_example description documents view compact vs full beyond the schema", () => {
+    expect(GET_EXAMPLE_DESC).toMatch(/^Return /);
+    expect(GET_EXAMPLE_DESC).toMatch(/view=compact/);
+    expect(GET_EXAMPLE_DESC).toMatch(/query and filters are ignored/);
+    expect(GET_EXAMPLE_DESC).toMatch(/use research_mentions/);
+    expect(GET_EXAMPLE_DESC).toMatch(/never charges/i);
+    expect(GET_EXAMPLE_DESC).not.toMatch(/0x[a-fA-F0-9]{40}/);
+  });
+
+  it("free routers document parameter interactions the schema cannot encode", () => {
+    expect(SUGGEST_TOOL_DESC).toMatch(/goal sentence, not a tool name/);
+    expect(SUGGEST_TOOL_DESC).toMatch(/keyword-routes/);
+    expect(ENTITY_PROFILE_DESC).toMatch(/es\.wikipedia\.org/);
+    expect(ENTITY_PROFILE_DESC).toMatch(/does not translate/);
+  });
+
+  it("paid tool descriptions put cross-field parameter rules before the payment tail", () => {
+    expect(TOOL_DESC).toMatch(/view=compact applies after focus/);
+    expect(TOOL_DESC).toMatch(/volume\.total can exceed mentions\.length/);
+    expect(COMPARE_DESC).toMatch(/\{brand\} vs \{competitor\}/);
+    expect(COMPARE_DESC).toMatch(/sending brand alone fails/);
+    expect(DIGEST_DESC).toMatch(/capped at 5 even if limit is 50/);
+    expect(RISK_DESC).toMatch(/negatives list stays capped at 5/);
+    expect(REPLY_DESC).toMatch(/mention_id, then mention_url, then quote/);
+    expect(LIST_DESC).toMatch(/focus, view, and include_summary are not accepted/);
+    expect(TRENDS_DESC).toMatch(/limit is ignored/);
+    for (const desc of [TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC]) {
+      const tail = desc.indexOf("After the 10-call trial");
+      const interaction = desc.search(/view=compact applies after focus|joined as|capped at 5|mention_id, then mention_url|limit is ignored|caps exported rows/);
+      expect(tail).toBeGreaterThan(0);
+      expect(interaction).toBeGreaterThan(0);
+      expect(interaction).toBeLessThan(tail);
+    }
   });
 
   it("rejects a malformed Origin", async () => {
@@ -379,7 +417,8 @@ describe("MCP origin + factory", () => {
 
     const health = tools.find((t) => t.name === "get_health");
     expect(health?.title).toBe("Check Worker liveness");
-    expect(Object.keys(health?.inputSchema?.properties ?? {})).toHaveLength(0);
+    expect(Object.keys(health?.inputSchema?.properties ?? {})).toEqual(["include_backends"]);
+    expect((health?.inputSchema?.properties?.include_backends?.description ?? "").length).toBeGreaterThan(10);
     expect(health?.outputSchema?.properties).toBeTruthy();
     expect(health?.annotations).toMatchObject({
       readOnlyHint: true,
@@ -398,14 +437,63 @@ describe("MCP origin + factory", () => {
 
     const pricing = tools.find((t) => t.name === "get_pricing");
     expect(pricing?.title).toBe("Get price and trial terms");
-    expect(Object.keys(pricing?.inputSchema?.properties ?? {})).toHaveLength(0);
+    expect(Object.keys(pricing?.inputSchema?.properties ?? {})).toEqual(["include_catalog"]);
+    expect((pricing?.inputSchema?.properties?.include_catalog?.description ?? "").length).toBeGreaterThan(10);
     expect(pricing?.outputSchema?.properties).toBeTruthy();
+
+    const example = tools.find((t) => t.name === "get_example");
+    expect(Object.keys(example?.inputSchema?.properties ?? {})).toEqual(["view"]);
+    expect((example?.inputSchema?.properties?.view?.description ?? "").length).toBeGreaterThan(10);
+    expect(example?.annotations).toMatchObject({
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    });
     expect(pricing?.annotations).toMatchObject({
       readOnlyHint: true,
       destructiveHint: false,
       idempotentHint: true,
       openWorldHint: false,
     });
+  });
+
+  it("optional free-tool flags change payload shape without charging", async () => {
+    const session = await mcpInitialize();
+    async function callTool(name: string, args: Json) {
+      const res = await handleMcp(
+        new Request("https://mentionforge.test/mcp", {
+          method: "POST",
+          headers: session.headers,
+          body: JSON.stringify({ jsonrpc: "2.0", id: 9, method: "tools/call", params: { name, arguments: args } }),
+        }),
+        session.env,
+        executionCtx(),
+      );
+      expect(res.status).toBe(200);
+      return toolResult(await mcpJson(res));
+    }
+
+    const healthOff = asRecord((await callTool("get_health", { include_backends: false })).structuredContent);
+    expect(healthOff?.status).toBe("ok");
+    expect(healthOff?.source_backends).toBeUndefined();
+    const healthOn = asRecord((await callTool("get_health", {})).structuredContent);
+    expect(healthOn?.source_backends).toBeTruthy();
+
+    const priceOff = asRecord((await callTool("get_pricing", { include_catalog: false })).structuredContent);
+    expect(priceOff?.price_usdc).toBe("0.02");
+    expect(priceOff?.tools).toBeUndefined();
+    expect(priceOff?.endpoints).toBeUndefined();
+    const priceOn = asRecord((await callTool("get_pricing", {})).structuredContent);
+    expect(Array.isArray(priceOn?.tools)).toBe(true);
+
+    const compact = asRecord((await callTool("get_example", { view: "compact" })).structuredContent);
+    const mentions = compact?.mentions;
+    const citations = compact?.citations;
+    const themes = compact?.themes;
+    expect(Array.isArray(mentions) && mentions.length).toBeLessThanOrEqual(8);
+    expect(Array.isArray(citations) && citations.length).toBeLessThanOrEqual(8);
+    expect(Array.isArray(themes) && themes.every((t) => Array.isArray(asRecord(t)?.examples) && (asRecord(t)?.examples as unknown[]).length === 0)).toBe(true);
   });
 
   it("x402 resource description stays under the CDP verify length cap", async () => {

@@ -6,7 +6,7 @@ Transport: **Streamable HTTP** at `POST /mcp`. Stateless per-request factory via
 
 ### `research_mentions`
 
-Purpose is front-loaded (verb + resource). The first 200 characters still include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. The rest states when-to-use, explicit when-not vs `get_health` / `get_pricing` / sibling lenses (`use … instead`), trial headers, `Idempotency-Key`, 402/x402 retry, rate limits, optional-filter interactions vs the $0.02 price, and that native Reddit/X APIs are optional upgrades. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
+Purpose is front-loaded (verb + resource). The first 200 characters still include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. Cross-field parameter interactions (what the input schema cannot encode) come next, then when-to-use / when-not vs `get_health` / `get_pricing` / sibling lenses (`use … instead`), then trial headers, `Idempotency-Key`, 402/x402 retry, and rate limits. Native Reddit/X APIs are optional upgrades. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
 
 - `title`: Research social mentions
 - `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: true`, `idempotentHint: false`
@@ -22,15 +22,15 @@ Clients send `_meta["x402/payment"]` as the **payload object** (not REST base64)
 
 ### `get_health`
 
-Free liveness. Use when you only need uptime; for price use `get_pricing` instead; for mentions use `research_mentions`. Call with `{}` only, never charges, no payment headers. `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`, `idempotentHint: true`. REST `GET /health` is unchanged.
+Free liveness. Optional `include_backends` (default true) keeps `source_backends`; set false to omit that object. `{}` is valid. Use when you only need uptime; for price use `get_pricing` instead; for mentions use `research_mentions`. Never charges, no payment headers. `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`, `idempotentHint: true`. REST `GET /health` is unchanged and always includes backends.
 
 ### `get_pricing`
 
-Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_mentions"`; additive `tools[]` / `endpoints[]`. Use when you need list price or trial terms; for liveness use `get_health` instead; for mentions use `research_mentions`. Call with `{}` only, never charges. Same annotation pattern as `get_health`. `Idempotency-Key` is required on paid tools, not on this catalog.
+Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_mentions"`; additive `tools[]` / `endpoints[]` unless `include_catalog` is false. `{}` is valid. Use when you need list price or trial terms; for liveness use `get_health` instead; for mentions use `research_mentions`. Never charges. Same annotation pattern as `get_health`. `Idempotency-Key` is required on paid tools, not on this catalog. REST `GET /v1/pricing` stays the full catalog.
 
 ### Free routers
 
-`get_example`, `suggest_tool`, `get_entity_profile` never charge. `suggest_tool` unknown need → `research_mentions`. The 10-call trial is shared across paid tools; call exactly one paid tool per question.
+`get_example` (`view` full or compact), `suggest_tool`, `get_entity_profile` never charge. `suggest_tool` unknown need → `research_mentions`. The 10-call trial is shared across paid tools; call exactly one paid tool per question. REST `GET /v1/research/example` stays the full fixture.
 
 ### Paid lenses
 

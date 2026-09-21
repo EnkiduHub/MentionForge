@@ -10,6 +10,12 @@
 - README includes Glama score + card badges (`EnkiduHub/MentionForge` listing URLs); License section is the MIT grant (copyright 2026 MentionForge) plus trademarks from TRADEMARK.md; surfaces list MCP `get_health` / `get_pricing` and discovery routes
 - Agent discoverability: rich MCP server card, Cursor/Claude install in `/llms.txt`, public `GET /skill.md`, forge-mark PNG OG/logo/favicon
 
+## 1.2.1 — 2026-09-21
+
+- Glama TDQS: move cross-field parameter interactions ahead of the payment tail so Parameter Semantics can score beyond schema restatement
+- Add honest optional flags on free tools (`get_health.include_backends`, `get_pricing.include_catalog`, `get_example.view`) so those definitions are no longer zero-argument
+- Price remains $0.02 USDC; the 10-call trial stays shared; REST `GET /health`, `GET /v1/pricing`, and `GET /v1/research/example` stay full payloads
+
 ## 1.2.0 — 2026-09-21
 
 - Glama TDQS: rename MCP `health` → `get_health` and `entity_profile` → `get_entity_profile` (REST `GET /health` and `GET /v1/entity` unchanged)

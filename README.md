@@ -1,7 +1,7 @@
 # MENTION//FORGE
 
 [![CI](https://github.com/EnkiduHub/MentionForge/actions/workflows/ci.yml/badge.svg)](https://github.com/EnkiduHub/MentionForge/actions/workflows/ci.yml)
-[![version](https://img.shields.io/badge/version-1.2.0-5CE1E6?style=flat-square)](./CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-1.2.1-5CE1E6?style=flat-square)](./CHANGELOG.md)
 [![x402](https://img.shields.io/badge/x402-%240.02%20USDC-E8A87C?style=flat-square)](./docs/payments.md)
 [![MCP](https://img.shields.io/badge/MCP-streamable--http-D4A017?style=flat-square)](./docs/mcp.md)
 [![license](https://img.shields.io/badge/license-MIT-F4EFE6?style=flat-square)](./LICENSE)
