@@ -19,11 +19,12 @@ A MetaMask account used on ETH or Arbitrum is the correct `RECIPIENT_WALLET` (sa
 8. Paid MCP `research_mentions` settled **$0.02 USDC** on Base. Settlement tx [`0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7`](https://basescan.org/tx/0x92727630c7a8a40dd460377e26de9ee4f0b8baa5b2bd83d4dc2de9786ca4bad7). Bazaar `extensionResponses.bazaar.status` was `processing` (CDP indexes after settle). **Do not re-run `PAY_ONCE`.**
 9. Public GitHub [`EnkiduHub/MentionForge`](https://github.com/EnkiduHub/MentionForge) (**MIT** + [TRADEMARK.md](../TRADEMARK.md)).
 
+10. Official MCP Registry: `io.github.EnkiduHub/MentionForge` is **active** at https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge (published 2026-09-20 via GitHub Actions OIDC). Do not re-run interactive `mcp-publisher` unless the listing disappears.
+11. GitHub About: homepage `https://mentionforge.mentionforge.workers.dev`, description, and topics `mcp` / `x402` / `cloudflare-workers` / `model-context-protocol` / `social-listening` / `ai-agents` / `typescript`.
+
 ## Remaining (in order)
 
-1. Official MCP Registry — **publish now**, do not wait for traction. PulseMCP’s form is paused and they ingest this registry. Push to `main` runs `.github/workflows/publish-mcp.yml` (GitHub OIDC, no secret, **no npm publish**). Confirm the workflow is green, then search `https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge`. Interactive fallback is in `listings/official-registry.md`.
-2. GitHub About — paste from `listings/github.md` (homepage `https://mentionforge.mentionforge.workers.dev`, topics `mcp` / `x402` / `cloudflare-workers`). Needs an EnkiduHub-signed `gh` session or the repo gear UI.
-3. Directory paste in `listings/` (mcp.so, Glama connector, Smithery URL publish). All must point at `https://mentionforge.mentionforge.workers.dev/mcp`, not a self-host command. PulseMCP waits on the Official Registry. x402scan Bazaar seed already ran; optional SIWX origin register is extra.
-4. Optional quality (not blockers): Reddit OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), X App-Only bearer (`X_BEARER_TOKEN`, paid search — set a low credit cap), custom domain (Cache API is a no-op on `workers.dev`), Workers Paid ($5/mo) before production CPU volume.
+1. Optional directory paste from `listings/` (mcp.so, Glama connector, Smithery URL). All must point at `https://mentionforge.mentionforge.workers.dev/mcp`, not a self-host command. PulseMCP waits on the Official Registry. x402scan Bazaar seed already ran; optional SIWX origin register is extra.
+2. Optional quality (not blockers): Reddit OAuth (`REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET`), X App-Only bearer (`X_BEARER_TOKEN`, paid search — set a low credit cap), custom domain (Cache API is a no-op on `workers.dev`), Workers Paid ($5/mo) before production CPU volume.
 
 Keep the code MIT; the paid product is the production origin. Re-running `PAY_ONCE` spends another $0.02 — do not repeat the seeds unless you intend to.

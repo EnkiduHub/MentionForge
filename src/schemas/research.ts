@@ -1,18 +1,38 @@
 import { z } from "zod";
 import { MAX_QUERY_CHARS, MAX_TIMEFRAME_DAYS, PLATFORMS, SAMPLE_QUERY, type Platform } from "../lib/constants";
 
-export const platformSchema = z.enum(["x", "reddit", "web", "reviews", "news"]);
+/** Shared with OpenAPI `researchJsonSchema()` so REST and MCP stay aligned. */
+export const REQUEST_FIELD_DESC = {
+  query:
+    "Natural-language or structured query about a product, company, brand, topic, or competitor. Required. Max 200 characters.",
+  platforms:
+    "Which surfaces to search. Default all of x, reddit, web, reviews, news. x and reddit use public/web adapters unless the operator enabled native APIs — this is not a guarantee of official Reddit or X search.",
+  timeframe:
+    "Lookback window: 24h, 7d, 30d, or 90d, or a {from,to} ISO-8601 range (max 90 days). Default 7d.",
+  timeframe_named: "Named lookback: 24h, 7d, 30d, or 90d.",
+  timeframe_from: "Custom range start (ISO-8601). Must be earlier than `to`.",
+  timeframe_to: "Custom range end (ISO-8601). Must be later than `from`. Window max 90 days.",
+  limit: "Maximum mentions to return (integer 1–50). Default 20. Does not change the $0.02 USDC price.",
+  include_summary: "When true (default), include an executive `summary` string. Set false for mentions-only payloads.",
+  min_engagement: "Optional minimum engagement score. Omit to include all mentions in the window.",
+  language: "Optional ISO 639-1 two-letter code (e.g. en). Omit for mixed-language results.",
+} as const;
 
-export const timeframeEnumSchema = z.enum(["24h", "7d", "30d", "90d"]);
+export const platformSchema = z
+  .enum(["x", "reddit", "web", "reviews", "news"])
+  .describe("Mention surface id: x, reddit, web, reviews, or news");
+
+export const timeframeEnumSchema = z.enum(["24h", "7d", "30d", "90d"]).describe(REQUEST_FIELD_DESC.timeframe_named);
 
 const isoStamp = z
   .string()
-  .refine((s) => Number.isFinite(Date.parse(s)), { message: "Must be an ISO-8601 timestamp" });
+  .refine((s) => Number.isFinite(Date.parse(s)), { message: "Must be an ISO-8601 timestamp" })
+  .describe("ISO-8601 timestamp");
 
 export const isoRangeSchema = z
   .object({
-    from: isoStamp,
-    to: isoStamp,
+    from: isoStamp.describe(REQUEST_FIELD_DESC.timeframe_from),
+    to: isoStamp.describe(REQUEST_FIELD_DESC.timeframe_to),
   })
   .refine((v) => Date.parse(v.from) < Date.parse(v.to), {
     message: "`from` must be earlier than `to`",
@@ -20,27 +40,26 @@ export const isoRangeSchema = z
   .refine(
     (v) => Date.parse(v.to) - Date.parse(v.from) <= MAX_TIMEFRAME_DAYS * 86400000,
     { message: `Custom range cannot exceed ${MAX_TIMEFRAME_DAYS} days` },
-  );
+  )
+  .describe("Custom inclusive ISO-8601 from/to window, maximum 90 days");
 
-export const timeframeSchema = z.union([timeframeEnumSchema, isoRangeSchema]);
+export const timeframeSchema = z
+  .union([timeframeEnumSchema, isoRangeSchema])
+  .describe(REQUEST_FIELD_DESC.timeframe);
 
 export const researchRequestSchema = z
   .object({
-    query: z
-      .string()
-      .trim()
-      .min(1)
-      .max(MAX_QUERY_CHARS)
-      .describe("Natural-language or structured query about a product, company, brand, topic, or competitor"),
-    platforms: z.array(platformSchema).min(1).max(5).default([...PLATFORMS]),
-    timeframe: timeframeSchema.default("7d"),
-    limit: z.number().int().min(1).max(50).default(20),
-    include_summary: z.boolean().default(true),
-    min_engagement: z.number().min(0).optional(),
+    query: z.string().trim().min(1).max(MAX_QUERY_CHARS).describe(REQUEST_FIELD_DESC.query),
+    platforms: z.array(platformSchema).min(1).max(5).default([...PLATFORMS]).describe(REQUEST_FIELD_DESC.platforms),
+    timeframe: timeframeSchema.default("7d").describe(REQUEST_FIELD_DESC.timeframe),
+    limit: z.number().int().min(1).max(50).default(20).describe(REQUEST_FIELD_DESC.limit),
+    include_summary: z.boolean().default(true).describe(REQUEST_FIELD_DESC.include_summary),
+    min_engagement: z.number().min(0).optional().describe(REQUEST_FIELD_DESC.min_engagement),
     language: z
       .string()
       .regex(/^[a-z]{2}$/, "ISO 639-1 two-letter code")
-      .optional(),
+      .optional()
+      .describe(REQUEST_FIELD_DESC.language),
   })
   .strip();
 
@@ -49,83 +68,96 @@ export type Timeframe = z.infer<typeof timeframeSchema>;
 
 export const mentionSchema = z
   .object({
-    id: z.string(),
-    platform: platformSchema,
-    url: z.string(),
-    author: z.string(),
-    timestamp: z.string(),
-    text: z.string(),
-    engagement: z.number(),
-    sentiment: z.number().min(-1).max(1),
+    id: z.string().describe("Stable mention id within this response"),
+    platform: platformSchema.describe("Surface this mention was gathered from"),
+    url: z.string().describe("Canonical URL of the mention, or empty when the source had no permalink"),
+    author: z.string().describe("Display name or handle; may be empty"),
+    timestamp: z.string().describe("When the mention was published or accessed (ISO-8601 when known)"),
+    text: z.string().describe("Mention body, truncated to the engine cap"),
+    engagement: z.number().describe("Relative engagement score (0 when unknown)"),
+    sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 (negative) to 1 (positive)"),
   })
   .strict();
 
 export const themeSchema = z.object({
-  theme: z.string(),
-  count: z.number().int(),
-  examples: z.array(z.string()),
+  theme: z.string().describe("Short theme label clustered from mention text"),
+  count: z.number().int().describe("How many mentions support this theme"),
+  examples: z.array(z.string()).describe("Short supporting snippets"),
 });
 
 export const citationSchema = z.object({
-  url: z.string(),
-  title: z.string(),
-  source: z.string(),
-  accessed_at: z.string(),
+  url: z.string().describe("Source URL"),
+  title: z.string().describe("Source title"),
+  source: z.string().describe("Publisher or site label"),
+  accessed_at: z.string().describe("When MentionForge fetched this source (ISO-8601)"),
 });
 
 export const volumeSchema = z.object({
-  total: z.number().int(),
-  by_platform: z.object({
-    x: z.number().int(),
-    reddit: z.number().int(),
-    web: z.number().int(),
-    reviews: z.number().int(),
-    news: z.number().int(),
-  }),
-  trend: z.array(z.object({ t: z.string(), count: z.number().int() })),
+  total: z.number().int().describe("Total mentions in the window after filtering"),
+  by_platform: z
+    .object({
+      x: z.number().int().describe("Mentions attributed to x"),
+      reddit: z.number().int().describe("Mentions attributed to reddit"),
+      web: z.number().int().describe("Mentions attributed to web"),
+      reviews: z.number().int().describe("Mentions attributed to reviews"),
+      news: z.number().int().describe("Mentions attributed to news"),
+    })
+    .describe("Per-platform mention counts (zeros when a surface returned nothing)"),
+  trend: z
+    .array(
+      z.object({
+        t: z.string().describe("Bucket start (ISO-8601)"),
+        count: z.number().int().describe("Mentions in this bucket"),
+      }),
+    )
+    .describe("Time-bucketed mention counts across the window"),
 });
 
 export const sentimentSchema = z.object({
-  overall: z.number().min(-1).max(1),
-  positive: z.number(),
-  neutral: z.number(),
-  negative: z.number(),
-  distribution: z.object({
-    positive: z.number(),
-    neutral: z.number(),
-    negative: z.number(),
-    by_platform: z.record(z.string(), z.number()),
-  }),
+  overall: z.number().min(-1).max(1).describe("Aggregate sentiment from -1 to 1"),
+  positive: z.number().describe("Share of positive mentions (percent)"),
+  neutral: z.number().describe("Share of neutral mentions (percent)"),
+  negative: z.number().describe("Share of negative mentions (percent)"),
+  distribution: z
+    .object({
+      positive: z.number().describe("Positive share (percent)"),
+      neutral: z.number().describe("Neutral share (percent)"),
+      negative: z.number().describe("Negative share (percent)"),
+      by_platform: z.record(z.string(), z.number()).describe("Mention counts or scores keyed by platform id"),
+    })
+    .describe("Breakdown of sentiment classes"),
 });
 
 export const billingSchema = z.object({
-  amount_usdc: z.string(),
-  tx_hash: z.string().nullable(),
-  free_trial: z.boolean(),
+  amount_usdc: z.string().describe("USDC charged for this call (`0` on trial/sandbox/replay)"),
+  tx_hash: z.string().nullable().describe("Settlement transaction hash, or null until settle / on trial"),
+  free_trial: z.boolean().describe("True when this call used trial or sandbox and was not settled"),
 });
 
 export const metaSchema = z.object({
-  request_id: z.string(),
-  latency_ms: z.number(),
-  sources_used: z.array(z.string()),
-  billing: billingSchema,
-  confidence: z.number().min(0).max(1).optional(),
-  degraded: z.array(z.string()).optional(),
-  as_of: z.string().optional(),
-  freshness: z.enum(["live", "cached"]).optional(),
-  next_queries: z.array(z.string()).max(3).optional(),
+  request_id: z.string().describe("Request correlation id"),
+  latency_ms: z.number().describe("Engine wall time in milliseconds (not billed)"),
+  sources_used: z.array(z.string()).describe("Adapter ids that contributed data"),
+  billing: billingSchema.describe("Charge record for this call (never cached)"),
+  confidence: z.number().min(0).max(1).optional().describe("Optional 0–1 confidence in the aggregate"),
+  degraded: z.array(z.string()).optional().describe("Optional list of degraded or skipped adapters"),
+  as_of: z.string().optional().describe("When this intelligence was produced (ISO-8601)"),
+  freshness: z.enum(["live", "cached"]).optional().describe("live = this call; cached = research body reused, new billing"),
+  next_queries: z.array(z.string()).max(3).optional().describe("Up to three follow-up queries the agent can issue"),
 });
 
 export const researchResponseSchema = z.object({
-  query: z.string(),
-  timeframe: z.union([z.string(), isoRangeSchema]),
-  volume: volumeSchema,
-  sentiment: sentimentSchema,
-  themes: z.array(themeSchema),
-  mentions: z.array(mentionSchema),
-  summary: z.string().optional(),
-  citations: z.array(citationSchema),
-  meta: metaSchema,
+  query: z.string().describe("Echo of the researched query"),
+  timeframe: z
+    .union([z.string().describe("Named window echoed back"), isoRangeSchema])
+    .describe("Echo of the requested window"),
+  volume: volumeSchema.describe("Mention counts and trend for the window"),
+  sentiment: sentimentSchema.describe("Aggregate and per-class sentiment"),
+  themes: z.array(themeSchema).describe("Ranked themes extracted from mentions"),
+  mentions: z.array(mentionSchema).describe("Cited mention rows (may be empty — empty windows still succeed)"),
+  summary: z.string().optional().describe("Executive summary when include_summary was true"),
+  citations: z.array(citationSchema).describe("Sources used to build the brief"),
+  meta: metaSchema.describe("Request metadata including billing and freshness"),
 });
 
 export type ResearchResponse = z.infer<typeof researchResponseSchema>;
@@ -154,21 +186,40 @@ export function researchJsonSchema() {
         type: "string",
         minLength: 1,
         maxLength: MAX_QUERY_CHARS,
-        description: "Product, company, brand, topic, or competitor",
+        description: REQUEST_FIELD_DESC.query,
       },
       platforms: {
         type: "array",
         items: { type: "string", enum: PLATFORMS },
         default: PLATFORMS,
+        description: REQUEST_FIELD_DESC.platforms,
       },
       timeframe: {
-        description: '24h | 7d | 30d | 90d or { from, to } ISO range (max 90d)',
+        description: REQUEST_FIELD_DESC.timeframe,
         default: "7d",
       },
-      limit: { type: "integer", minimum: 1, maximum: 50, default: 20 },
-      include_summary: { type: "boolean", default: true },
-      min_engagement: { type: "number", minimum: 0 },
-      language: { type: "string", pattern: "^[a-z]{2}$" },
+      limit: {
+        type: "integer",
+        minimum: 1,
+        maximum: 50,
+        default: 20,
+        description: REQUEST_FIELD_DESC.limit,
+      },
+      include_summary: {
+        type: "boolean",
+        default: true,
+        description: REQUEST_FIELD_DESC.include_summary,
+      },
+      min_engagement: {
+        type: "number",
+        minimum: 0,
+        description: REQUEST_FIELD_DESC.min_engagement,
+      },
+      language: {
+        type: "string",
+        pattern: "^[a-z]{2}$",
+        description: REQUEST_FIELD_DESC.language,
+      },
     },
     example: {
       query: SAMPLE_QUERY,

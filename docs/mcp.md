@@ -6,20 +6,24 @@ Transport: **Streamable HTTP** at `POST /mcp`. Stateless per-request factory via
 
 ### `research_mentions`
 
-First 200 characters of the description include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**.
+First 200 characters of the description include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. The rest states when-to-use, when-not vs `health` / `get_pricing`, trial headers, `Idempotency-Key`, 402/x402 retry, read-only / open-world / non-idempotent-without-key, and the return shape. Native Reddit OAuth and X API are **optional operator upgrades**, not the default (public Reddit search + web X).
 
-- `readOnlyHint: true`
-- `inputSchema` — Zod request (`.strip()`)
-- `outputSchema` — research response
+- `readOnlyHint: true`, `openWorldHint: true`, `idempotentHint: false`
+- `inputSchema` — Zod request (`.strip()`) with `.describe()` on every field
+- `outputSchema` — research response with `.describe()` on key fields
 - Result = `structuredContent` + compact JSON `text`
 
 Trial / sandbox: unwrapped tool (no x402 settle). Paid: `@x402/mcp` `createPaymentWrapper` (verify → execute → settle) with Bazaar discovery metadata so a successful CDP settle can index `research_mentions`. MCP SDK v2 delivers request `_meta` on `ctx.mcpReq._meta`; the Worker maps that (and `PAYMENT-SIGNATURE`) onto the wrapper's `extra._meta`. Engine **throws** on total source failure so settlement does not run.
 
 Clients send `_meta["x402/payment"]` as the **payload object** (not REST base64). `PAYMENT-SIGNATURE` on the MCP POST is also accepted.
 
-### `health` / `get_pricing`
+### `health`
 
-Free.
+Free, read-only liveness (`payments_ready`, `source_backends`). Use before paid research; do not use for price (that's `get_pricing`) or mentions (`research_mentions`). `openWorldHint: false`, `idempotentHint: true`.
+
+### `get_pricing`
+
+Free, read-only catalog ($0.02 USDC, trial headers, CAIP-2 network). Use before paying; do not use for liveness (`health`) or mentions (`research_mentions`). Never charges. `openWorldHint: false`, `idempotentHint: true`.
 
 ## Resources
 

@@ -1,8 +1,22 @@
 import { describe, expect, it } from "vitest";
-import { parseResearchInput, researchResponseSchema } from "../../src/schemas/research";
+import { z } from "zod";
+import {
+  parseResearchInput,
+  researchJsonSchema,
+  researchRequestSchema,
+  researchResponseSchema,
+  REQUEST_FIELD_DESC,
+} from "../../src/schemas/research";
 import { EXAMPLE_RESPONSE } from "../../src/lib/example";
 import { SAMPLE_QUERY } from "../../src/lib/constants";
 import { AgentError } from "../../src/schemas/errors";
+
+function jsonProps(schema: z.ZodType): Record<string, { description?: string }> {
+  const json = z.toJSONSchema(schema) as {
+    properties?: Record<string, { description?: string }>;
+  };
+  return json.properties ?? {};
+}
 
 describe("research schemas", () => {
   it("strips unknown keys", () => {
@@ -17,6 +31,32 @@ describe("research schemas", () => {
 
   it("validates the live Cloudflare Workers snapshot", () => {
     expect(researchResponseSchema.parse(EXAMPLE_RESPONSE).query).toBe(SAMPLE_QUERY);
+  });
+
+  it("describes every research request field for MCP JSON Schema", () => {
+    const props = jsonProps(researchRequestSchema);
+    for (const key of ["query", "platforms", "timeframe", "limit", "include_summary", "min_engagement", "language"] as const) {
+      expect(props[key]?.description?.length ?? 0, key).toBeGreaterThan(20);
+    }
+    expect(props.query?.description).toBe(REQUEST_FIELD_DESC.query);
+  });
+
+  it("describes key research response fields for MCP JSON Schema", () => {
+    const props = jsonProps(researchResponseSchema);
+    for (const key of ["query", "timeframe", "volume", "sentiment", "themes", "mentions", "summary", "citations", "meta"] as const) {
+      expect(props[key]?.description?.length ?? 0, key).toBeGreaterThan(8);
+    }
+  });
+
+  it("mirrors request field descriptions into researchJsonSchema()", () => {
+    const openapi = researchJsonSchema().properties;
+    expect(openapi.query.description).toBe(REQUEST_FIELD_DESC.query);
+    expect(openapi.platforms.description).toBe(REQUEST_FIELD_DESC.platforms);
+    expect(openapi.timeframe.description).toBe(REQUEST_FIELD_DESC.timeframe);
+    expect(openapi.limit.description).toBe(REQUEST_FIELD_DESC.limit);
+    expect(openapi.include_summary.description).toBe(REQUEST_FIELD_DESC.include_summary);
+    expect(openapi.min_engagement.description).toBe(REQUEST_FIELD_DESC.min_engagement);
+    expect(openapi.language.description).toBe(REQUEST_FIELD_DESC.language);
   });
 
   it("maps PAYMENT_REQUIRED to 402", () => {
