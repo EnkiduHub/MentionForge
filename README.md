@@ -43,6 +43,8 @@ and retry with PAYMENT-SIGNATURE. Read GET /v1/research/example first.
 - `GET /v1/pricing` — price, trial, network
 - `GET /stats` — public call count
 - `POST /mcp` — Streamable HTTP MCP (`research_mentions`)
+- `GET /llms.txt` — agent install (Cursor JSON + Claude CLI)
+- `GET /skill.md` — Cursor skill
 - `GET /.well-known/x402` — IETF resource-server card (origin from `request.url`)
 
 ## Hosted MCP

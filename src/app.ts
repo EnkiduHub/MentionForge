@@ -36,6 +36,8 @@ export function createApp() {
       path.startsWith("/llms") ||
       path === "/robots.txt" ||
       path === "/stats" ||
+      path === "/skill.md" ||
+      path === "/server-card.json" ||
       path === "/v1/pricing" ||
       path === "/v1/research/example";
     const id = c.get("requestId") as string;

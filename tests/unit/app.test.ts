@@ -302,7 +302,11 @@ describe("HTTP surfaces", () => {
       "x-logo": { url: string };
       paths: { "/v1/research": { post: { requestBody: { content: { "application/json": { examples: { sample: { value: { query: string } } } } } }; responses: { "402": { content: { "application/json": { examples: { pay: { value: { error: { hint: string } } } } } } } } } } };
     };
-    expect(doc["x-logo"].url).toMatch(/logo\.svg/);
+    expect(doc["x-logo"].url).toMatch(/logo-512x512\.png/);
+    const paths = (doc as { paths: Record<string, unknown> }).paths;
+    expect(paths["/skill.md"]).toBeTruthy();
+    expect(paths["/llms-full.txt"]).toBeTruthy();
+    expect(paths["/server-card.json"]).toBeTruthy();
     expect(doc.paths["/v1/research"].post.requestBody.content["application/json"].examples.sample.value.query).toBe("Cloudflare Workers");
     expect(doc.paths["/v1/research"].post.responses["402"]).toBeTruthy();
     expect(doc.paths["/v1/research"].post.responses["402"].content["application/json"].examples.pay.value.error.hint).toMatch(/Cloudflare Workers/);
@@ -387,6 +391,10 @@ describe("HTTP surfaces", () => {
     expect(txt).toMatch(/x402 exact, Base\)/);
     expect(txt).not.toMatch(/Base Sepolia/);
     expect(txt).toMatch(/Reddit OAuth and X recent-search are optional/);
+    expect(txt).toMatch(/claude mcp add --transport http mentionforge/);
+    expect(txt).toMatch(/"mcpServers"/);
+    expect(txt).toMatch(/Free first: health \+ get_pricing/);
+    expect(txt).toMatch(/\/skill\.md/);
   });
 
   it("landing HTML is served from ASSETS after Hono 404", async () => {
@@ -398,7 +406,7 @@ describe("HTTP surfaces", () => {
           const href = input instanceof Request ? new URL(input.url).pathname : String(input);
           requested.push(href);
           return new Response(
-            `<!doctype html><title>MENTION//FORGE</title><meta property="og:image" content="/og.svg"/><meta property="og:url" content=""/><link rel="canonical" href=""/>`,
+            `<!doctype html><title>MENTION//FORGE</title><meta property="og:image" content="/og.png"/><meta property="og:url" content=""/><link rel="canonical" href=""/>`,
             {
               status: 200,
               headers: { "content-type": "text/html; charset=utf-8" },
@@ -415,7 +423,7 @@ describe("HTTP surfaces", () => {
     expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     const html = await res.text();
     expect(html).toMatch(/MENTION\/\/FORGE/);
-    expect(html).toContain("https://mentionforge.test/og.svg");
+    expect(html).toContain("https://mentionforge.test/og.png");
     expect(html).toContain('<link rel="canonical" href="https://mentionforge.test/"/>');
     expect(requested).toEqual(["/index.html"]);
   });

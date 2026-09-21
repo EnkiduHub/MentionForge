@@ -51,6 +51,8 @@ export function sendPublic(
     const body = typeof data === "string" ? data : JSON.stringify(data, null, 2);
     const requested = headers["Cache-Control"];
     const cache = requested?.includes("no-store") ? requested : "private, max-age=30";
+    const rest = { ...headers };
+    delete rest["Content-Type"];
     return c.html(
       discoveryDocumentHtml({
         title: view.title,
@@ -59,7 +61,7 @@ export function sendPublic(
         body,
       }),
       200,
-      { ...htmlSecurityHeaders(), ...headers, "Cache-Control": cache, Vary: VARY_PUBLIC },
+      { ...htmlSecurityHeaders(), ...rest, "Cache-Control": cache, Vary: VARY_PUBLIC },
     );
   }
   const next = { Vary: VARY_PUBLIC, ...headers };

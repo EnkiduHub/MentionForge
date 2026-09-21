@@ -18,35 +18,29 @@ Agent-native social listening API mark for Glama, Smithery, GitHub, x402scan, an
 
 ## Mark meaning
 
-Geometric **signal → citation** motif: three trailing bars (volume / mentions) resolve into a teal node with `<<` chevrons (cite / rewind-to-source). Dark premium API product — Linear/Stripe caliber, not cartoon.
+Anvil + ember crystal + dual signal rings. Dark premium API product — Linear/Stripe caliber, not cartoon. No Reddit/X logos as primary identity.
 
-## Files
+## Files (served from `public/`)
 
 | File | Size | Use |
 |------|------|-----|
-| `mentionforge-mark-1024.png` | 1024×1024 | Primary square mark (dark BG) |
-| `mentionforge-mark-1024-transparent.png` | 1024×1024 | Same emblem, transparent outside plate |
-| `mentionforge-thumb-512.png` | 512×512 | Glama / Smithery thumbnail |
-| `mentionforge-og-1200x630.png` | 1200×630 | Social / OG / GitHub social preview |
-| `BRIEF.md` | — | This file |
-
-Absolute paths (box):
-
-- `/workspace/mentionforge-gtm/brand/mentionforge-mark-1024.png`
-- `/workspace/mentionforge-gtm/brand/mentionforge-mark-1024-transparent.png`
-- `/workspace/mentionforge-gtm/brand/mentionforge-thumb-512.png`
-- `/workspace/mentionforge-gtm/brand/mentionforge-og-1200x630.png`
-- `/workspace/mentionforge-gtm/brand/BRIEF.md`
+| `logo-1024x1024.png` | 1024×1024 | Master square mark |
+| `logo-512x512.png` | 512×512 | Landing hero, OpenAPI `x-logo` |
+| `logo-256x256.png` | 256×256 | Discovery chrome, operator 96px mark, apple-touch |
+| `logo-128x128.png` | 128×128 | Favicon |
+| `logo-banner-1200x630.png` | 1200×630 | Named OG source |
+| `og.png` | 1200×630 | Conventional crawler OG (`/og.png`) |
+| `BRIEF.md` | — | This file (in `brand/`, not served) |
 
 ## Usage rules
 
-1. **Thumbnail / icon:** use `mentionforge-thumb-512.png` or `mentionforge-mark-1024.png`. Prefer dark BG versions on light marketplaces if the host adds its own frame; otherwise use as-is.
+1. **Thumbnail / icon:** use `logo-512x512.png` or `logo-256x256.png`. Prefer the dark-BG mark on light marketplaces if the host adds its own frame; otherwise use as-is.
 2. **Clear space:** keep ≥12% of mark width empty around the plate.
 3. **Minimum size:** 32×32 CSS px for UI favicons; 128×128 for directory thumbs.
 4. **Wordmark:** set in bold geometric sans (DejaVu Sans Bold / Inter / system UI). Never restyle as WordPress-y script.
 5. **Tagline:** “Social listening for agents” — muted slate, not teal.
 6. **Do not** place Reddit, X, or other platform logos inside the mark. Do not add wallet addresses to brand art.
-7. **Do not** recolor the teal node to brand-conflicting hues without a new pack.
+7. **Do not** recolor the teal rings or ember crystal to brand-conflicting hues without a new pack.
 
 ## Consistency
 

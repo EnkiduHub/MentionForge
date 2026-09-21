@@ -15,15 +15,15 @@ describe("html helpers", () => {
   });
 
   it("rewrites relative Open Graph tags to this origin", () => {
-    const html = `<meta property="og:image" content="/og.svg"/>
-<meta name="twitter:image" content="/og.svg"/>
+    const html = `<meta property="og:image" content="/og.png"/>
+<meta name="twitter:image" content="/og.png"/>
 <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/"/>
 <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/"/>`;
     const out = absolutizePublicHtml(html, "https://mentionforge-staging.mentionforge.workers.dev");
-    expect(out).toContain('content="https://mentionforge-staging.mentionforge.workers.dev/og.svg"');
+    expect(out).toContain('content="https://mentionforge-staging.mentionforge.workers.dev/og.png"');
     expect(out).toContain('<meta property="og:url" content="https://mentionforge-staging.mentionforge.workers.dev/"/>');
     expect(out).toContain('<link rel="canonical" href="https://mentionforge-staging.mentionforge.workers.dev/"/>');
-    expect(out).not.toContain('content="/og.svg"');
+    expect(out).not.toContain('content="/og.png"');
   });
 
   it("renders discovery chrome with escaped payload and current nav", () => {
@@ -36,6 +36,9 @@ describe("html helpers", () => {
     expect(html).toMatch(/<!doctype html>/i);
     expect(html).toContain('aria-current="page"');
     expect(html).toContain('href="/health"');
+    expect(html).toContain('href="/skill.md"');
+    expect(html).toContain('href="/logo-128x128.png"');
+    expect(html).toContain('src="/logo-256x256.png"');
     expect(html).toContain('id="facts"');
     expect(html).toContain('href="/health?raw=1"');
     expect(html).toContain("&lt;script&gt;");

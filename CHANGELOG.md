@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Agent discoverability: rich MCP server card, Cursor/Claude install in `/llms.txt`, public `GET /skill.md`, forge-mark PNG OG/logo/favicon
+
 ## 1.0.0 — 2026-09-17
 
 - Initial MentionForge Worker: Hono REST + `createMcpHandler`, x402 $0.02 USDC

@@ -1,3 +1,5 @@
+import { BRAND_ASSETS } from "./brand-assets";
+
 export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -33,13 +35,14 @@ export function cleanSnippet(s: string): string {
 export function absolutizePublicHtml(html: string, origin: string): string {
   const base = origin.replace(/\/$/, "");
   return html
-    .replaceAll('content="/og.svg"', `content="${base}/og.svg"`)
+    .replaceAll(`content="${BRAND_ASSETS.og}"`, `content="${base}${BRAND_ASSETS.og}"`)
     .replace(/<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="${base}/"/>`)
     .replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${base}/"/>`);
 }
 
 const DISCOVERY_NAV: Array<[string, string]> = [
   ["/llms.txt", "llms.txt"],
+  ["/skill.md", "skill.md"],
   ["/openapi.json", "OpenAPI"],
   ["/.well-known/x402", "x402"],
   ["/v1/pricing", "pricing"],
@@ -69,7 +72,7 @@ export function discoveryDocumentHtml(opts: {
   <meta name="theme-color" content="#0B0C0F"/>
   <title>MENTION//FORGE — ${escapeHtml(opts.title)}</title>
   <meta name="description" content="${escapeHtml(opts.hint)}"/>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
   <link rel="stylesheet" href="/styles.css"/>
   <script src="/app.js" defer></script>
 </head>
@@ -90,7 +93,7 @@ export function discoveryDocumentHtml(opts: {
         <ul class="facts" id="facts" hidden></ul>
       </div>
       <div class="mark-wrap">
-        <img class="mark mark-sm" src="/logo.svg" width="96" height="96" alt=""/>
+        <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
       </div>
     </header>
     <section aria-labelledby="payload-title">

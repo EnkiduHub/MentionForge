@@ -43,8 +43,9 @@ GET `/v1/research` is supported via query string. Docs tell agents to prefer POS
 | `GET /openapi.json` | OpenAPI 3.1 + `x-logo` |
 | `GET /llms.txt` | When to call this instead of web_search |
 | `GET /llms-full.txt` | Full agent guide |
+| `GET /skill.md` | Cursor skill.md (install → trial → paid) |
 | `GET /.well-known/x402` | Resource URLs built from `request.url` origin |
-| `GET /.well-known/mcp` | Streamable HTTP pointer |
+| `GET /.well-known/mcp` | Streamable HTTP pointer + server-card link |
 | `GET /server-card.json` | MCP server card |
 | `GET /v1/operator/stats` | Bearer `OPERATOR_TOKEN` (`401 UNAUTHORIZED` without it) |
 | `GET /operator` | HTML dashboard (USDC earned from D1) |

@@ -3,6 +3,7 @@ import { operatorOk } from "../lib/trial";
 import { operatorStats } from "../lib/analytics";
 import { AgentError } from "../schemas/errors";
 import { BRAND } from "../brand/tokens";
+import { BRAND_ASSETS } from "../lib/brand-assets";
 import { escapeHtml } from "../lib/html";
 import { htmlSecurityHeaders } from "../lib/security-headers";
 
@@ -34,7 +35,7 @@ operatorRoutes.get("/operator", async (c) => {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="dark"/>
   <title>MentionForge operator</title>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
   <link rel="stylesheet" href="/styles.css"/>
 </head>
 <body>
@@ -53,6 +54,9 @@ operatorRoutes.get("/operator", async (c) => {
       <div>
         <h1 id="main">Operator ledger</h1>
         <p class="lede">D1 totals for this deployment. Analytics Engine is write-only and is not queried here.</p>
+      </div>
+      <div class="mark-wrap">
+        <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
       </div>
     </header>
     <section class="grid" aria-label="Totals">

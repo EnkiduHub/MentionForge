@@ -1,4 +1,5 @@
 import { VALUE_PROP } from "../brand/tokens";
+import { BRAND_ASSETS } from "./brand-assets";
 import { SAMPLE_QUERY, SERVICE_NAME, SERVICE_VERSION } from "./constants";
 import { EXAMPLE_RESPONSE, SAMPLE_REQUEST } from "./example";
 import { researchJsonSchema } from "../schemas/research";
@@ -19,7 +20,7 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
       contact: { name: "MentionForge", url: origin },
       license: { name: "MIT", url: "https://opensource.org/licenses/MIT" },
     },
-    "x-logo": { url: `${origin}/logo.svg`, altText: "MENTION//FORGE" },
+    "x-logo": { url: `${origin}${BRAND_ASSETS.openapi}`, altText: "MENTION//FORGE" },
     servers: [{ url: origin }],
     tags: [{ name: "research" }, { name: "discovery" }, { name: "operator" }],
     paths: {
@@ -102,6 +103,9 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
       "/stats": { get: { tags: ["discovery"], summary: "Public call count" } },
       "/openapi.json": { get: { tags: ["discovery"] } },
       "/llms.txt": { get: { tags: ["discovery"] } },
+      "/llms-full.txt": { get: { tags: ["discovery"] } },
+      "/skill.md": { get: { tags: ["discovery"], summary: "Cursor skill.md" } },
+      "/server-card.json": { get: { tags: ["discovery"], summary: "MCP server card" } },
       "/.well-known/x402": { get: { tags: ["discovery"] } },
     },
     components: {
