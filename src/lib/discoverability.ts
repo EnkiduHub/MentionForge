@@ -6,7 +6,7 @@ export const DIRECTORY_LINKS = {
   github: "https://github.com/EnkiduHub/MentionForge",
   official_registry: "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge",
   glama: "https://glama.ai/mcp/servers/@EnkiduHub/MentionForge",
-  smithery: "https://smithery.ai/servers/@enkiduhub/mentionforge",
+  smithery: "https://smithery.ai/servers/enkiduhub/mentionforge",
   x402scan: "https://www.x402scan.com",
 } as const;
 

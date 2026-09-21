@@ -1,0 +1,5 @@
+# Stdio bridge copies only scripts/glama-stdio.mjs. Ignore everything else so
+# a Glama or local `docker build` cannot send secrets or Worker source.
+*
+!scripts/
+!scripts/glama-stdio.mjs

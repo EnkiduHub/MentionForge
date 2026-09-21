@@ -17,6 +17,7 @@ import {
 import { AgentError } from "../schemas/errors";
 import { VALUE_PROP } from "../brand/tokens";
 import { generateCdpJwt } from "./cdp-jwt";
+import { logRequest } from "./logger";
 
 export type Billing = {
   amount_usdc: string;
@@ -119,7 +120,7 @@ function publicFacilitatorError(err: unknown): string {
   return String(err)
     .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
     .replace(/[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g, "[jwt]")
-    .slice(0, 240);
+    .slice(0, 480);
 }
 
 /**
@@ -260,6 +261,72 @@ function asPayload(raw: unknown): PaymentPayload {
   return obj as unknown as PaymentPayload;
 }
 
+/**
+ * `@x402/mcp` rethrows facilitator / matching errors as opaque "Internal Server Error".
+ * REST `verifyPayment` already maps those to PAYMENT_REQUIRED / PAYMENT_UNAVAILABLE.
+ * Catch here so a signed MCP call becomes payment-required (no settle), not ISE.
+ * Facilitator `/verify` only needs the exact-scheme payload; bazaar catalog stays on
+ * payment-required + settle so CDP indexing is unchanged.
+ */
+function isVerifyError(err: unknown): err is VerifyError {
+  return err instanceof VerifyError || (err instanceof Error && err.name === "VerifyError");
+}
+
+function verifyFailResponse(err: unknown): { isValid: false; invalidReason: string; invalidMessage: string } {
+  const msg = publicFacilitatorError(err);
+  logRequest({ msg: "x402_verify_throw", err: msg });
+  const ve = isVerifyError(err) ? err : undefined;
+  const unreachable = /unreachable|failed to fetch|network|timeout|ECONN|ENOTFOUND|Facilitator verify failed \(5/i.test(msg);
+  const reason = ve?.invalidReason || (unreachable ? "facilitator_unreachable" : "verify_error");
+  const detail = (ve?.invalidMessage || msg).slice(0, 200);
+  return {
+    isValid: false,
+    invalidReason: `${reason}: ${detail}`.slice(0, 240),
+    invalidMessage: detail,
+  };
+}
+
+function hardenMcpResourceServer(server: x402ResourceServer): x402ResourceServer {
+  const innerVerify = server.verifyPayment.bind(server);
+  const innerFind = server.findMatchingRequirements.bind(server);
+  return new Proxy(server, {
+    get(target, prop, receiver) {
+      if (prop === "verifyPayment") {
+        return async (
+          payload: PaymentPayload,
+          requirements: PaymentRequirements,
+          declaredExtensions?: Record<string, unknown>,
+          transportContext?: unknown,
+        ) => {
+          try {
+            const payloadWithoutExt = { ...(payload as PaymentPayload & { extensions?: unknown }) };
+            delete payloadWithoutExt.extensions;
+            return await innerVerify(
+              payloadWithoutExt as PaymentPayload,
+              requirements,
+              declaredExtensions,
+              transportContext as Parameters<typeof innerVerify>[3],
+            );
+          } catch (err) {
+            return verifyFailResponse(err);
+          }
+        };
+      }
+      if (prop === "findMatchingRequirements") {
+        return (available: PaymentRequirements[], payload: PaymentPayload) => {
+          try {
+            return innerFind(available, payload);
+          } catch {
+            return undefined;
+          }
+        };
+      }
+      const value = Reflect.get(target, prop, receiver);
+      return typeof value === "function" ? (value as (...args: never[]) => unknown).bind(target) : value;
+    },
+  });
+}
+
 /** REST + MCP share one @x402/hono resource server (verify → execute → settle). */
 export function getResourceServer(env: Env): x402ResourceServer {
   const cfg = paymentConfig(env);
@@ -269,7 +336,7 @@ export function getResourceServer(env: Env): x402ResourceServer {
   } catch {
     /* bazaar catalog is additive */
   }
-  return server;
+  return hardenMcpResourceServer(server);
 }
 
 export async function verifyPayment(
@@ -380,53 +447,32 @@ export function paymentResponseHeader(txHash: string | null, env: Env): string {
   });
 }
 
-export const bazaarExtension = {
-  ...sdkBazaarDeclaration(),
-  bazaar: {
-    info: {
-      input: {
-        type: "mcp",
-        toolName: "research_mentions",
-        description: BAZAAR_TOOL_DESC,
-        transport: "streamable-http",
-        inputSchema: {
-          type: "object",
-          required: ["query"],
-          properties: {
-            query: { type: "string" },
-            platforms: { type: "array", items: { type: "string" } },
-            timeframe: { type: "string" },
-            limit: { type: "integer" },
-            include_summary: { type: "boolean" },
-            min_engagement: { type: "number" },
-            language: { type: "string" },
-          },
-        },
-        example: { query: SAMPLE_QUERY, timeframe: "7d", limit: 20 },
-      },
-      output: { type: "json" },
-    },
+const BAZAAR_INPUT_SCHEMA = {
+  type: "object",
+  required: ["query"],
+  properties: {
+    query: { type: "string" },
+    platforms: { type: "array", items: { type: "string" } },
+    timeframe: { type: "string" },
+    limit: { type: "integer" },
+    include_summary: { type: "boolean" },
+    min_engagement: { type: "number" },
+    language: { type: "string" },
   },
-};
+} as const;
 
-function sdkBazaarDeclaration(): Record<string, unknown> {
+/** Official `{ bazaar: { info, schema } }`. Do not overlay `info` without `schema` — paid verify can throw. */
+export const bazaarExtension: Record<string, unknown> = (() => {
   try {
     return declareDiscoveryExtension({
       toolName: "research_mentions",
       description: BAZAAR_TOOL_DESC,
-      inputSchema: {
-        type: "object",
-        required: ["query"],
-        properties: {
-          query: { type: "string" },
-          timeframe: { type: "string" },
-          limit: { type: "integer" },
-          include_summary: { type: "boolean" },
-        },
-      },
+      transport: "streamable-http",
+      inputSchema: BAZAAR_INPUT_SCHEMA,
+      example: { query: SAMPLE_QUERY, timeframe: "7d", limit: 20 },
       output: { example: { query: SAMPLE_QUERY } },
     }) as Record<string, unknown>;
   } catch {
     return {};
   }
-}
+})();

@@ -145,6 +145,19 @@ async function main() {
   assertPayerDiffersFromPayTo(account.address, price.pay_to);
   console.log("payer", account.address);
   const payload = await client.createPaymentPayload(required as never);
+  const recPayload = payload as {
+    x402Version?: number;
+    accepted?: { amount?: string; network?: string; payTo?: string };
+    payload?: { authorization?: { value?: string } };
+  };
+  console.log("payload_shape", {
+    x402Version: recPayload.x402Version,
+    hasAccepted: recPayload.accepted != null,
+    hasPayload: recPayload.payload != null,
+    amount: recPayload.accepted?.amount ?? recPayload.payload?.authorization?.value,
+    network: recPayload.accepted?.network,
+    payTo: recPayload.accepted?.payTo,
+  });
   const paid = await mcpRpc(
     {
       jsonrpc: "2.0",
@@ -162,14 +175,40 @@ async function main() {
       "PAYMENT-SIGNATURE": encodePaymentHeader(payload),
     },
   );
-  console.log("paid", paid.res.status, paid.text.slice(0, 2000));
   if (asPaymentRequired(paid.parsed)) {
-    console.error("MCP still returned payment-required after PAYMENT-SIGNATURE / _meta.");
+    const req = asPaymentRequired(paid.parsed);
+    const acc = Array.isArray(req?.accepts) ? (req.accepts as Array<Record<string, unknown>>)[0] : undefined;
+    console.error("MCP still returned payment-required after PAYMENT-SIGNATURE / _meta.", {
+      error: req?.error,
+      resource_url: asRecord(req?.resource)?.url,
+      accept: acc
+        ? { network: acc.network, amount: acc.amount, asset: acc.asset, payTo: acc.payTo, extra: acc.extra }
+        : null,
+      extension_keys: Object.keys(asRecord(req?.extensions) ?? {}),
+    });
     process.exit(1);
   }
   const rec = asRecord(paid.parsed);
   const result = asRecord(rec?.result);
-  if (!paid.res.ok || rec?.error || result?.isError) process.exit(1);
+  if (!paid.res.ok || rec?.error || result?.isError) {
+    const content = result?.content;
+    const texts = Array.isArray(content)
+      ? content
+          .map((item) => {
+            const recItem = asRecord(item);
+            return typeof recItem?.text === "string" ? recItem.text : "";
+          })
+          .filter(Boolean)
+      : [];
+    console.error("paid MCP failed", {
+      status: paid.res.status,
+      isError: result?.isError,
+      jsonrpc_error: rec?.error,
+      content: texts.join("\n").slice(0, 1500),
+    });
+    process.exit(1);
+  }
+  console.log("paid MCP ok", paid.res.status);
 }
 
 main().catch((err: unknown) => {

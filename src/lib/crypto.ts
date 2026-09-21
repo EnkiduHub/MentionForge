@@ -13,7 +13,9 @@ function redactLog(v: unknown): unknown {
     const o = v as Record<string, unknown>;
     const out: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(o)) {
-      out[k] = /secret|authorization|password|private[_-]?key|access_token/i.test(k) ? "[redacted]" : redactLog(val);
+      out[k] = /secret|authorization|password|private[_-]?key|access_token|signature|x402\/payment|payment-signature|x-payment/i.test(k)
+        ? "[redacted]"
+        : redactLog(val);
     }
     return out;
   }

@@ -2,6 +2,7 @@
 
 Publish the **already-hosted** Streamable HTTP server. Do not upload a local stdio/MCPB build.
 
+**Listing:** https://smithery.ai/servers/enkiduhub/mentionforge (canonical, no `@`)  
 **UI:** https://smithery.ai/new — enter the public HTTPS MCP URL.
 
 ## Form fields

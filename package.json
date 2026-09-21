@@ -13,10 +13,14 @@
   "bugs": {
     "url": "https://github.com/EnkiduHub/MentionForge/issues"
   },
+  "bin": {
+    "mentionforge": "./scripts/glama-stdio.mjs"
+  },
   "engines": {
     "node": ">=20"
   },
   "scripts": {
+    "start": "node scripts/glama-stdio.mjs",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --env staging",
     "deploy:staging": "wrangler deploy --env staging",
@@ -43,6 +47,7 @@
     "@x402/mcp": "^2.23.0",
     "agents": "^0.20.0",
     "hono": "^4.9.0",
+    "mcp-remote": "0.14.3",
     "viem": "^2.48.11",
     "zod": "^4.5.0"
   },

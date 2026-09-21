@@ -164,4 +164,38 @@ describe("agent discoverability", () => {
     expect(cards.map((c) => c.name)).toEqual(["health", "get_pricing", "research_mentions"]);
     expect(JSON.stringify(cards)).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
+
+  it("Glama stdio bridge is a mcp-remote proxy to the hosted Worker, not a Worker clone", () => {
+    const glama = JSON.parse(readFileSync(new URL("../../glama.json", import.meta.url), "utf8")) as {
+      $schema?: string;
+      maintainers?: string[];
+    };
+    expect(glama.$schema).toBe("https://glama.ai/mcp/schemas/server.json");
+    expect(glama.maintainers).toContain("EnkiduHub");
+
+    const dockerfile = readFileSync(new URL("../../Dockerfile", import.meta.url), "utf8");
+    const glamaStdio = readFileSync(new URL("../../scripts/glama-stdio.mjs", import.meta.url), "utf8");
+    const listing = readFileSync(new URL("../../listings/glama.md", import.meta.url), "utf8");
+    expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
+    expect(dockerfile).toContain("scripts/glama-stdio.mjs");
+    expect(dockerfile).toMatch(/^CMD \["node", "\/home\/node\/glama-stdio.mjs"\]$/m);
+    expect(dockerfile).not.toMatch(/^ENTRYPOINT /m);
+    expect(dockerfile).not.toMatch(/wrangler|CDP_API_KEY|TEST_PAYER_PRIVATE_KEY/);
+    expect(glamaStdio).toContain("https://mentionforge.mentionforge.workers.dev/mcp");
+    expect(glamaStdio).toContain("--transport");
+    expect(glamaStdio).toContain("http-only");
+    expect(glamaStdio).not.toMatch(/wrangler|CDP_API_KEY|TEST_PAYER_PRIVATE_KEY/);
+    expect(listing).toContain('["npm install -g mcp-remote@0.14.3"]');
+    expect(listing).toContain('["node", "scripts/glama-stdio.mjs"]');
+
+    const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
+      bin?: Record<string, string>;
+      scripts?: Record<string, string>;
+      dependencies?: Record<string, string>;
+    };
+    expect(pkg.bin?.mentionforge).toBe("./scripts/glama-stdio.mjs");
+    expect(pkg.scripts?.start).toBe("node scripts/glama-stdio.mjs");
+    expect(pkg.scripts?.dev).toBe("wrangler dev");
+    expect(pkg.dependencies?.["mcp-remote"]).toBe("0.14.3");
+  });
 });

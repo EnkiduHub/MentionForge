@@ -65,6 +65,8 @@ claude mcp add --transport http mentionforge https://mentionforge.mentionforge.w
 }
 ```
 
+Glama’s GitHub **Deploy Server** speaks stdio. `npm start` / the `mentionforge` bin / the root `Dockerfile` run `scripts/glama-stdio.mjs` (`mcp-remote` → that `/mcp` URL). They do not boot Wrangler. Local Worker remains `npm run dev`.
+
 ## Architecture
 
 ```mermaid
@@ -134,6 +136,8 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 ## Hosted product vs this repo
 
 The thing agents pay for is **this origin**: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`POST /v1/research` and `POST /mcp` tool `research_mentions`). x402 still charges **$0.02 USDC on Base** there after the 10-call trial. A clone with someone else’s Cloudflare account is a **fork**, not free access to this Worker.
+
+The root `Dockerfile` is only a Glama stdio bridge (`scripts/glama-stdio.mjs` → `mcp-remote` → that `/mcp` URL, `CMD` not `ENTRYPOINT`). `package.json` `bin`/`start` are the same bridge so Glama’s indexer does not infer `wrangler`. It does not run D1 or a second research engine. Admin form values: [listings/glama.md](listings/glama.md).
 
 ## License
 

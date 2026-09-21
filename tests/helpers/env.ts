@@ -174,10 +174,34 @@ export function stubCaches() {
   return store;
 }
 
-export function stubSourcesFetch() {
+export type SourceFetchStub = { settleCount: number };
+
+export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boolean } = {}): SourceFetchStub {
+  const state: SourceFetchStub = { settleCount: 0 };
   const now = Math.floor(Date.now() / 1000);
   setGlobalFetch(async (input: RequestInfo | URL) => {
     const url = String(input instanceof Request ? input.url : input);
+    if (url.includes("/supported")) {
+      return jsonResponse({
+        kinds: [
+          { x402Version: 2, scheme: "exact", network: "eip155:84532" },
+          { x402Version: 2, scheme: "exact", network: "eip155:8453" },
+        ],
+      });
+    }
+    if (url.includes("/verify")) {
+      if (opts.failVerify) {
+        return jsonResponse({ isValid: false, invalidReason: "invalid_payload", invalidMessage: "stub verify fail" }, 400);
+      }
+      return jsonResponse({ isValid: true, payer: "0x1111111111111111111111111111111111111111" });
+    }
+    if (url.includes("/settle")) {
+      state.settleCount += 1;
+      return jsonResponse({ success: true, transaction: "0xabc", network: "eip155:84532" });
+    }
+    if (opts.failSources) {
+      throw new Error("offline");
+    }
     if (url.includes("reddit.com")) {
       return jsonResponse({
         data: {
@@ -220,20 +244,7 @@ export function stubSourcesFetch() {
     if (url.includes("gdeltproject.org") || url.includes("algolia.com") || url.includes("duckduckgo.com") || url.includes("brave.com") || url.includes("x.com")) {
       return jsonResponse({});
     }
-    if (url.includes("/supported")) {
-      return jsonResponse({
-        kinds: [
-          { x402Version: 2, scheme: "exact", network: "eip155:84532" },
-          { x402Version: 2, scheme: "exact", network: "eip155:8453" },
-        ],
-      });
-    }
-    if (url.includes("/verify")) {
-      return jsonResponse({ isValid: true, payer: "0x1111111111111111111111111111111111111111" });
-    }
-    if (url.includes("/settle")) {
-      return jsonResponse({ success: true, transaction: "0xabc", network: "eip155:84532" });
-    }
     return jsonResponse({}, 404);
   });
+  return state;
 }

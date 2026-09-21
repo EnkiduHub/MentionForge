@@ -1,6 +1,167 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { GET_PRICING_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC } from "../../src/mcp";
+import { bazaarExtension, encodeHeader } from "../../src/lib/x402";
+import { createApp } from "../../src/app";
 import { executionCtx, mockEnv, stubCaches, stubSourcesFetch } from "../helpers/env";
+
+const MCP_HEADERS = {
+  "content-type": "application/json",
+  host: "mentionforge.test",
+  accept: "application/json, text/event-stream",
+} as const;
+
+const PAID_ARGS = { query: "ForgeCo", platforms: ["reddit"], timeframe: "7d", limit: 5, include_summary: false };
+
+type Json = Record<string, unknown>;
+
+function asRecord(v: unknown): Json | null {
+  return v && typeof v === "object" && !Array.isArray(v) ? (v as Json) : null;
+}
+
+async function mcpJson(res: Response): Promise<unknown> {
+  const raw = await res.text();
+  const ct = res.headers.get("content-type") ?? "";
+  if (ct.includes("text/event-stream")) {
+    const chunks = raw
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.replace(/^data:\s?/, "").trim())
+      .filter(Boolean);
+    const last = chunks.at(-1);
+    if (!last) throw new Error(`empty MCP SSE body: ${raw.slice(0, 200)}`);
+    return JSON.parse(last) as unknown;
+  }
+  return JSON.parse(raw) as unknown;
+}
+
+function asPaymentRequired(value: unknown): Json | null {
+  const obj = asRecord(value);
+  if (!obj) return null;
+  if (obj.x402Version != null && Array.isArray(obj.accepts)) return obj;
+  if (obj.payment) return asPaymentRequired(obj.payment);
+  if (obj.structuredContent) return asPaymentRequired(obj.structuredContent);
+  if (obj.result) return asPaymentRequired(obj.result);
+  const err = asRecord(obj.error);
+  if (err) {
+    const nested = asPaymentRequired(err.data);
+    if (nested) return nested;
+    const data = asRecord(err.data);
+    if (data?.x402) return asPaymentRequired(data.x402);
+  }
+  const content = obj.content;
+  if (Array.isArray(content)) {
+    for (const item of content) {
+      const rec = asRecord(item);
+      if (typeof rec?.text === "string") {
+        try {
+          const found = asPaymentRequired(JSON.parse(rec.text) as unknown);
+          if (found) return found;
+        } catch {
+          /* not JSON */
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function toolResult(parsed: unknown): Json {
+  const rec = asRecord(parsed);
+  return asRecord(rec?.result) ?? rec ?? {};
+}
+
+function contentText(result: Json): string {
+  const content = result.content;
+  if (!Array.isArray(content)) return "";
+  return content
+    .map((item) => {
+      const rec = asRecord(item);
+      return typeof rec?.text === "string" ? rec.text : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function mcpInitialize(env = mockEnv()) {
+  const init = await handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers: MCP_HEADERS,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+      }),
+    }),
+    env,
+    executionCtx(),
+  );
+  const session = init.headers.get("mcp-session-id");
+  return {
+    env,
+    headers: { ...MCP_HEADERS, ...(session ? { "mcp-session-id": session } : {}) },
+  };
+}
+
+async function unpaidResearch(session: { env: Env; headers: Record<string, string> }) {
+  const unpaid = await handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers: session.headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 2,
+        method: "tools/call",
+        params: { name: "research_mentions", arguments: PAID_ARGS },
+      }),
+    }),
+    session.env,
+    executionCtx(),
+  );
+  const parsed = await mcpJson(unpaid);
+  const required = asPaymentRequired(parsed);
+  if (!required) {
+    throw new Error(`expected payment-required, got ${JSON.stringify(parsed).slice(0, 500)}`);
+  }
+  const accepts = required.accepts as unknown[];
+  expect(accepts.length).toBeGreaterThan(0);
+  return { accepts, required };
+}
+
+function stubPayment(accepted: unknown) {
+  return { x402Version: 2, accepted, payload: { signature: "0xsig" } };
+}
+
+async function paidResearch(
+  session: { env: Env; headers: Record<string, string> },
+  payment: unknown,
+  mode: "both" | "meta" | "header",
+  idempKey = crypto.randomUUID(),
+) {
+  const extraHeaders: Record<string, string> = {
+    ...session.headers,
+    "Idempotency-Key": idempKey,
+  };
+  const params: Json = { name: "research_mentions", arguments: PAID_ARGS };
+  if (mode === "both" || mode === "meta") {
+    params._meta = { "x402/payment": payment };
+  }
+  if (mode === "both" || mode === "header") {
+    extraHeaders["PAYMENT-SIGNATURE"] = encodeHeader(payment);
+  }
+  const res = await handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers: extraHeaders,
+      body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/call", params }),
+    }),
+    session.env,
+    executionCtx(),
+  );
+  const parsed = await mcpJson(res);
+  return { res, parsed, result: toolResult(parsed) };
+}
 
 function head200(s: string): string {
   return s.slice(0, 200);
@@ -79,6 +240,36 @@ describe("MCP origin + factory", () => {
       mcpReq: { _meta: { "x402/payment": { x402Version: 2, payload: { signature: "sig" } } } },
     });
     expect(extra._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "sig" } });
+  });
+
+  it("maps ctx._meta and header fallbacks, preferring existing _meta payment", () => {
+    const fromCtxMeta = mcpPaymentExtraFromContext({
+      _meta: { "x402/payment": { x402Version: 2, payload: { signature: "ctx" } } },
+    });
+    expect(fromCtxMeta._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "ctx" } });
+
+    const headerReq = new Request("https://mentionforge.test/mcp", {
+      headers: { "PAYMENT-SIGNATURE": encodeHeader({ x402Version: 2, payload: { signature: "hdr" } }) },
+    });
+    const fromHttp = mcpPaymentExtraFromContext({ http: { req: headerReq } });
+    expect(fromHttp._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "hdr" } });
+
+    const closedOver = new Request("https://mentionforge.test/mcp", {
+      headers: { "PAYMENT-SIGNATURE": encodeHeader({ x402Version: 2, payload: { signature: "closed" } }) },
+    });
+    const fromClosed = mcpPaymentExtraFromContext({}, closedOver);
+    expect(fromClosed._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "closed" } });
+
+    const preferMeta = mcpPaymentExtraFromContext(
+      { mcpReq: { _meta: { "x402/payment": { x402Version: 2, payload: { signature: "meta" } } } } },
+      headerReq,
+    );
+    expect(preferMeta._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "meta" } });
+
+    const coerced = mcpPaymentExtraFromContext({
+      _meta: { "x402/payment": { x402Version: "2", payload: { signature: "str" } } },
+    });
+    expect(coerced._meta["x402/payment"]).toEqual({ x402Version: 2, payload: { signature: "str" } });
   });
 
   it("tools/list exposes described research parameters Glama TDQS scores", async () => {
@@ -170,5 +361,96 @@ describe("MCP origin + factory", () => {
       idempotentHint: true,
       openWorldHint: false,
     });
+  });
+
+  it("x402 resource description stays under the CDP verify length cap", async () => {
+    const session = await mcpInitialize();
+    const { required } = await unpaidResearch(session);
+    const desc = asRecord(required.resource)?.description;
+    expect(typeof desc).toBe("string");
+    expect(String(desc).length).toBeGreaterThan(20);
+    expect(String(desc).length).toBeLessThanOrEqual(480);
+  });
+
+  it("paid research_mentions succeeds with _meta, header, or both, and settles once", async () => {
+    const session = await mcpInitialize();
+    const { accepts } = await unpaidResearch(session);
+    const payment = stubPayment(accepts[0]);
+
+    for (const mode of ["both", "meta", "header"] as const) {
+      const stub = stubSourcesFetch();
+      const paid = await paidResearch(session, payment, mode);
+      expect(asPaymentRequired(paid.parsed)).toBeNull();
+      expect(paid.result.isError).toBeFalsy();
+      expect(contentText(paid.result)).not.toBe("Internal Server Error");
+      const structured = asRecord(paid.result.structuredContent);
+      expect(structured?.query).toBe("ForgeCo");
+      expect(stub.settleCount).toBe(1);
+    }
+  });
+
+  it("replays a paid MCP call from idempotency without a second settle", async () => {
+    const session = await mcpInitialize();
+    const { accepts } = await unpaidResearch(session);
+    const payment = stubPayment(accepts[0]);
+    const stub = stubSourcesFetch();
+    const key = "11111111-1111-4111-8111-111111111111";
+    const first = await paidResearch(session, payment, "both", key);
+    expect(first.result.isError).toBeFalsy();
+    expect(stub.settleCount).toBe(1);
+    const second = await paidResearch(session, payment, "both", key);
+    expect(asPaymentRequired(second.parsed)).toBeNull();
+    expect(second.result.isError).toBeFalsy();
+    expect(contentText(second.result)).not.toBe("Internal Server Error");
+    expect(asRecord(second.result.structuredContent)?.query).toBe("ForgeCo");
+    expect(stub.settleCount).toBe(1);
+  });
+
+  it("maps facilitator verify throws to payment-required instead of Internal Server Error", async () => {
+    const session = await mcpInitialize();
+    const { accepts } = await unpaidResearch(session);
+    const stub = stubSourcesFetch({ failVerify: true });
+    const paid = await paidResearch(session, stubPayment(accepts[0]), "both");
+    expect(contentText(paid.result)).not.toBe("Internal Server Error");
+    expect(asPaymentRequired(paid.parsed)).toBeTruthy();
+    const body = (() => {
+      try {
+        return JSON.parse(contentText(paid.result)) as { error?: { code?: string; details?: { cause?: string } } };
+      } catch {
+        return null;
+      }
+    })();
+    expect(body?.error?.code).not.toBe("INTERNAL_ERROR");
+    expect(stub.settleCount).toBe(0);
+  });
+
+  it("does not settle when paid research fails with SOURCE_UNAVAILABLE", async () => {
+    const session = await mcpInitialize();
+    const { accepts } = await unpaidResearch(session);
+    const stub = stubSourcesFetch({ failSources: true });
+    const paid = await paidResearch(session, stubPayment(accepts[0]), "both");
+    expect(paid.result.isError).toBe(true);
+    const text = contentText(paid.result);
+    expect(text).not.toBe("Internal Server Error");
+    const body = JSON.parse(text) as { error?: { code?: string } };
+    expect(body.error?.code).toBe("SOURCE_UNAVAILABLE");
+    expect(stub.settleCount).toBe(0);
+  });
+
+  it("bazaarExtension includes info and schema; GET /.well-known/x402 exposes them", async () => {
+    const bazaar = asRecord(bazaarExtension.bazaar);
+    expect(bazaar?.info).toBeTruthy();
+    expect(bazaar?.schema).toBeTruthy();
+
+    const app = createApp();
+    const res = await app.fetch(
+      new Request("https://mentionforge.test/.well-known/x402", { headers: { Accept: "application/json" } }),
+      mockEnv(),
+      executionCtx(),
+    );
+    expect(res.status).toBe(200);
+    const doc = (await res.json()) as { extensions?: { bazaar?: { info?: unknown; schema?: unknown } } };
+    expect(doc.extensions?.bazaar?.info).toBeTruthy();
+    expect(doc.extensions?.bazaar?.schema).toBeTruthy();
   });
 });

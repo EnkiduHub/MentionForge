@@ -3,7 +3,7 @@ import { createMcpHandler } from "agents/mcp/server";
 import { createPaymentWrapper } from "@x402/mcp";
 import { z } from "zod";
 import { VALUE_PROP } from "./brand/tokens";
-import { SERVICE_NAME, SERVICE_VERSION } from "./lib/constants";
+import { SERVICE_NAME, SERVICE_VERSION, SAMPLE_QUERY } from "./lib/constants";
 import { parseResearchInput, researchRequestSchema, researchResponseSchema, type ResearchResponse } from "./schemas/research";
 import { AgentError } from "./schemas/errors";
 import {
@@ -18,7 +18,8 @@ import { bazaarExtension, decodeHeader, getResourceServer, paymentConfig, paymen
 import { sandboxOk, trialRemaining } from "./lib/trial";
 import { sourceBackends } from "./lib/source-backends";
 import { limitOrThrow } from "./lib/rate-limit";
-import { storeIdempotency } from "./lib/idempotency";
+import { lookupIdempotency, storeIdempotency } from "./lib/idempotency";
+import { logRequest } from "./lib/logger";
 
 export const HEALTH_DESC =
   "Check MentionForge Worker liveness and whether paid research can settle. Use this free pulse when you only need uptime — takes no arguments, never charges, and needs no X-Wallet, Idempotency-Key, or PAYMENT-SIGNATURE; for list price or trial terms use get_pricing instead; for cited mentions use research_mentions.";
@@ -58,14 +59,41 @@ function originHostnames(env: Env): string[] | "*" {
   });
 }
 
-/** MCP SDK v2 puts request `_meta` on `ctx.mcpReq._meta`; @x402/mcp still reads `extra._meta`. */
-export function mcpPaymentExtraFromContext(ctx: {
-  mcpReq?: { _meta?: Record<string, unknown> };
-  http?: { req?: Request };
-}): { _meta: Record<string, unknown> } {
-  const meta: Record<string, unknown> = { ...(ctx.mcpReq?._meta ?? {}) };
+function publicErr(err: unknown): string {
+  return String(err)
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/g, "[jwt]")
+    .slice(0, 240);
+}
+
+/** MCP matching throws on a non-numeric `x402Version`; REST `asPayload` already coerces this. */
+function normalizeMcpPaymentPayload(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return raw;
+  const obj = { ...(raw as Record<string, unknown>) };
+  if (typeof obj.x402Version !== "number") {
+    if (obj.x402Version == null || obj.x402Version === "2" || obj.x402Version === "1") {
+      obj.x402Version = obj.x402Version === "1" ? 1 : 2;
+    }
+  }
+  return obj;
+}
+
+/** MCP SDK v2 puts request `_meta` on `ctx.mcpReq._meta`; `@x402/mcp` still reads `extra._meta`. */
+export function mcpPaymentExtraFromContext(
+  ctx: {
+    _meta?: Record<string, unknown>;
+    mcpReq?: { _meta?: Record<string, unknown> };
+    http?: { req?: Request };
+  },
+  request?: Request,
+): { _meta: Record<string, unknown> } {
+  const meta: Record<string, unknown> = {
+    ...(ctx._meta && typeof ctx._meta === "object" ? ctx._meta : {}),
+    ...(ctx.mcpReq?._meta ?? {}),
+  };
   if (meta["x402/payment"] == null) {
-    const header = ctx.http?.req?.headers.get("PAYMENT-SIGNATURE") ?? ctx.http?.req?.headers.get("X-PAYMENT");
+    const req = ctx.http?.req ?? request;
+    const header = req?.headers.get("PAYMENT-SIGNATURE") ?? req?.headers.get("X-PAYMENT");
     if (header) {
       try {
         meta["x402/payment"] = decodeHeader(header);
@@ -74,7 +102,41 @@ export function mcpPaymentExtraFromContext(ctx: {
       }
     }
   }
+  if (meta["x402/payment"] != null) {
+    meta["x402/payment"] = normalizeMcpPaymentPayload(meta["x402/payment"]);
+  }
   return { _meta: meta };
+}
+
+type McpToolErrorResult = {
+  isError: true;
+  content: Array<{ type: "text"; text: string }>;
+};
+
+function mcpToolError(err: unknown, requestId: string): McpToolErrorResult {
+  if (err instanceof AgentError) {
+    return { isError: true, content: [{ type: "text", text: JSON.stringify(err.body()) }] };
+  }
+  const issues = (err as { issues?: unknown }).issues;
+  if (issues) {
+    const agent = new AgentError("VALIDATION_ERROR", "Invalid research request.", {
+      request_id: requestId,
+      details: { issues },
+      hint: `Example: ${JSON.stringify({ query: SAMPLE_QUERY, timeframe: "7d", limit: 20, include_summary: true })}`,
+    });
+    return { isError: true, content: [{ type: "text", text: JSON.stringify(agent.body()) }] };
+  }
+  const agent = new AgentError("INTERNAL_ERROR", "research failed", {
+    request_id: requestId,
+    details: { cause: "uncaught", err: publicErr(err) },
+  });
+  return { isError: true, content: [{ type: "text", text: JSON.stringify(agent.body()) }] };
+}
+
+function isOpaqueIse(result: { isError?: boolean; content?: Array<{ type?: string; text?: string }> }): boolean {
+  if (!result?.isError) return false;
+  const text = result.content?.find((c) => c.type === "text")?.text ?? "";
+  return text === "Internal Server Error";
 }
 
 export async function handleMcp(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
@@ -322,12 +384,15 @@ async function buildMcpServer(opts: {
 }
 
 async function wrapPaid(env: Env, origin: string, request: Request, ctx: ExecutionContext) {
+  const requestId = request.headers.get("X-Request-Id") || crypto.randomUUID();
   if (!paymentsReady(env)) {
-    return async () => {
-      throw new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
-        request_id: request.headers.get("X-Request-Id") || "mcp",
-      });
-    };
+    return async () =>
+      mcpToolError(
+        new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
+          request_id: requestId,
+        }),
+        requestId,
+      );
   }
 
   try {
@@ -361,7 +426,8 @@ async function wrapPaid(env: Env, origin: string, request: Request, ctx: Executi
 
     type PaidToolResult = {
       content: Array<{ type: "text"; text: string }>;
-      structuredContent: ResearchResponse;
+      structuredContent?: ResearchResponse;
+      isError?: boolean;
     };
     let lastPaid: { payload: ResearchResponse; result: PaidToolResult; bodyHash: string; idempKey: string | null } | undefined;
 
@@ -369,70 +435,159 @@ async function wrapPaid(env: Env, origin: string, request: Request, ctx: Executi
       accepts: accepts as never,
       resource: {
         url: `${origin}/mcp`,
-        description: TOOL_DESC,
+        description: VALUE_PROP,
         mimeType: "application/json",
       },
       extensions: bazaarExtension as Record<string, unknown>,
       hooks: {
         onAfterExecution: async ({ result }: { result: { isError?: boolean } }) => {
           if (result?.isError) {
-            throw new AgentError("SOURCE_UNAVAILABLE", "Research failed; payment not settled.", {
-              request_id: "mcp",
-            });
+            logRequest({ msg: "mcp_paid_skip_settle", request_id: requestId });
           }
         },
         onAfterSettlement: async ({ settlement }: { settlement?: { transaction?: string } }) => {
-          const tx = settlement?.transaction;
-          if (!lastPaid || !tx || !lastPaid.payload.meta.billing) return;
-          lastPaid.payload.meta.billing.tx_hash = tx;
-          lastPaid.result.content[0]!.text = JSON.stringify(lastPaid.payload);
-          await storeIdempotency(
-            env,
-            lastPaid.idempKey,
-            lastPaid.bodyHash,
-            lastPaid.payload,
-            lastPaid.payload.meta.billing,
-          );
+          try {
+            const tx = settlement?.transaction;
+            if (!lastPaid || !tx || !lastPaid.payload.meta.billing) return;
+            lastPaid.payload.meta.billing.tx_hash = tx;
+            lastPaid.result.content[0]!.text = JSON.stringify(lastPaid.payload);
+            await storeIdempotency(
+              env,
+              lastPaid.idempKey,
+              lastPaid.bodyHash,
+              lastPaid.payload,
+              lastPaid.payload.meta.billing,
+            );
+          } catch (err) {
+            logRequest({
+              msg: "mcp_paid_stage",
+              stage: "after_settlement",
+              request_id: requestId,
+              err: String(err),
+              stack: err instanceof Error ? err.stack : undefined,
+            });
+          }
         },
       },
     });
 
     const engineOnly = async (args: unknown) => {
-      const input = parseResearchInput(args ?? {});
-      const requestId = request.headers.get("X-Request-Id") || crypto.randomUUID();
-      await limitOrThrow(env.PAID_LIMIT, request.headers.get("X-Wallet") ?? request.headers.get("cf-connecting-ip") ?? "mcp", requestId);
-      const bodyHash = await sha256Hex(canonicalJson(input));
-      const billing = { amount_usdc: paymentConfig(env).price, tx_hash: null, free_trial: false };
-      const payload = await executeUnpaidOrPreVerified(
-        env,
-        ctx,
-        input,
-        requestId,
-        billing,
-        request.headers.get("Idempotency-Key"),
-        bodyHash,
-      );
-      const result: PaidToolResult = {
-        content: [{ type: "text", text: JSON.stringify(payload) }],
-        structuredContent: payload,
-      };
-      lastPaid = { payload, result, bodyHash, idempKey: request.headers.get("Idempotency-Key") };
-      return result;
+      try {
+        logRequest({ msg: "mcp_paid_stage", stage: "parse", request_id: requestId });
+        const input = parseResearchInput(args ?? {});
+        logRequest({ msg: "mcp_paid_stage", stage: "limit", request_id: requestId });
+        await limitOrThrow(env.PAID_LIMIT, request.headers.get("X-Wallet") ?? request.headers.get("cf-connecting-ip") ?? "mcp", requestId);
+        const bodyHash = await sha256Hex(canonicalJson(input));
+        const billing = { amount_usdc: paymentConfig(env).price, tx_hash: null, free_trial: false };
+        logRequest({ msg: "mcp_paid_stage", stage: "research", request_id: requestId });
+        const payload = await executeUnpaidOrPreVerified(
+          env,
+          ctx,
+          input,
+          requestId,
+          billing,
+          request.headers.get("Idempotency-Key"),
+          bodyHash,
+        );
+        const parsed = researchResponseSchema.safeParse(payload);
+        if (!parsed.success) {
+          logRequest({
+            msg: "mcp_paid_stage",
+            stage: "output_schema",
+            request_id: requestId,
+            err: parsed.error.message,
+            issues: parsed.error.issues,
+          });
+          return mcpToolError(
+            new AgentError("INTERNAL_ERROR", "research failed", {
+              request_id: requestId,
+              details: { cause: "output_schema" },
+            }),
+            requestId,
+          );
+        }
+        logRequest({ msg: "mcp_paid_stage", stage: "return", request_id: requestId });
+        const result: PaidToolResult = {
+          content: [{ type: "text", text: JSON.stringify(parsed.data) }],
+          structuredContent: parsed.data,
+        };
+        lastPaid = { payload: parsed.data, result, bodyHash, idempKey: request.headers.get("Idempotency-Key") };
+        return result;
+      } catch (err) {
+        logRequest({
+          msg: "mcp_paid_stage",
+          stage: "fail",
+          request_id: requestId,
+          err: String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
+        return mcpToolError(err, requestId);
+      }
     };
 
     const wrapped = paid(engineOnly as never);
-    return async (args: unknown, toolCtx: { mcpReq?: { _meta?: Record<string, unknown> }; http?: { req?: Request } }) =>
-      wrapped(args as Record<string, unknown>, mcpPaymentExtraFromContext(toolCtx));
-  } catch (err) {
-    if (err instanceof AgentError) {
-      return async () => {
-        throw err;
-      };
-    }
-    return async () => {
-      throw new AgentError("PAYMENT_UNAVAILABLE", "Could not initialize x402 for research_mentions.", {
-        request_id: request.headers.get("X-Request-Id") || "mcp",
-      });
+    return async (
+      args: unknown,
+      toolCtx: {
+        _meta?: Record<string, unknown>;
+        mcpReq?: { _meta?: Record<string, unknown> };
+        http?: { req?: Request };
+      },
+    ) => {
+      try {
+        try {
+          const input = parseResearchInput(args ?? {});
+          const bodyHash = await sha256Hex(canonicalJson(input));
+          const existing = await lookupIdempotency(env, request.headers.get("Idempotency-Key"), bodyHash, requestId);
+          if (existing?.response) {
+            logRequest({ msg: "mcp_paid_idempotent_replay", request_id: requestId });
+            return {
+              content: [{ type: "text" as const, text: JSON.stringify(existing.response) }],
+              structuredContent: existing.response,
+            };
+          }
+        } catch (err) {
+          if (err instanceof AgentError && err.code === "IDEMPOTENCY_CONFLICT") {
+            return mcpToolError(err, requestId);
+          }
+        }
+        const result = await wrapped(args as Record<string, unknown>, mcpPaymentExtraFromContext(toolCtx, request));
+        if (isOpaqueIse(result as { isError?: boolean; content?: Array<{ type?: string; text?: string }> })) {
+          logRequest({ msg: "mcp_paid_wrapper_ise", request_id: requestId });
+          return mcpToolError(
+            new AgentError("INTERNAL_ERROR", "research failed", {
+              request_id: requestId,
+              details: { cause: "x402_wrapper" },
+            }),
+            requestId,
+          );
+        }
+        return result;
+      } catch (err) {
+        logRequest({
+          msg: "mcp_paid_stage",
+          stage: "wrapper",
+          request_id: requestId,
+          err: String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+        });
+        return mcpToolError(err, requestId);
+      }
     };
+  } catch (err) {
+    logRequest({
+      msg: "mcp_paid_stage",
+      stage: "init",
+      request_id: requestId,
+      err: String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
+    const agent =
+      err instanceof AgentError
+        ? err
+        : new AgentError("PAYMENT_UNAVAILABLE", "Could not initialize x402 for research_mentions.", {
+            request_id: requestId,
+          });
+    return async () => mcpToolError(agent, requestId);
   }
 }
