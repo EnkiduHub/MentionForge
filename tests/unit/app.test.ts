@@ -235,7 +235,14 @@ describe("HTTP surfaces", () => {
     expect(res.status).toBe(402);
     expect(res.headers.get("access-control-allow-origin")).toBeTruthy();
     expect(res.headers.get("PAYMENT-REQUIRED")).toBeTruthy();
-    const body = (await res.json()) as { error: { hint: string }; payment?: { accepts?: Array<{ extra?: { name?: string } }> } };
+    const body = (await res.json()) as {
+      error: { hint: string };
+      payment?: {
+        accepts?: Array<{ extra?: { name?: string } }>;
+        resource?: { url?: string };
+        extensions?: { bazaar?: { info?: { input?: { type?: string; method?: string } } } };
+      };
+    };
     const lines = body.error.hint.split("\n");
     expect(lines).toHaveLength(12);
     expect(body.error.hint).toMatch(/Idempotency-Key/);
@@ -245,6 +252,56 @@ describe("HTTP surfaces", () => {
     expect(body.error.hint).not.toMatch(/00000000-0000-4000-8000-000000000001/);
     expect(body.error.hint).not.toMatch(/<your 0x address>/);
     expect(body.payment?.accepts?.[0]?.extra?.name).toBe("USDC");
+    expect(body.payment?.resource?.url).toBe("https://mentionforge.test/v1/research");
+    expect(body.payment?.extensions?.bazaar?.info?.input?.type).toBe("http");
+    expect(body.payment?.extensions?.bazaar?.info?.input?.method).toBe("POST");
+  });
+
+  it("unpaid GET and empty POST /v1/research return 402 before body validation", async () => {
+    const getRes = await call("/v1/research");
+    expect(getRes.status).toBe(402);
+    const getBody = (await getRes.json()) as {
+      payment?: { resource?: { url?: string }; extensions?: { bazaar?: { info?: { input?: { type?: string } } } } };
+    };
+    expect(getBody.payment?.resource?.url).toBe("https://mentionforge.test/v1/research");
+    expect(getBody.payment?.extensions?.bazaar?.info?.input?.type).toBe("http");
+    expect(getRes.headers.get("PAYMENT-REQUIRED")).toBeTruthy();
+
+    const emptyPost = await call("/v1/research", { method: "POST", headers: { "content-type": "application/json" }, body: "" });
+    expect(emptyPost.status).toBe(402);
+    const emptyBody = (await emptyPost.json()) as { error?: { code?: string }; payment?: { resource?: { url?: string } } };
+    expect(emptyBody.error?.code).toBe("PAYMENT_REQUIRED");
+    expect(emptyBody.payment?.resource?.url).toBe("https://mentionforge.test/v1/research");
+  });
+
+  it("paid REST settle sends HTTPS resource and HTTP bazaar catalog", async () => {
+    const orig = getGlobalFetch();
+    const settleBodies: string[] = [];
+    setGlobalFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/settle")) {
+        const raw = input instanceof Request ? await input.clone().text() : typeof init?.body === "string" ? init.body : "";
+        settleBodies.push(raw);
+        return new Response(JSON.stringify({ success: true, transaction: "0xabc", network: "eip155:84532" }), {
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return orig(input as Request, init);
+    });
+    const pay = btoa(
+      unescape(encodeURIComponent(JSON.stringify({ x402Version: 2, payload: { authorization: { from: "payer" } } }))),
+    );
+    const res = await call("/v1/research", {
+      method: "POST",
+      headers: { "content-type": "application/json", "PAYMENT-SIGNATURE": pay, "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ query: "ForgeCo", timeframe: "7d", limit: 5 }),
+    });
+    expect(res.status).toBe(200);
+    expect(settleBodies.length).toBe(1);
+    expect(settleBodies[0]).toContain("https://mentionforge.test/v1/research");
+    expect(settleBodies[0]).toContain("bazaar");
+    expect(settleBodies[0]).toContain("\"http\"");
+    expect(settleBodies[0]).not.toMatch(/mcp:\/\//);
   });
 
   it("research responses never expose cache_hit", async () => {

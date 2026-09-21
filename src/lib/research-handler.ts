@@ -51,6 +51,21 @@ export async function runResearchPipeline(
     await limitOrThrow(env.UNPAID_LIMIT, ip, requestId, 30);
   }
 
+  // CDP Bazaar probes GET/empty POST without payment. Body validation 400 before 402 blocks indexing.
+  if (!sandbox && !paymentHeader && !isWallet(trialWallet)) {
+    if (!paymentsReady(env)) {
+      throw new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
+        request_id: requestId,
+      });
+    }
+    const doc = buildPaymentRequired(env, origin);
+    throw new AgentError("PAYMENT_REQUIRED", "Payment required for research.", {
+      request_id: requestId,
+      hint: paymentHint(env, origin),
+      details: { payment: doc },
+    });
+  }
+
   const req = await parseFromRequest(request, requestId);
   const bodyHash = await sha256Hex(canonicalJson(req));
   const idempKey = request.headers.get("Idempotency-Key");

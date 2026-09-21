@@ -174,13 +174,14 @@ export function stubCaches() {
   return store;
 }
 
-export type SourceFetchStub = { settleCount: number };
+export type SourceFetchStub = { settleCount: number; settleBodies: string[] };
 
 export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boolean } = {}): SourceFetchStub {
-  const state: SourceFetchStub = { settleCount: 0 };
+  const state: SourceFetchStub = { settleCount: 0, settleBodies: [] };
   const now = Math.floor(Date.now() / 1000);
-  setGlobalFetch(async (input: RequestInfo | URL) => {
-    const url = String(input instanceof Request ? input.url : input);
+  setGlobalFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const req = input instanceof Request ? input : undefined;
+    const url = String(req ? req.url : input);
     if (url.includes("/supported")) {
       return jsonResponse({
         kinds: [
@@ -197,6 +198,12 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
     }
     if (url.includes("/settle")) {
       state.settleCount += 1;
+      try {
+        const raw = req ? await req.clone().text() : typeof init?.body === "string" ? init.body : "";
+        if (raw) state.settleBodies.push(raw);
+      } catch {
+        /* ignore */
+      }
       return jsonResponse({ success: true, transaction: "0xabc", network: "eip155:84532" });
     }
     if (opts.failSources) {

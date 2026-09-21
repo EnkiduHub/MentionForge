@@ -14,7 +14,7 @@ import {
 import { canonicalJson, sha256Hex } from "./lib/crypto";
 import { pricingPayload } from "./routes/pricing";
 import { openApiDocument } from "./lib/openapi";
-import { bazaarExtension, decodeHeader, getResourceServer, paymentConfig, paymentsReady, paymentHint } from "./lib/x402";
+import { bazaarExtension, decodeHeader, discoveryResource, getResourceServer, paymentConfig, paymentsReady, paymentHint } from "./lib/x402";
 import { sandboxOk, trialRemaining } from "./lib/trial";
 import { sourceBackends } from "./lib/source-backends";
 import { limitOrThrow } from "./lib/rate-limit";
@@ -397,7 +397,7 @@ async function wrapPaid(env: Env, origin: string, request: Request, ctx: Executi
 
   try {
     const cfg = paymentConfig(env);
-    const resourceServer = getResourceServer(env);
+    const resourceServer = getResourceServer(env, origin);
     const fallbackAccepts = [
       {
         scheme: "exact" as const,
@@ -433,11 +433,7 @@ async function wrapPaid(env: Env, origin: string, request: Request, ctx: Executi
 
     const paid = createPaymentWrapper(resourceServer, {
       accepts: accepts as never,
-      resource: {
-        url: `${origin}/mcp`,
-        description: VALUE_PROP,
-        mimeType: "application/json",
-      },
+      resource: discoveryResource(origin, "mcp"),
       extensions: bazaarExtension as Record<string, unknown>,
       hooks: {
         onAfterExecution: async ({ result }: { result: { isError?: boolean } }) => {

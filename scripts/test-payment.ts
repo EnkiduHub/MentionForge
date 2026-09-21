@@ -41,6 +41,7 @@ async function main() {
     payment?: {
       x402Version?: number;
       resource?: unknown;
+      extensions?: Record<string, unknown>;
       accepts?: Array<{ network?: string; asset?: string; extra?: { name?: string } }>;
     };
   };
@@ -79,17 +80,24 @@ async function main() {
   const rec = payload as {
     x402Version?: number;
     accepted?: { amount?: string; network?: string; payTo?: string };
-    resource?: { description?: string };
+    resource?: { url?: string; description?: string };
+    extensions?: Record<string, unknown>;
     payload?: { authorization?: { value?: string; to?: string } };
   };
+  if (required.resource && !rec.resource) rec.resource = required.resource as { url?: string; description?: string };
+  if (required.extensions?.bazaar && !rec.extensions?.bazaar) {
+    rec.extensions = { ...(rec.extensions ?? {}), ...required.extensions };
+  }
   console.log("payload_shape", {
     x402Version: rec.x402Version,
     amount: rec.accepted?.amount ?? rec.payload?.authorization?.value,
     network: rec.accepted?.network,
     payTo: rec.accepted?.payTo,
     descLen: rec.resource?.description?.length ?? 0,
+    resource_url: rec.resource?.url ?? null,
+    extension_keys: rec.extensions ? Object.keys(rec.extensions) : [],
   });
-  const sig = encodePaymentHeader(payload);
+  const sig = encodePaymentHeader(rec);
   const paid = await fetch(`${origin}/v1/research`, {
     method: "POST",
     headers: {

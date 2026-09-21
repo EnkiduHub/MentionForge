@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { isPlaceholderWallet, isWallet, normalizePayTo } from "../../src/lib/constants";
-import { buildPaymentRequired, paymentConfig, paymentsReady, probeFacilitator } from "../../src/lib/x402";
+import { isPlaceholderWallet, isWallet, normalizePayTo, SERVICE_NAME } from "../../src/lib/constants";
+import { attachBazaarCatalog, bazaarCatalogLog, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TAGS, BAZAAR_TOOL_DESC, buildPaymentRequired, discoveryResource, paymentConfig, paymentsReady, probeFacilitator } from "../../src/lib/x402";
 import { generateCdpJwt } from "../../src/lib/cdp-jwt";
 import { jsonResponse, mockEnv, setGlobalFetch } from "../helpers/env";
 
@@ -45,6 +45,59 @@ describe("recipient wallet + EIP-712 extras", () => {
     expect(cfg.extra).toEqual({ name: "USD Coin", version: "2" });
     expect(buildPaymentRequired(env, "https://mentionforge.test").accepts[0]?.extra.name).toBe("USD Coin");
     expect(paymentsReady(env)).toBe(true);
+  });
+
+  it("REST 402 advertises HTTPS HTTP bazaar metadata without wallets", () => {
+    const doc = buildPaymentRequired(mockEnv(), "https://mentionforge.test");
+    expect(doc.resource.url).toBe("https://mentionforge.test/v1/research");
+    expect(doc.resource.url).not.toMatch(/^mcp:/);
+    expect(doc.resource.serviceName).toBe("MentionForge");
+    expect(doc.resource.tags).toContain("social listening");
+    expect(doc.resource.description).toBe(BAZAAR_RESOURCE_DESC);
+    expect(doc.resource.description.length).toBeLessThanOrEqual(480);
+    expect(doc.resource.description).toMatch(/brand sentiment/);
+    expect(doc.resource.description).toMatch(/\$0\.02 USDC/);
+    expect(doc.resource.description).not.toMatch(/0x[a-fA-F0-9]{40}/);
+    expect(doc.resource.description).toMatch(/optional operator upgrades/);
+    const input = (doc.extensions as { bazaar?: { info?: { input?: { type?: string; method?: string; bodyType?: string } } } } | undefined)
+      ?.bazaar?.info?.input;
+    expect(input?.type).toBe("http");
+    expect(input?.method).toBe("POST");
+    expect(input?.bodyType).toBe("json");
+    expect(SERVICE_NAME.length).toBeLessThanOrEqual(32);
+    expect(BAZAAR_TAGS).toHaveLength(5);
+    for (const tag of BAZAAR_TAGS) {
+      expect(tag.length).toBeGreaterThan(0);
+      expect(tag.length).toBeLessThanOrEqual(32);
+      expect(tag).toMatch(/^[\x20-\x7e]+$/);
+    }
+    expect(BAZAAR_TOOL_DESC).toMatch(/MentionForge/);
+    expect(BAZAAR_TOOL_DESC).toMatch(/social listening/);
+  });
+
+  it("attachBazaarCatalog fills missing resource and bazaar without copying signatures into logs", () => {
+    const attached = attachBazaarCatalog(
+      { x402Version: 2, payload: { signature: "0xsecret" } },
+      discoveryResource("https://mentionforge.test", "http"),
+      bazaarHttpExtension,
+    ) as { resource?: { url?: string }; extensions?: { bazaar?: { info?: { input?: { type?: string } } } } };
+    expect(attached.resource?.url).toBe("https://mentionforge.test/v1/research");
+    expect(attached.extensions?.bazaar?.info?.input?.type).toBe("http");
+    const replaced = attachBazaarCatalog(
+      { x402Version: 2, resource: { url: "mcp://tool/research_mentions" } },
+      discoveryResource("https://mentionforge.test", "mcp"),
+    ) as { resource?: { url?: string } };
+    expect(replaced.resource?.url).toBe("https://mentionforge.test/mcp");
+    const log = bazaarCatalogLog({
+      x402Version: 2,
+      payload: { signature: "0xsecret" },
+      resource: attached.resource,
+      extensions: attached.extensions,
+    });
+    expect(JSON.stringify(log)).not.toMatch(/0xsecret/);
+    expect(JSON.stringify(log)).not.toMatch(/private/i);
+    expect(log.resource_url).toBe("https://mentionforge.test/v1/research");
+    expect(log.bazaar_type).toBe("http");
   });
 
   it("refuses Base mainnet while pointed at the testnet-only x402.org facilitator", () => {

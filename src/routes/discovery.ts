@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 import { SAMPLE_QUERY, SERVICE_NAME, SERVICE_VERSION } from "../lib/constants";
-import { paymentsReady, paymentConfig, buildPaymentRequired, bazaarExtension, networkPublicName, facilitatorUsable, probeFacilitator } from "../lib/x402";
+import { paymentsReady, paymentConfig, buildPaymentRequired, bazaarExtension, bazaarHttpExtension, networkPublicName, facilitatorUsable, probeFacilitator, discoveryResource } from "../lib/x402";
 import { openApiDocument } from "../lib/openapi";
 import { publicCallCount } from "../lib/analytics";
 import { VALUE_PROP } from "../brand/tokens";
@@ -96,6 +96,8 @@ discoveryRoutes.get("/openapi.json", (c) => {
 discoveryRoutes.get("/.well-known/x402", (c) => {
   const origin = new URL(c.req.url).origin;
   const cfg = paymentConfig(c.env);
+  const httpResource = discoveryResource(origin, "http");
+  const mcpResource = discoveryResource(origin, "mcp");
   const doc = {
     x402Version: 2,
     kind: "resource-server",
@@ -103,18 +105,27 @@ discoveryRoutes.get("/.well-known/x402", (c) => {
     description: VALUE_PROP,
     resources: [
       {
-        url: `${origin}/v1/research`,
+        url: httpResource.url,
         method: "POST",
-        description: "Paid social listening research",
+        description: httpResource.description,
+        serviceName: httpResource.serviceName,
+        tags: httpResource.tags,
+        iconUrl: httpResource.iconUrl,
+        extensions: bazaarHttpExtension,
       },
       {
-        url: `${origin}/mcp`,
+        url: mcpResource.url,
         method: "POST",
-        description: "MCP Streamable HTTP — tool research_mentions",
+        description: mcpResource.description,
+        serviceName: mcpResource.serviceName,
+        tags: mcpResource.tags,
+        iconUrl: mcpResource.iconUrl,
+        extensions: bazaarExtension,
       },
     ],
     network: cfg.network,
-    extensions: bazaarExtension,
+    extensions: bazaarHttpExtension,
+    mcp_extensions: bazaarExtension,
     docs: `${origin}/llms.txt`,
     contact: origin,
     updated: new Date().toISOString(),

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { GET_PRICING_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC } from "../../src/mcp";
-import { bazaarExtension, encodeHeader } from "../../src/lib/x402";
+import { bazaarExtension, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TOOL_DESC, encodeHeader } from "../../src/lib/x402";
 import { createApp } from "../../src/app";
 import { executionCtx, mockEnv, stubCaches, stubSourcesFetch } from "../helpers/env";
 
@@ -366,10 +366,26 @@ describe("MCP origin + factory", () => {
   it("x402 resource description stays under the CDP verify length cap", async () => {
     const session = await mcpInitialize();
     const { required } = await unpaidResearch(session);
-    const desc = asRecord(required.resource)?.description;
+    const resource = asRecord(required.resource);
+    const desc = resource?.description;
     expect(typeof desc).toBe("string");
     expect(String(desc).length).toBeGreaterThan(20);
     expect(String(desc).length).toBeLessThanOrEqual(480);
+    expect(BAZAAR_RESOURCE_DESC.length).toBeLessThanOrEqual(480);
+    expect(BAZAAR_TOOL_DESC.length).toBeLessThanOrEqual(480);
+    expect(resource?.url).toBe("https://mentionforge.test/mcp");
+    expect(String(resource?.url)).not.toMatch(/^mcp:/);
+    expect(resource?.serviceName).toBe("MentionForge");
+    expect(resource?.iconUrl).toBe("https://mentionforge.test/logo-256x256.png");
+    const bazaar = asRecord(asRecord(required.extensions)?.bazaar);
+    const input = asRecord(asRecord(bazaar?.info)?.input);
+    expect(input?.type).toBe("mcp");
+    expect(input?.toolName).toBe("research_mentions");
+    expect(input?.transport).toBe("streamable-http");
+    expect(String(input?.description)).toMatch(/social listening/);
+    expect(String(input?.description)).toMatch(/brand sentiment/);
+    expect(String(input?.description)).not.toMatch(/0x[a-fA-F0-9]{40}/);
+    expect(String(input?.description)).toMatch(/optional operator upgrades/);
   });
 
   it("paid research_mentions succeeds with _meta, header, or both, and settles once", async () => {
@@ -386,6 +402,11 @@ describe("MCP origin + factory", () => {
       const structured = asRecord(paid.result.structuredContent);
       expect(structured?.query).toBe("ForgeCo");
       expect(stub.settleCount).toBe(1);
+      const settle = stub.settleBodies.join("\n");
+      expect(settle).toContain("https://mentionforge.test/mcp");
+      expect(settle).toContain("bazaar");
+      expect(settle).toContain("research_mentions");
+      expect(settle).not.toMatch(/mcp:\/\//);
     }
   });
 
@@ -437,10 +458,21 @@ describe("MCP origin + factory", () => {
     expect(stub.settleCount).toBe(0);
   });
 
-  it("bazaarExtension includes info and schema; GET /.well-known/x402 exposes them", async () => {
+  it("bazaarExtension includes info and schema; GET /.well-known/x402 exposes HTTP and MCP bazaar", async () => {
     const bazaar = asRecord(bazaarExtension.bazaar);
-    expect(bazaar?.info).toBeTruthy();
+    const mcpInput = asRecord(asRecord(bazaar?.info)?.input);
+    expect(mcpInput?.type).toBe("mcp");
+    expect(mcpInput?.toolName).toBe("research_mentions");
+    expect(mcpInput?.transport).toBe("streamable-http");
     expect(bazaar?.schema).toBeTruthy();
+    expect(String(mcpInput?.description)).toMatch(/social listening/);
+
+    const http = asRecord(bazaarHttpExtension.bazaar);
+    const httpInput = asRecord(asRecord(http?.info)?.input);
+    expect(httpInput?.type).toBe("http");
+    expect(httpInput?.method).toBe("POST");
+    expect(httpInput?.bodyType).toBe("json");
+    expect(http?.schema).toBeTruthy();
 
     const app = createApp();
     const res = await app.fetch(
@@ -449,8 +481,20 @@ describe("MCP origin + factory", () => {
       executionCtx(),
     );
     expect(res.status).toBe(200);
-    const doc = (await res.json()) as { extensions?: { bazaar?: { info?: unknown; schema?: unknown } } };
-    expect(doc.extensions?.bazaar?.info).toBeTruthy();
-    expect(doc.extensions?.bazaar?.schema).toBeTruthy();
+    const doc = (await res.json()) as {
+      extensions?: { bazaar?: { info?: { input?: { type?: string; method?: string } } } };
+      mcp_extensions?: { bazaar?: { info?: { input?: { type?: string; toolName?: string } } } };
+      payment?: { resource?: { url?: string }; extensions?: { bazaar?: { info?: { input?: { type?: string } } } } };
+      resources?: Array<{ url?: string; description?: string }>;
+    };
+    expect(doc.extensions?.bazaar?.info?.input?.type).toBe("http");
+    expect(doc.extensions?.bazaar?.info?.input?.method).toBe("POST");
+    expect(doc.mcp_extensions?.bazaar?.info?.input?.type).toBe("mcp");
+    expect(doc.mcp_extensions?.bazaar?.info?.input?.toolName).toBe("research_mentions");
+    expect(doc.payment?.resource?.url).toBe("https://mentionforge.test/v1/research");
+    expect(doc.payment?.extensions?.bazaar?.info?.input?.type).toBe("http");
+    expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/v1/research")).toBe(true);
+    expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/mcp")).toBe(true);
+    expect(doc.resources?.every((r) => String(r.description).includes("MentionForge"))).toBe(true);
   });
 });
