@@ -92,7 +92,7 @@ Official MCP Registry: [`io.github.EnkiduHub/MentionForge`](https://registry.mod
 Glama: [servers/@EnkiduHub/MentionForge](https://glama.ai/mcp/servers/@EnkiduHub/MentionForge)  
 Smithery: [servers/enkiduhub/mentionforge](https://smithery.ai/servers/enkiduhub/mentionforge)
 
-Glama’s GitHub **Deploy Server** speaks stdio. `npm start` / the `mentionforge` bin / the root `Dockerfile` run `scripts/glama-stdio.mjs` (`mcp-remote` → that `/mcp` URL). They do not boot Wrangler. Local Worker remains `npm run dev`. Admin form values: [listings/glama.md](listings/glama.md).
+Glama’s GitHub **Deploy Server** speaks stdio. `npm start` / the `mentionforge` bin / the root `Dockerfile` run `scripts/glama-stdio.mjs` (`mcp-remote` → that `/mcp` URL). They do not boot Wrangler and do not take `RECIPIENT_WALLET` — `payTo` stays on the production Worker, so Glama users still settle $0.02 USDC on Base to this origin. Local Worker remains `npm run dev`. Admin form values: [listings/glama.md](listings/glama.md).
 
 ## Architecture
 

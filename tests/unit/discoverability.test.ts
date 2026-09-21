@@ -193,9 +193,12 @@ describe("agent discoverability", () => {
     expect(glamaStdio).toContain("https://mentionforge.mentionforge.workers.dev/mcp");
     expect(glamaStdio).toContain("--transport");
     expect(glamaStdio).toContain("http-only");
+    expect(glamaStdio).not.toMatch(/process\.env\.RECIPIENT_WALLET/);
     expect(glamaStdio).not.toMatch(/wrangler|CDP_API_KEY|TEST_PAYER_PRIVATE_KEY/);
     expect(listing).toContain('["npm install -g mcp-remote@0.14.3"]');
     expect(listing).toContain('["node", "scripts/glama-stdio.mjs"]');
+    expect(listing).toContain('{"type":"object","properties":{},"required":[]}');
+    expect(listing).toMatch(/Do \*\*not\*\* add `RECIPIENT_WALLET`/);
 
     const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
       bin?: Record<string, string>;

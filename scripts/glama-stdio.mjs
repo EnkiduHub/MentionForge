@@ -3,6 +3,8 @@
  * Stdio MCP bridge for Glama. Does not run the Worker, Wrangler, or D1.
  * Proxies initialize / tools/list / health / get_pricing to the hosted origin.
  * Paid research_mentions still settles $0.02 USDC on Base against that origin.
+ * Ignore Worker env (payTo, CDP, Reddit, X) if Glama's form inferred them —
+ * payTo is only the production Wrangler RECIPIENT_WALLET, not a container secret.
  */
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";

@@ -17,6 +17,14 @@ Do not treat these as the same score. punkpeye’s awesome-mcp-servers bot wants
 | GitHub server listing | https://glama.ai/mcp/servers/@EnkiduHub/MentionForge | README scrape / deployability | Landing/server-card stay on this `@` URL unless a quality-score badge requires the non-`@` twin |
 | Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | README has both `score.svg` and `card.svg`; letter grade after a Glama **release** succeeds |
 
+## Getting paid (wallet is on the Worker, not in Glama)
+
+Yes — Glama users still pay **this** hosted service. No — the Glama image must **not** contain `RECIPIENT_WALLET`.
+
+`payTo` is the production Worker var `RECIPIENT_WALLET` (`0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77` in `wrangler.jsonc`). x402 settles **$0.02 USDC on Base** to that address when `research_mentions` runs on `https://mentionforge.mentionforge.workers.dev/mcp`. `scripts/glama-stdio.mjs` only stdio-proxies that URL (`mcp-remote`). It does not read `RECIPIENT_WALLET`, Reddit/X secrets, or CDP keys. A dummy `0x1234…` in Glama’s env form is unused and is **not** a second merchant wallet.
+
+Glama’s admin form often **infers a Worker clone** from `wrangler.jsonc` / docs (`pnpm install`, `mcp-proxy -- pnpm run start`, required `RECIPIENT_WALLET`, optional Reddit/X). That inference is wrong. Paste the table below, save, Deploy, and Make Release again. Do **not** “fix” it by putting the real MetaMask address into Glama.
+
 ## Deploy Server (this is what sets the quality score)
 
 A Glama release is **not** a GitHub release. [Make a release](https://glama.ai/blog/2026-03-15-how-to-make-a-release): claim → configure **admin Dockerfile form** → Deploy → Make Release. The admin form **generates** Glama’s image (clone into `/app`, wrap CMD with `mcp-proxy --`). It often **does not run this repo’s `Dockerfile`**. Glama’s indexer also infers a start command from `package.json` `bin` / `start` (not from `npm run dev`). Those point at `scripts/glama-stdio.mjs`. Fill the form so Glama never runs Wrangler.
@@ -33,9 +41,11 @@ After `glama.json` + `Dockerfile` + `scripts/glama-stdio.mjs` are on GitHub `mai
 | **CMD arguments** | `["node", "scripts/glama-stdio.mjs"]` |
 | Environment variables JSON schema | `{"type":"object","properties":{},"required":[]}` |
 | Placeholder parameters | `{}` |
+| Node.js version | `22` |
+| Python version | leave default (unused) |
 | Pinned commit SHA | empty (latest HEAD after Sync) |
 
-Do **not** use `npm ci`, `npm run dev`, or `wrangler`. Those try to boot the Worker and will fail on Glama.
+Do **not** use `pnpm install`, `npm ci`, `npm run dev`, `wrangler`, or `["mcp-proxy", "--", "pnpm", "run", "start"]`. Do **not** add `RECIPIENT_WALLET`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`, or CDP keys to the env schema. Those belong on the Worker (`wrangler secret put` / `vars`), not in Glama. Glama already prepends `mcp-proxy --`; the CMD field is only the bridge.
 
 4. **Deploy** (build test: start + `initialize` / `tools/list`).
 5. **Make Release** → version → publish. That is when the quality badge becomes a letter, not `?`.
