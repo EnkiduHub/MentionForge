@@ -15,7 +15,7 @@ Do not treat these as the same score. punkpeye’s awesome-mcp-servers bot wants
 | --- | --- | --- | --- |
 | Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy, TDQS **A 4.9/5.0** — not the quality-score badge |
 | GitHub server listing | https://glama.ai/mcp/servers/@EnkiduHub/MentionForge | README scrape / deployability | Landing/server-card stay on this `@` URL unless a quality-score badge requires the non-`@` twin |
-| Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | `?` until a Glama **release** succeeds; SVG 500 while unset |
+| Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | README has both `score.svg` and `card.svg`; letter grade after a Glama **release** succeeds |
 
 ## Deploy Server (this is what sets the quality score)
 

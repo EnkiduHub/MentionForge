@@ -176,6 +176,9 @@ describe("agent discoverability", () => {
     const dockerfile = readFileSync(new URL("../../Dockerfile", import.meta.url), "utf8");
     const glamaStdio = readFileSync(new URL("../../scripts/glama-stdio.mjs", import.meta.url), "utf8");
     const listing = readFileSync(new URL("../../listings/glama.md", import.meta.url), "utf8");
+    const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+    expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg");
+    expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/card.svg");
     expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");
     expect(dockerfile).toMatch(/^CMD \["node", "\/home\/node\/glama-stdio.mjs"\]$/m);

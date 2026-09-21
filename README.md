@@ -4,6 +4,9 @@
 [![x402](https://img.shields.io/badge/x402-%240.02%20USDC-E8A87C?style=flat-square)](./docs/payments.md)
 [![MCP](https://img.shields.io/badge/MCP-streamable--http-D4A017?style=flat-square)](./docs/mcp.md)
 [![license](https://img.shields.io/badge/license-MIT-F4EFE6?style=flat-square)](./LICENSE)
+[![MentionForge MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg)](https://glama.ai/mcp/servers/EnkiduHub/MentionForge)
+
+[![MentionForge MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/card.svg)](https://glama.ai/mcp/servers/EnkiduHub/MentionForge)
 
 **Highest-quality, lowest-latency, agent-optimized social listening + company research.**
 
