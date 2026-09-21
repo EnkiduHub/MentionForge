@@ -2,7 +2,7 @@ import type { Context } from "hono";
 import { Hono } from "hono";
 import { paymentRequiredHttp, runLensPipeline } from "../lib/research-handler";
 import { AgentError } from "../schemas/errors";
-import { mapCompare, mapDigest, mapReply, mapRisk, projectReplyWithOptionalLlama } from "../lib/lenses";
+import { mapCompare, mapDigest, mapList, mapReply, mapRisk, mapTrends, projectReplyWithOptionalLlama } from "../lib/lenses";
 
 export const lensRoutes = new Hono<{ Bindings: Env }>();
 
@@ -47,3 +47,9 @@ lensRoutes.post("/v1/reply", (c) =>
   }),
 );
 lensRoutes.get("/v1/reply", (c) => postOnly(c));
+
+lensRoutes.post("/v1/mentions", (c) => wrap(c, mapList));
+lensRoutes.get("/v1/mentions", (c) => postOnly(c));
+
+lensRoutes.post("/v1/trends", (c) => wrap(c, mapTrends));
+lensRoutes.get("/v1/trends", (c) => postOnly(c));

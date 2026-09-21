@@ -26,6 +26,8 @@ Paid lenses (POST only, same $0.02 USDC x402 resource as `/v1/research`):
 - `POST /v1/digest` — grouped praise/pain/news/reviews/reply_worthy
 - `POST /v1/risk` — signals + top negatives
 - `POST /v1/reply` — unsent drafts (never posts; never fetches `mention_url`)
+- `POST /v1/mentions` — flat mention export (no themes, digest groups, or share of voice)
+- `POST /v1/trends` — time-bucketed volume and sentiment (no mention rows)
 
 GET on those paths returns 400. Free GET `/v1/entity?query=` and `/v1/suggest?need=` use the discovery limiter.
 

@@ -3,12 +3,16 @@ import { parseResearchInput, type Mention, type ResearchRequest, type ResearchRe
 import {
   compareInputSchema,
   digestInputSchema,
+  listInputSchema,
   replyInputSchema,
   riskInputSchema,
+  trendsInputSchema,
   type CompareInput,
   type DigestInput,
+  type ListInput,
   type ReplyInput,
   type RiskInput,
+  type TrendsInput,
 } from "../schemas/lenses";
 import { AgentError } from "../schemas/errors";
 import { brandHits } from "./research/sov";
@@ -138,6 +142,40 @@ export function mapRisk(raw: unknown): {
   };
 }
 
+export function mapList(raw: unknown): {
+  input: ListInput;
+  research: ResearchRequest;
+  hashObject: unknown;
+  project: (full: ResearchResponse) => Record<string, unknown>;
+} {
+  const input = listInputSchema.parse(raw);
+  const query = sanitizeAgentText(input.query);
+  const research = researchFromQuery(query, input);
+  return {
+    input,
+    research,
+    hashObject: { tool: "list_mentions", ...input, query },
+    project: (full) => projectList(full),
+  };
+}
+
+export function mapTrends(raw: unknown): {
+  input: TrendsInput;
+  research: ResearchRequest;
+  hashObject: unknown;
+  project: (full: ResearchResponse) => Record<string, unknown>;
+} {
+  const input = trendsInputSchema.parse(raw);
+  const query = sanitizeAgentText(input.query);
+  const research = researchFromQuery(query, input);
+  return {
+    input,
+    research,
+    hashObject: { tool: "get_trends", ...input, query },
+    project: (full) => projectTrends(full),
+  };
+}
+
 export function mapReply(raw: unknown): {
   input: ReplyInput;
   research: ResearchRequest;
@@ -208,6 +246,39 @@ export function projectDigest(full: ResearchResponse): Record<string, unknown> {
   return {
     query: full.query,
     groups: { praise, pain, news, reviews, reply_worthy },
+    meta: lensMeta(full),
+  };
+}
+
+function exportOf(m: Mention) {
+  return {
+    id: m.id,
+    platform: m.platform,
+    url: m.url,
+    author: m.author,
+    text: m.text,
+    timestamp: m.timestamp,
+    engagement: m.engagement,
+    sentiment: m.sentiment,
+    intent: m.intent,
+  };
+}
+
+export function projectList(full: ResearchResponse): Record<string, unknown> {
+  return {
+    query: full.query,
+    mentions: full.mentions.map(exportOf),
+    meta: lensMeta(full),
+  };
+}
+
+export function projectTrends(full: ResearchResponse): Record<string, unknown> {
+  return {
+    query: full.query,
+    timeframe: full.timeframe,
+    volume: full.volume,
+    sentiment: full.sentiment,
+    signals: full.signals,
     meta: lensMeta(full),
   };
 }

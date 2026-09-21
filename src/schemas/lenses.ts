@@ -5,7 +5,9 @@ import {
   platformSchema,
   shareOfVoiceSchema,
   signalsSchema,
+  sentimentSchema,
   timeframeSchema,
+  volumeSchema,
   REQUEST_FIELD_DESC,
 } from "./research";
 import { MAX_QUERY_CHARS } from "../lib/constants";
@@ -69,7 +71,53 @@ export const digestInputSchema = z
   })
   .strip();
 
-export const riskInputSchema = digestInputSchema;
+export const riskInputSchema = z
+  .object({
+    query: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_QUERY_CHARS)
+      .describe("Brand, product, or topic to score for volume spikes and negative concentration. Required. Max 200 characters."),
+    timeframe: timeframeSchema.describe(REQUEST_FIELD_DESC.timeframe).optional(),
+    platforms: z.array(platformSchema).min(1).max(5).describe(REQUEST_FIELD_DESC.platforms).optional(),
+    limit: z.number().int().min(1).max(50).describe(REQUEST_FIELD_DESC.limit).optional(),
+  })
+  .strip();
+
+export const listInputSchema = z
+  .object({
+    query: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_QUERY_CHARS)
+      .describe("Brand, product, or topic whose mention rows to export. Required. Max 200 characters."),
+    timeframe: timeframeSchema.describe(REQUEST_FIELD_DESC.timeframe).optional(),
+    platforms: z.array(platformSchema).min(1).max(5).describe(REQUEST_FIELD_DESC.platforms).optional(),
+    limit: z.number().int().min(1).max(50).describe(REQUEST_FIELD_DESC.limit).optional(),
+  })
+  .strip();
+
+export const trendsInputSchema = z
+  .object({
+    query: z
+      .string()
+      .trim()
+      .min(1)
+      .max(MAX_QUERY_CHARS)
+      .describe("Brand, product, or topic whose time-series to return. Required. Max 200 characters."),
+    timeframe: timeframeSchema.describe(REQUEST_FIELD_DESC.timeframe).optional(),
+    platforms: z.array(platformSchema).min(1).max(5).describe(REQUEST_FIELD_DESC.platforms).optional(),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(50)
+      .describe("Accepted for schema compatibility. Ignored: trend aggregates stay on the full fused set and do not change the $0.02 USDC price.")
+      .optional(),
+  })
+  .strip();
 
 export const replyInputSchema = z
   .object({
@@ -195,6 +243,33 @@ export const replyOutputSchema = z.object({
   meta: lensMetaSchema.describe("Billing and freshness for this call"),
 });
 
+export const exportMentionSchema = z.object({
+  id: z.string().describe("Mention id from this gather"),
+  platform: platformSchema.describe("Surface this mention was gathered from"),
+  url: z.string().describe("Canonical URL, or empty when the source had no permalink"),
+  author: z.string().describe("Display name or handle; may be empty"),
+  text: z.string().describe("Mention body, truncated"),
+  timestamp: z.string().describe("When the mention was published or accessed (ISO-8601 when known)"),
+  engagement: z.number().describe("Relative engagement score (0 when unknown)"),
+  sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 to 1"),
+  intent: intentSchema.optional().describe("Optional intent class for this mention"),
+});
+
+export const listOutputSchema = z.object({
+  query: z.string().describe("Echo of the researched query"),
+  mentions: z.array(exportMentionSchema).describe("Flat mention rows only — no themes, digest groups, or share of voice"),
+  meta: lensMetaSchema.describe("Billing and freshness for this call"),
+});
+
+export const trendsOutputSchema = z.object({
+  query: z.string().describe("Echo of the researched query"),
+  timeframe: timeframeSchema.describe("Echo of the requested window"),
+  volume: volumeSchema.describe("Mention counts and time-bucketed trend for the window"),
+  sentiment: sentimentSchema.describe("Aggregate and per-class sentiment for the same window"),
+  signals: signalsSchema.optional().describe("Spike and negative-concentration flags"),
+  meta: lensMetaSchema.describe("Billing and freshness for this call"),
+});
+
 export const suggestOutputSchema = z.object({
   tool: z.string().describe("Single tool to call next"),
   reason: z.string().describe("Why this tool fits the need"),
@@ -214,6 +289,8 @@ export const entityOutputSchema = z.object({
 export type CompareInput = z.infer<typeof compareInputSchema>;
 export type DigestInput = z.infer<typeof digestInputSchema>;
 export type RiskInput = z.infer<typeof riskInputSchema>;
+export type ListInput = z.infer<typeof listInputSchema>;
+export type TrendsInput = z.infer<typeof trendsInputSchema>;
 export type ReplyInput = z.infer<typeof replyInputSchema>;
 export type SuggestInput = z.infer<typeof suggestInputSchema>;
 export type EntityInput = z.infer<typeof entityInputSchema>;

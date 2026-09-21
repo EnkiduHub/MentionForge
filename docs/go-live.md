@@ -22,6 +22,7 @@ A MetaMask account used on ETH or Arbitrum is the correct `RECIPIENT_WALLET` (sa
 10. Official MCP Registry: [`io.github.EnkiduHub/MentionForge`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge) is **active** (published 2026-09-20 via GitHub Actions OIDC). Do not re-run interactive `mcp-publisher` unless the listing disappears.
 11. GitHub About: homepage `https://mentionforge.mentionforge.workers.dev`, description, and topics `mcp` / `x402` / `cloudflare-workers` / `model-context-protocol` / `social-listening` / `ai-agents` / `typescript`.
 12. Worker **1.1.0**: agent-routed tools, vs-query SOV, compact overlays, Reddit Brave site-only fallback, query-gated GitHub/SO. Price and trial count unchanged.
+13. Worker **1.2.0**: Glama TDQS — MCP `get_health` / `get_entity_profile`, paid `list_mentions` / `get_trends`, purpose-first descriptions. Price and trial count unchanged. Do not re-run `PAY_ONCE` for the new lenses.
 
 ## Remaining (in order)
 

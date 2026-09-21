@@ -7,8 +7,15 @@
 - Paid MCP verify: facilitator / matching throws map to payment-required (REST parity) instead of wrapper ISE; facilitator verify is called without client-echoed bazaar extensions; MCP x402 `resource.description` uses the Bazaar search blurb so CDP `/verify` is not rejected for a >500-char tool description; paid MCP replays `Idempotency-Key` hits before verify; `INTERNAL_ERROR` includes `details.cause` (`x402_wrapper` / `output_schema` / `uncaught`)
 - Smithery directory link is the non-`@` listing `https://smithery.ai/servers/enkiduhub/mentionforge`
 - Glama GitHub listing: `glama.json` maintainers plus a stdio `Dockerfile` (`CMD`, not `ENTRYPOINT`) and `package.json` `bin`/`start` that bridge to the hosted `/mcp` via `mcp-remote` (no Worker clone). Glama env schema stays empty — `RECIPIENT_WALLET` is Worker `payTo`, not a container var; Glama users still settle on the hosted origin
-- README includes Glama score + card badges (`EnkiduHub/MentionForge` listing URLs); License section is the MIT grant (copyright 2026 MentionForge) plus trademarks from TRADEMARK.md; surfaces list MCP `health` / `get_pricing` and discovery routes
+- README includes Glama score + card badges (`EnkiduHub/MentionForge` listing URLs); License section is the MIT grant (copyright 2026 MentionForge) plus trademarks from TRADEMARK.md; surfaces list MCP `get_health` / `get_pricing` and discovery routes
 - Agent discoverability: rich MCP server card, Cursor/Claude install in `/llms.txt`, public `GET /skill.md`, forge-mark PNG OG/logo/favicon
+
+## 1.2.0 — 2026-09-21
+
+- Glama TDQS: rename MCP `health` → `get_health` and `entity_profile` → `get_entity_profile` (REST `GET /health` and `GET /v1/entity` unchanged)
+- Add paid `list_mentions` / `get_trends` (REST `POST /v1/mentions`, `POST /v1/trends`) so the tool set covers mention export and trend-over-time without overlapping the full brief
+- Rewrite every MCP tool description: purpose first, sibling when-not, payment/rate-limit behavior, and parameter interactions beyond the schema
+- Price remains $0.02 USDC; the 10-call trial stays shared; do not re-run `PAY_ONCE` for the new lenses
 
 ## 1.1.0 — 2026-09-21
 

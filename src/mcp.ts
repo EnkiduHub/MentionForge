@@ -20,7 +20,15 @@ import { EXAMPLE_RESPONSE } from "./lib/example";
 import { SKILL_MARKDOWN } from "./lib/skill-text";
 import { suggestTool } from "./lib/suggest";
 import { entityProfile } from "./lib/entity";
-import { mapCompare, mapDigest, mapReply, mapRisk, projectReplyWithOptionalLlama } from "./lib/lenses";
+import {
+  mapCompare,
+  mapDigest,
+  mapList,
+  mapReply,
+  mapRisk,
+  mapTrends,
+  projectReplyWithOptionalLlama,
+} from "./lib/lenses";
 import {
   COMPARE_DESC,
   DIGEST_DESC,
@@ -28,11 +36,13 @@ import {
   GET_EXAMPLE_DESC,
   GET_PRICING_DESC,
   HEALTH_DESC,
+  LIST_DESC,
   MCP_INSTRUCTIONS,
   REPLY_DESC,
   RISK_DESC,
   SUGGEST_TOOL_DESC,
   TOOL_DESC,
+  TRENDS_DESC,
 } from "./lib/mcp-desc";
 import { initPaidMcpSession, mcpToolError, wrapPaidTool } from "./lib/mcp-paid";
 import {
@@ -42,12 +52,16 @@ import {
   digestOutputSchema,
   entityInputSchema,
   entityOutputSchema,
+  listInputSchema,
+  listOutputSchema,
   replyInputSchema,
   replyOutputSchema,
   riskInputSchema,
   riskOutputSchema,
   suggestInputSchema,
   suggestOutputSchema,
+  trendsInputSchema,
+  trendsOutputSchema,
 } from "./schemas/lenses";
 
 export {
@@ -57,11 +71,13 @@ export {
   GET_EXAMPLE_DESC,
   GET_PRICING_DESC,
   HEALTH_DESC,
+  LIST_DESC,
   MCP_INSTRUCTIONS,
   REPLY_DESC,
   RISK_DESC,
   SUGGEST_TOOL_DESC,
   TOOL_DESC,
+  TRENDS_DESC,
 } from "./lib/mcp-desc";
 
 export { mcpPaymentExtraFromContext } from "./lib/mcp-paid";
@@ -203,7 +219,7 @@ async function buildMcpServer(opts: {
   const paidSession = unwrapTrial ? null : await initPaidMcpSession(env, origin, requestId);
 
   server.registerTool(
-    "health",
+    "get_health",
     {
       title: "Check Worker liveness",
       description: HEALTH_DESC,
@@ -321,7 +337,7 @@ async function buildMcpServer(opts: {
   );
 
   server.registerTool(
-    "entity_profile",
+    "get_entity_profile",
     {
       title: "Look up a wiki identity card",
       description: ENTITY_PROFILE_DESC,
@@ -509,6 +525,70 @@ async function buildMcpServer(opts: {
     },
   );
 
+  registerPaid(
+    server,
+    unwrapTrial,
+    paidSession,
+    env,
+    origin,
+    request,
+    ctx,
+    requestId,
+    "list_mentions",
+    {
+      title: "Export a flat mention list",
+      description: LIST_DESC,
+      inputSchema: listInputSchema,
+      outputSchema: listOutputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    (args) =>
+      mcpHttpTool(env, ctx, request, origin, "/v1/mentions", args, (inner, id) =>
+        runLensPipeline(env, ctx, inner, id, { parse: mapList }),
+      ),
+    {
+      bazaar: false,
+      parseForHash: (args) => mapList(args).hashObject,
+      execute: async (args, id, bodyHash, idempKey, billing) => {
+        const mapped = mapList(args);
+        return executeUnpaidOrPreVerified(env, ctx, mapped.research, id, billing, idempKey, bodyHash, mapped.project);
+      },
+      parseOutput: (p) => listOutputSchema.safeParse(p),
+    },
+  );
+
+  registerPaid(
+    server,
+    unwrapTrial,
+    paidSession,
+    env,
+    origin,
+    request,
+    ctx,
+    requestId,
+    "get_trends",
+    {
+      title: "Get mention volume trends",
+      description: TRENDS_DESC,
+      inputSchema: trendsInputSchema,
+      outputSchema: trendsOutputSchema,
+      annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    (args) =>
+      mcpHttpTool(env, ctx, request, origin, "/v1/trends", args, (inner, id) =>
+        runLensPipeline(env, ctx, inner, id, { parse: mapTrends }),
+      ),
+    {
+      bazaar: false,
+      parseForHash: (args) => mapTrends(args).hashObject,
+      execute: async (args, id, bodyHash, idempKey, billing) => {
+        const mapped = mapTrends(args);
+        return executeUnpaidOrPreVerified(env, ctx, mapped.research, id, billing, idempKey, bodyHash, mapped.project);
+      },
+      parseOutput: (p) => trendsOutputSchema.safeParse(p),
+    },
+  );
+
   server.registerResource(
     "pricing",
     "mentionforge://pricing",
@@ -574,7 +654,7 @@ async function buildMcpServer(opts: {
     {
       title: "Draft a competitor brief",
       description:
-        "Call compare_brands for a vs-style social brief. Use when you need share of voice; do not use it to check liveness (health) or list price (get_pricing).",
+        "Call compare_brands for a vs-style social brief. Use when you need share of voice; do not use it to check liveness (get_health) or list price (get_pricing).",
       argsSchema: {
         brand: z.string().describe("Primary brand, product, or company to research"),
         competitor: z.string().describe("Competitor or alternative to compare against"),
@@ -657,6 +737,52 @@ async function buildMcpServer(opts: {
           content: {
             type: "text" as const,
             text: `Call get_digest with query ${JSON.stringify(`${brand} complaints`)} and timeframe 7d. Call only this one paid tool.`,
+          },
+        },
+      ],
+    }),
+  );
+
+  server.registerPrompt(
+    "mention_export",
+    {
+      title: "Export cited mention rows",
+      description: "Call list_mentions for a flat mention export. Not a full brief, digest, or trend series.",
+      argsSchema: {
+        brand: z.string().describe("Brand, product, or topic whose mention rows you need"),
+      },
+    },
+    ({ brand }: { brand: string }) => ({
+      description: "Mention export",
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: `Call list_mentions with query ${JSON.stringify(brand)} and timeframe 7d. Call only this one paid tool.`,
+          },
+        },
+      ],
+    }),
+  );
+
+  server.registerPrompt(
+    "trend_watch",
+    {
+      title: "Chart mention volume over time",
+      description: "Call get_trends for time-bucketed volume and sentiment. Not a mention dump.",
+      argsSchema: {
+        brand: z.string().describe("Brand, product, or topic to chart"),
+      },
+    },
+    ({ brand }: { brand: string }) => ({
+      description: "Trend watch",
+      messages: [
+        {
+          role: "user" as const,
+          content: {
+            type: "text" as const,
+            text: `Call get_trends with query ${JSON.stringify(brand)} and timeframe 30d. Call only this one paid tool.`,
           },
         },
       ],

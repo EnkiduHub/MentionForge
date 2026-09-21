@@ -33,7 +33,7 @@ EIP-712 token name is `USDC` on Base Sepolia and `USD Coin` on Base mainnet (req
 
 ## Trial
 
-10 D1 CAS updates per wallet (`X-Wallet`) **or** `X-Sandbox-Key` (`timingSafeEqual`), **shared across all paid tools** (`research_mentions`, `compare_brands`, `get_digest`, `detect_risk`, `draft_reply`). Not 10 each. Fail closed if D1 is down.
+10 D1 CAS updates per wallet (`X-Wallet`) **or** `X-Sandbox-Key` (`timingSafeEqual`), **shared across all paid tools** (`research_mentions`, `compare_brands`, `get_digest`, `detect_risk`, `draft_reply`, `list_mentions`, `get_trends`). Not 10 each. Fail closed if D1 is down.
 
 ## Idempotency
 

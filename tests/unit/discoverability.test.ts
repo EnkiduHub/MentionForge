@@ -76,11 +76,11 @@ describe("agent discoverability", () => {
       pricing: { pay_to: string; tool: string };
     };
     expect(card.tools.map((t) => t.name).slice(0, 5)).toEqual([
-      "health",
+      "get_health",
       "get_pricing",
       "get_example",
       "suggest_tool",
-      "entity_profile",
+      "get_entity_profile",
     ]);
     expect(card.tools.map((t) => t.name)).toContain("research_mentions");
     expect(card.tools[0]?.description).toBe(HEALTH_DESC);
@@ -143,7 +143,7 @@ describe("agent discoverability", () => {
     expect(txt).toMatch(/## MCP/);
     expect(txt).toMatch(/"mcpServers"/);
     expect(txt).toMatch(/claude mcp add --transport http mentionforge/);
-    expect(txt).toMatch(/Free first: health \+ get_pricing \+ get_example/);
+    expect(txt).toMatch(/Free first: get_health \+ get_pricing \+ get_example/);
     expect(txt).toMatch(/\/skill\.md/);
     expect(txt).toMatch(/Do NOT use for live trading execution/);
   });
@@ -173,11 +173,11 @@ describe("agent discoverability", () => {
   it("mcp tool cards stay free-first without wallets in when_to_use", () => {
     const cards = mcpToolCards();
     expect(cards.map((c) => c.name).slice(0, 5)).toEqual([
-      "health",
+      "get_health",
       "get_pricing",
       "get_example",
       "suggest_tool",
-      "entity_profile",
+      "get_entity_profile",
     ]);
     expect(cards.map((c) => c.name)).toContain("research_mentions");
     expect(JSON.stringify(cards)).not.toMatch(/0x[a-fA-F0-9]{40}/);
@@ -201,7 +201,7 @@ describe("agent discoverability", () => {
     expect(readme).toContain("Copyright (c) 2026 MentionForge");
     expect(readme).toContain("SPDX-License-Identifier: MIT");
     expect(readme).not.toMatch(/score MIT\/Apache as the friendly license grade/);
-    expect(readme).toContain("`health` — free liveness");
+    expect(readme).toContain("`get_health` — free liveness");
     expect(readme).toContain("`get_pricing` — free catalog");
     expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");

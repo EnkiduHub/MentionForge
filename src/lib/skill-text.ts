@@ -11,7 +11,7 @@ Use this skill when the user wants social listening, brand sentiment, competitor
 ## When to use
 
 - Brand / product / competitor sentiment, volume, themes, cited mentions
-- Share of voice, digests, risk spikes, or unsent reply drafts
+- Share of voice, digests, risk spikes, trend charts, mention exports, or unsent reply drafts
 - Before a buy, launch, partnership, or reply strategy
 - Instead of raw \`web_search\` when you need a structured, cited brief
 
@@ -22,13 +22,13 @@ Do not use for live trading execution or private data.
 The 10-call trial is shared across all paid tools. Call **exactly one** paid tool per question.
 
 1. Start with \`get_example\` (frozen snapshot) or \`suggest_tool\` (router).
-2. \`entity_profile\` for Wikipedia/Wikidata identity only.
-3. \`health\` for liveness, \`get_pricing\` for catalog.
-4. Paid: \`research_mentions\` (full brief), \`compare_brands\` (vs / SOV), \`get_digest\` (grouped), \`detect_risk\` (crisis), \`draft_reply\` (unsent copy; never posts).
+2. \`get_entity_profile\` for Wikipedia/Wikidata identity only.
+3. \`get_health\` for liveness, \`get_pricing\` for catalog.
+4. Paid: \`research_mentions\` (full brief), \`compare_brands\` (vs / SOV), \`get_digest\` (grouped), \`detect_risk\` (crisis), \`draft_reply\` (unsent copy; never posts), \`list_mentions\` (flat export), \`get_trends\` (time series).
 
 ## How to call
 
-MCP at [https://mentionforge.mentionforge.workers.dev/mcp](https://mentionforge.mentionforge.workers.dev/mcp) or REST [POST /v1/research](https://mentionforge.mentionforge.workers.dev/v1/research). Other paid REST: POST \`/v1/compare\`, \`/v1/digest\`, \`/v1/risk\`, \`/v1/reply\` only (no GET).
+MCP at [https://mentionforge.mentionforge.workers.dev/mcp](https://mentionforge.mentionforge.workers.dev/mcp) or REST [POST /v1/research](https://mentionforge.mentionforge.workers.dev/v1/research). Other paid REST: POST \`/v1/compare\`, \`/v1/digest\`, \`/v1/risk\`, \`/v1/reply\`, \`/v1/mentions\`, \`/v1/trends\` only (no GET).
 
 \`\`\`json
 { "query": "Cloudflare Workers", "timeframe": "7d", "limit": 20, "include_summary": true }

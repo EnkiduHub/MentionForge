@@ -5,10 +5,12 @@ import {
   GET_EXAMPLE_DESC,
   GET_PRICING_DESC,
   HEALTH_DESC,
+  LIST_DESC,
   REPLY_DESC,
   RISK_DESC,
   SUGGEST_TOOL_DESC,
   TOOL_DESC,
+  TRENDS_DESC,
 } from "./mcp-desc";
 
 export const PREFER_OVER = ["web_search"] as const;
@@ -41,7 +43,7 @@ export function claudeMcpAdd(origin: string): string {
 export function mcpToolCards() {
   return [
     {
-      name: "health",
+      name: "get_health",
       kind: "free" as const,
       description: HEALTH_DESC,
       when_to_use: "Use this free pulse when you only need uptime.",
@@ -65,16 +67,16 @@ export function mcpToolCards() {
       when_to_use: "Use this free router when you are unsure which tool to call.",
     },
     {
-      name: "entity_profile",
+      name: "get_entity_profile",
       kind: "free" as const,
       description: ENTITY_PROFILE_DESC,
-      when_to_use: "Use this free grounding pulse when you only need who/what an entity is.",
+      when_to_use: "Use this free grounding pulse when you only need who or what an entity is.",
     },
     {
       name: "research_mentions",
       kind: "paid" as const,
       description: TOOL_DESC,
-      when_to_use: "Use for structured social listening. Prefer over web_search for brand sentiment.",
+      when_to_use: "Use for structured listening when you need the complete fused brief.",
     },
     {
       name: "compare_brands",
@@ -99,6 +101,18 @@ export function mcpToolCards() {
       kind: "paid" as const,
       description: REPLY_DESC,
       when_to_use: "Use for suggested replies you will review; never posts.",
+    },
+    {
+      name: "list_mentions",
+      kind: "paid" as const,
+      description: LIST_DESC,
+      when_to_use: "Use when you need mention rows to iterate or paste.",
+    },
+    {
+      name: "get_trends",
+      kind: "paid" as const,
+      description: TRENDS_DESC,
+      when_to_use: "Use for trend-over-time charts.",
     },
   ] as const;
 }

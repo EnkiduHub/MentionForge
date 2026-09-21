@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { GET_PRICING_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC } from "../../src/mcp";
+import { GET_PRICING_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC } from "../../src/mcp";
 import { bazaarExtension, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TOOL_DESC, encodeHeader } from "../../src/lib/x402";
 import { createApp } from "../../src/app";
 import { executionCtx, mockEnv, stubCaches, stubSourcesFetch } from "../helpers/env";
@@ -173,7 +173,8 @@ describe("MCP origin + factory", () => {
     stubSourcesFetch();
   });
 
-  it("research_mentions description leads with cost, trial, and prefer-over-web_search", () => {
+  it("research_mentions description front-loads purpose then cost, trial, and prefer-over-web_search", () => {
+    expect(TOOL_DESC).toMatch(/^Research /);
     const head = head200(TOOL_DESC);
     expect(head).toMatch(/\$0\.02 USDC/);
     expect(head).toMatch(/trial/);
@@ -181,9 +182,11 @@ describe("MCP origin + factory", () => {
   });
 
   it("research_mentions description documents siblings, payment, and defaults without native Reddit/X as default", () => {
-    expect(TOOL_DESC).toMatch(/use health instead/);
+    expect(TOOL_DESC).toMatch(/use get_health instead/);
     expect(TOOL_DESC).toMatch(/use get_pricing instead/);
     expect(TOOL_DESC).toMatch(/use get_digest instead/);
+    expect(TOOL_DESC).toMatch(/use get_trends instead/);
+    expect(TOOL_DESC).toMatch(/use list_mentions instead/);
     expect(TOOL_DESC).toMatch(/402|payment-required/);
     expect(TOOL_DESC).toMatch(/Idempotency-Key/);
     expect(TOOL_DESC).toMatch(/Send only query/);
@@ -191,14 +194,15 @@ describe("MCP origin + factory", () => {
     expect(TOOL_DESC).toMatch(/optional operator upgrades, not the default/);
   });
 
-  it("paid specialty tools lead with cost and never include wallets", () => {
-    for (const desc of [COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC]) {
+  it("paid specialty tools front-load purpose, keep cost in the first 200 chars, and never include wallets", () => {
+    for (const desc of [COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC]) {
+      expect(desc).toMatch(/^(Compare|Group|Detect|Draft|Export|Return) /);
       expect(head200(desc)).toMatch(/\$0\.02 USDC/);
       expect(head200(desc)).toMatch(/trial/);
       expect(head200(desc)).toMatch(/web_search/);
-      expect(desc).toMatch(/use health instead/);
+      expect(desc).toMatch(/use get_health instead/);
       expect(desc).toMatch(/use get_pricing instead/);
-      expect(desc).toMatch(/use research_mentions instead/);
+      expect(desc).toMatch(/use research_mentions( or list_mentions)? instead/);
       expect(desc).not.toMatch(/0x[a-fA-F0-9]{40}/);
     }
   });
@@ -212,20 +216,21 @@ describe("MCP origin + factory", () => {
     expect(HEALTH_DESC).toMatch(/instead/);
     expect(HEALTH_DESC).toMatch(/never charges/i);
     expect(HEALTH_DESC).toMatch(/takes no arguments/i);
+    expect(HEALTH_DESC).toMatch(/Call with \{\}/);
     expect(HEALTH_DESC).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
 
   it("get_pricing description has verb, when-to-use, when-not vs siblings, and free catalog behavior", () => {
     expect(GET_PRICING_DESC).toMatch(/^Return /);
     expect(GET_PRICING_DESC).toMatch(/\$0\.02 USDC/);
-    expect(GET_PRICING_DESC).toMatch(/use health instead/);
+    expect(GET_PRICING_DESC).toMatch(/use get_health instead/);
     expect(GET_PRICING_DESC).toMatch(/use research_mentions/);
     expect(GET_PRICING_DESC).toMatch(/needs no payment headers/);
     expect(GET_PRICING_DESC).toMatch(/X-Wallet/);
     expect(GET_PRICING_DESC).toMatch(/Idempotency-Key/);
     expect(GET_PRICING_DESC).toMatch(/never charges/i);
     expect(GET_PRICING_DESC).toMatch(/takes no arguments/i);
-    expect(GET_PRICING_DESC).toMatch(/shared across paid tools/);
+    expect(GET_PRICING_DESC).toMatch(/those paid tools/);
     expect(GET_PRICING_DESC).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
 
@@ -338,18 +343,22 @@ describe("MCP origin + factory", () => {
     const names = tools.map((t) => t.name);
     expect(names).toEqual(
       expect.arrayContaining([
-        "health",
+        "get_health",
         "get_pricing",
         "get_example",
         "suggest_tool",
-        "entity_profile",
+        "get_entity_profile",
         "research_mentions",
         "compare_brands",
         "get_digest",
         "detect_risk",
         "draft_reply",
+        "list_mentions",
+        "get_trends",
       ]),
     );
+    expect(names).toHaveLength(12);
+    expect(names.every((n) => /^[a-z]+_[a-z_]+$/.test(n))).toBe(true);
 
     const research = tools.find((t) => t.name === "research_mentions");
     expect(research?.title).toBe("Research social mentions");
@@ -364,10 +373,11 @@ describe("MCP origin + factory", () => {
     for (const key of ["query", "platforms", "timeframe", "limit", "include_summary", "min_engagement", "language", "view", "focus", "include_markdown"]) {
       expect((props[key]?.description ?? "").length).toBeGreaterThan(20);
     }
+    expect(research?.description?.slice(0, 200)).toMatch(/^Research /);
     expect(research?.description?.slice(0, 200)).toMatch(/\$0\.02 USDC/);
     expect(research?.outputSchema?.properties).toBeTruthy();
 
-    const health = tools.find((t) => t.name === "health");
+    const health = tools.find((t) => t.name === "get_health");
     expect(health?.title).toBe("Check Worker liveness");
     expect(Object.keys(health?.inputSchema?.properties ?? {})).toHaveLength(0);
     expect(health?.outputSchema?.properties).toBeTruthy();

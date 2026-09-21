@@ -6,7 +6,7 @@ Transport: **Streamable HTTP** at `POST /mcp`. Stateless per-request factory via
 
 ### `research_mentions`
 
-First 200 characters of the description include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. The rest states when-to-use, explicit when-not vs `health` / `get_pricing` (`use … instead`), trial headers, `Idempotency-Key`, 402/x402 retry, optional filters vs the $0.02 price, and that native Reddit/X APIs are optional upgrades. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
+Purpose is front-loaded (verb + resource). The first 200 characters still include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. The rest states when-to-use, explicit when-not vs `get_health` / `get_pricing` / sibling lenses (`use … instead`), trial headers, `Idempotency-Key`, 402/x402 retry, rate limits, optional-filter interactions vs the $0.02 price, and that native Reddit/X APIs are optional upgrades. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
 
 - `title`: Research social mentions
 - `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: true`, `idempotentHint: false`
@@ -20,21 +20,21 @@ Tool failures return `{ isError: true }` with `AgentError` JSON in `content` (sa
 
 Clients send `_meta["x402/payment"]` as the **payload object** (not REST base64). `PAYMENT-SIGNATURE` on the MCP POST is also accepted.
 
-### `health`
+### `get_health`
 
-Free liveness. Use when you only need uptime; for price use `get_pricing` instead; for mentions use `research_mentions`. Takes no arguments, never charges, no payment headers. `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`, `idempotentHint: true`.
+Free liveness. Use when you only need uptime; for price use `get_pricing` instead; for mentions use `research_mentions`. Call with `{}` only, never charges, no payment headers. `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: false`, `idempotentHint: true`. REST `GET /health` is unchanged.
 
 ### `get_pricing`
 
-Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_mentions"`; additive `tools[]` / `endpoints[]`. Use when you need list price or trial terms; for liveness use `health` instead; for mentions use `research_mentions`. Takes no arguments, never charges. Same annotation pattern as `health`.
+Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_mentions"`; additive `tools[]` / `endpoints[]`. Use when you need list price or trial terms; for liveness use `get_health` instead; for mentions use `research_mentions`. Call with `{}` only, never charges. Same annotation pattern as `get_health`. `Idempotency-Key` is required on paid tools, not on this catalog.
 
 ### Free routers
 
-`get_example`, `suggest_tool`, `entity_profile` never charge. `suggest_tool` unknown need → `research_mentions`. The 10-call trial is shared across paid tools; call exactly one paid tool per question.
+`get_example`, `suggest_tool`, `get_entity_profile` never charge. `suggest_tool` unknown need → `research_mentions`. The 10-call trial is shared across paid tools; call exactly one paid tool per question.
 
 ### Paid lenses
 
-`compare_brands`, `get_digest`, `detect_risk`, `draft_reply` — same $0.02 USDC and trial as `research_mentions`. MCP `resource.url` stays `${origin}/mcp`. REST 402 `resource.url` stays `/v1/research`. Bazaar `{ info, schema }` on `research_mentions` (type `mcp`) and on REST POST `/v1/research` (type `http`). Specialized tools parse their own output Zod schema. `draft_reply` never posts and never fetches mention URLs.
+`compare_brands`, `get_digest`, `detect_risk`, `draft_reply`, `list_mentions`, `get_trends` — same $0.02 USDC and trial as `research_mentions`. MCP `resource.url` stays `${origin}/mcp`. REST 402 `resource.url` stays `/v1/research`. Bazaar `{ info, schema }` on `research_mentions` (type `mcp`) and on REST POST `/v1/research` (type `http`). Specialized tools parse their own output Zod schema. `draft_reply` never posts and never fetches mention URLs. Do not re-run `PAY_ONCE` for specialty tools.
 
 ## Resources
 
@@ -48,6 +48,8 @@ Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_
 - `competitor_brief` — call `compare_brands`
 - `crisis_watch` — call `detect_risk`
 - `review_digest` / `pain_mining` — call `get_digest`
+- `mention_export` — call `list_mentions`
+- `trend_watch` — call `get_trends`
 
 ## Origin
 
@@ -67,4 +69,4 @@ Malformed Origin is rejected (`403`). `createMcpHandler` `allowedOriginHostnames
 
 Payment meta: `_meta["x402/payment"]` in, `_meta["x402/payment-response"]` out.
 
-The repo `Dockerfile` is a Glama stdio bridge to `https://mentionforge.mentionforge.workers.dev/mcp` (`scripts/glama-stdio.mjs` → `mcp-remote --transport http-only`). Use `CMD`, not `ENTRYPOINT`, so Glama’s `mcp-proxy` wrap can read the image start command. `package.json` `bin`/`start` are the same bridge so Glama does not infer `wrangler`. It is not a second Worker and must not list `RECIPIENT_WALLET` as a container env var — that address is a Wrangler `vars` value on the hosted origin, which is where x402 `payTo` is advertised. `health` / `get_pricing` stay free; paid tools still settle on the hosted origin (`research_mentions` and the specialty lenses share the same `/mcp` x402 resource). Admin form values live in [listings/glama.md](../listings/glama.md).
+The repo `Dockerfile` is a Glama stdio bridge to `https://mentionforge.mentionforge.workers.dev/mcp` (`scripts/glama-stdio.mjs` → `mcp-remote --transport http-only`). Use `CMD`, not `ENTRYPOINT`, so Glama’s `mcp-proxy` wrap can read the image start command. `package.json` `bin`/`start` are the same bridge so Glama does not infer `wrangler`. It is not a second Worker and must not list `RECIPIENT_WALLET` as a container env var — that address is a Wrangler `vars` value on the hosted origin, which is where x402 `payTo` is advertised. `get_health` / `get_pricing` stay free; paid tools still settle on the hosted origin (`research_mentions` and the specialty lenses share the same `/mcp` x402 resource). Admin form values live in [listings/glama.md](../listings/glama.md).

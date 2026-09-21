@@ -31,6 +31,20 @@ export function suggestTool(needRaw: string): {
       },
     };
   }
+  if (/\b(trend|time[- ]series|over time|volume over|sparkline)\b/.test(n)) {
+    return {
+      tool: "get_trends",
+      reason: "Need is a time-series, not a mention dump. Call exactly one paid tool.",
+      example_args: { query: q, timeframe: "7d" },
+    };
+  }
+  if (/\b(export|list mentions|mention list|mention rows|csv)\b/.test(n)) {
+    return {
+      tool: "list_mentions",
+      reason: "Need is a flat mention export, not a full brief. Call exactly one paid tool.",
+      example_args: { query: q, timeframe: "7d" },
+    };
+  }
   if (/\b(digest|daily brief|praise|pain|review digest)\b/.test(n)) {
     return {
       tool: "get_digest",
@@ -54,7 +68,7 @@ export function suggestTool(needRaw: string): {
   }
   if (/\b(who is|what is|wikipedia|wikidata|entity|identity)\b/.test(n)) {
     return {
-      tool: "entity_profile",
+      tool: "get_entity_profile",
       reason: "Need is identity grounding, not social listening.",
       example_args: { query: q },
     };
@@ -66,7 +80,7 @@ export function suggestTool(needRaw: string): {
     return { tool: "get_pricing", reason: "Need is list price or trial terms.", example_args: {} };
   }
   if (/\b(health|uptime|liveness|ping)\b/.test(n)) {
-    return { tool: "health", reason: "Need is Worker liveness, not research.", example_args: {} };
+    return { tool: "get_health", reason: "Need is Worker liveness, not research.", example_args: {} };
   }
   return {
     tool: "research_mentions",

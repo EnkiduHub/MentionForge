@@ -133,6 +133,22 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
           security: [{ x402: [] }, { sandbox: [] }, { wallet: [] }],
         },
       },
+      "/v1/mentions": {
+        post: {
+          tags: ["research"],
+          operationId: "listMentions",
+          summary: "Paid flat mention export ($0.02 USDC). POST only.",
+          security: [{ x402: [] }, { sandbox: [] }, { wallet: [] }],
+        },
+      },
+      "/v1/trends": {
+        post: {
+          tags: ["research"],
+          operationId: "getTrends",
+          summary: "Paid time-bucketed volume and sentiment ($0.02 USDC). POST only.",
+          security: [{ x402: [] }, { sandbox: [] }, { wallet: [] }],
+        },
+      },
       "/v1/entity": { get: { tags: ["discovery"], summary: "Free Wikipedia + Wikidata identity card" } },
       "/v1/suggest": { get: { tags: ["discovery"], summary: "Free tool router" } },
       "/v1/pricing": { get: { tags: ["discovery"], summary: "Price, trial, networks" } },

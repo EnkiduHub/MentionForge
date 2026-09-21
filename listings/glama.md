@@ -13,7 +13,7 @@ Do not treat these as the same score. punkpeye’s awesome-mcp-servers bot wants
 
 | Surface | URL | What it measures | Status |
 | --- | --- | --- | --- |
-| Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy, TDQS **A 4.9/5.0** — not the quality-score badge |
+| Hosted connector | https://glama.ai/mcp/connectors/io.github.EnkiduHub/MentionForge | Live `/mcp` health + TDQS | Healthy; recrawl after 1.2.0 so TDQS sees 12 `verb_noun` tools — not the quality-score badge |
 | GitHub server listing | https://glama.ai/mcp/servers/@EnkiduHub/MentionForge | README scrape / deployability | Landing/server-card stay on this `@` URL unless a quality-score badge requires the non-`@` twin |
 | Quality-score badge | `https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg` (same `OWNER/REPO` form the punkpeye bot already accepted) | Numeric quality score | README has both `score.svg` and `card.svg`; letter grade after a Glama **release** succeeds |
 
@@ -50,7 +50,7 @@ Do **not** use `pnpm install`, `npm ci`, `npm run dev`, `wrangler`, or `["mcp-pr
 4. **Deploy** (build test: start + `initialize` / `tools/list`).
 5. **Make Release** → version → publish. That is when the quality badge becomes a letter, not `?`.
 
-The root `Dockerfile` uses `CMD` (not `ENTRYPOINT`) and starts `scripts/glama-stdio.mjs` so `Cmd` is non-empty. `health` / `get_pricing` stay free; unpaid `research_mentions` is payment-required. Do not leave CMD as `[]`.
+The root `Dockerfile` uses `CMD` (not `ENTRYPOINT`) and starts `scripts/glama-stdio.mjs` so `Cmd` is non-empty. `get_health` / `get_pricing` stay free; unpaid `research_mentions` is payment-required. Do not leave CMD as `[]`.
 
 ## Form fields (connector)
 
@@ -65,6 +65,6 @@ The root `Dockerfile` uses `CMD` (not `ENTRYPOINT`) and starts `scripts/glama-st
 | License | MIT |
 | Price | $0.02 USDC per successful call on Base. 10 free trial calls with `X-Wallet`. Always send `Idempotency-Key`. |
 
-Do **not** paste private test credentials (CDP, sandbox, or wallet keys) into Glama. `initialize` / `health` / `get_pricing` are free and enough to prove the endpoint is up. Paid `research_mentions` returns HTTP 402 until the client attaches x402.
+Do **not** paste private test credentials (CDP, sandbox, or wallet keys) into Glama. `initialize` / `get_health` / `get_pricing` are free and enough to prove the endpoint is up. Paid `research_mentions` returns HTTP 402 until the client attaches x402.
 
 Official Registry publish (`io.github.EnkiduHub/MentionForge`) is the other Glama ingest path — do not wait for traction before that publish.

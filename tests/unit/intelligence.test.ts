@@ -6,7 +6,7 @@ import { isDevShapedQuery, isSiteScopedWebQuery, codeSearchQuery } from "../../s
 import { fetchReddit } from "../../src/lib/research/sources/reddit";
 import { planQuery, windowFor } from "../../src/lib/research/query-plan";
 import { FetchPool } from "../../src/lib/fetch-pool";
-import { mapCompare } from "../../src/lib/lenses";
+import { mapCompare, projectList, projectTrends } from "../../src/lib/lenses";
 import { fetchWeb } from "../../src/lib/research/sources/web";
 import { suggestTool } from "../../src/lib/suggest";
 import { runResearch } from "../../src/lib/research/engine";
@@ -176,7 +176,7 @@ describe("free tools never 402", () => {
   it("GET paid lenses return 400", async () => {
     const app = createApp();
     const env = mockEnv();
-    for (const path of ["/v1/compare", "/v1/digest", "/v1/risk", "/v1/reply"]) {
+    for (const path of ["/v1/compare", "/v1/digest", "/v1/risk", "/v1/reply", "/v1/mentions", "/v1/trends"]) {
       const res = await app.fetch(
         new Request(`https://mentionforge.test${path}`, { headers: { Accept: "application/json" } }),
         env,
@@ -230,6 +230,58 @@ describe("vs query scoring", () => {
   });
 });
 
+describe("list and trends projections", () => {
+  const full = {
+    query: "ForgeCo",
+    timeframe: "7d",
+    volume: { total: 1, by_platform: { x: 0, reddit: 1, web: 0, reviews: 0, news: 0 }, trend: [{ t: "2026-09-21T00:00:00.000Z", count: 1 }] },
+    sentiment: { overall: 0.2, positive: 100, neutral: 0, negative: 0, distribution: { positive: 100, neutral: 0, negative: 0, by_platform: { reddit: 1 } } },
+    themes: [{ theme: "launch", count: 1, examples: ["shipped"] }],
+    mentions: [
+      {
+        id: "m1",
+        platform: "reddit",
+        url: "https://www.reddit.com/r/saas/comments/m1",
+        author: "ops",
+        timestamp: "2026-09-21T00:00:00.000Z",
+        text: "ForgeCo shipped",
+        engagement: 3,
+        sentiment: 0.4,
+        intent: "praise",
+      },
+    ],
+    citations: [],
+    share_of_voice: [{ brand: "ForgeCo", mentions: 1, engagement: 3, share: 1 }],
+    signals: { risk: "low", spike: false, reasons: ["no spike"] },
+    meta: {
+      sources_used: ["reddit"],
+      request_id: "x",
+      latency_ms: 1,
+      billing: { amount_usdc: "0", tx_hash: null, free_trial: true },
+    },
+  } as unknown as import("../../src/schemas/research").ResearchResponse;
+
+  it("projectList returns mention rows without themes or share of voice", () => {
+    const out = projectList(full);
+    expect(out.query).toBe("ForgeCo");
+    expect(out.mentions).toEqual([
+      expect.objectContaining({ id: "m1", platform: "reddit", text: "ForgeCo shipped", timestamp: "2026-09-21T00:00:00.000Z" }),
+    ]);
+    expect(out).not.toHaveProperty("themes");
+    expect(out).not.toHaveProperty("share_of_voice");
+    expect(out).not.toHaveProperty("volume");
+  });
+
+  it("projectTrends returns volume trend without mention rows", () => {
+    const out = projectTrends(full);
+    expect(out.query).toBe("ForgeCo");
+    expect(out.volume).toEqual(full.volume);
+    expect(out.sentiment).toEqual(full.sentiment);
+    expect(out).not.toHaveProperty("mentions");
+    expect(out).not.toHaveProperty("themes");
+  });
+});
+
 describe("suggest_tool sanitizes", () => {
   it("strips urls and wallets from example_args.query", () => {
     const out = suggestTool("research https://evil.example javascript:alert(1) 0x1111111111111111111111111111111111111111 Cloudflare");
@@ -248,6 +300,12 @@ describe("suggest_tool sanitizes", () => {
 
   it("defaults unknown needs to research_mentions", () => {
     expect(suggestTool("tell me about the weather of ForgeCo").tool).toBe("research_mentions");
+  });
+
+  it("routes trend, export, and liveness needs", () => {
+    expect(suggestTool("chart ForgeCo volume over time").tool).toBe("get_trends");
+    expect(suggestTool("export mention list for ForgeCo").tool).toBe("list_mentions");
+    expect(suggestTool("check worker uptime").tool).toBe("get_health");
   });
 
   it("splits versus into brand and competitors", () => {
