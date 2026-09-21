@@ -179,6 +179,12 @@ describe("agent discoverability", () => {
     const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
     expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg");
     expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/card.svg");
+    expect(readme).toContain("MIT License");
+    expect(readme).toContain("Copyright (c) 2026 MentionForge");
+    expect(readme).toContain("SPDX-License-Identifier: MIT");
+    expect(readme).not.toMatch(/score MIT\/Apache as the friendly license grade/);
+    expect(readme).toContain("`health` — free liveness");
+    expect(readme).toContain("`get_pricing` — free catalog");
     expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");
     expect(dockerfile).toMatch(/^CMD \["node", "\/home\/node\/glama-stdio.mjs"\]$/m);
