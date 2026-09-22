@@ -1,31 +1,37 @@
 import { logRequest } from "./logger";
 import { isoNow } from "./crypto";
 
+type StatsBump = { paid: boolean; trial: boolean; error: boolean; usdcMicros: number; queryHash?: string };
+
+export type PublicUsage = { calls: number; paid: number; trial: number };
+
 export async function bumpStats(
   env: Env,
   ctx: { waitUntil(promise: Promise<unknown>): void },
-  row: { paid: boolean; trial: boolean; error: boolean; usdcMicros: number; queryHash?: string },
+  row: StatsBump,
 ): Promise<void> {
   ctx.waitUntil(writeStats(env, row));
 }
 
-async function writeStats(
-  env: Env,
-  row: { paid: boolean; trial: boolean; error: boolean; usdcMicros: number; queryHash?: string },
-): Promise<void> {
+async function writeStats(env: Env, row: StatsBump): Promise<void> {
+  // One completion per successful persist (paid or trial). Error-only bumps must not inflate `calls`.
+  const callInc = row.paid || row.trial ? 1 : 0;
+  const errorInc = row.error ? 1 : 0;
+  if (callInc === 0 && errorInc === 0 && row.usdcMicros === 0) return;
+
   const day = new Date().toISOString().slice(0, 10);
   try {
     await env.DB.prepare(
       `INSERT INTO stats_daily (day, calls, paid, usdc_micros, errors, trial)
-       VALUES (?, 1, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?)
        ON CONFLICT(day) DO UPDATE SET
-         calls = calls + 1,
+         calls = calls + excluded.calls,
          paid = paid + excluded.paid,
          usdc_micros = usdc_micros + excluded.usdc_micros,
          errors = errors + excluded.errors,
          trial = trial + excluded.trial`,
     )
-      .bind(day, row.paid ? 1 : 0, row.usdcMicros, row.error ? 1 : 0, row.trial ? 1 : 0)
+      .bind(day, callInc, row.paid ? 1 : 0, row.usdcMicros, errorInc, row.trial ? 1 : 0)
       .run();
   } catch (err) {
     logRequest({ msg: "stats_d1_fail", err: String(err) });
@@ -41,12 +47,17 @@ async function writeStats(
   }
 }
 
-export async function publicCallCount(env: Env): Promise<number> {
+/** Successful product usage. `calls` is paid + trial, not the raw `stats_daily.calls` counter. */
+export async function publicUsage(env: Env): Promise<PublicUsage> {
   try {
-    const r = await env.DB.prepare("SELECT COALESCE(SUM(calls), 0) AS n FROM stats_daily").first<{ n: number }>();
-    return Number(r?.n ?? 0);
+    const r = await env.DB.prepare(
+      "SELECT COALESCE(SUM(paid), 0) AS paid, COALESCE(SUM(trial), 0) AS trial FROM stats_daily",
+    ).first<{ paid: number; trial: number }>();
+    const paid = Number(r?.paid ?? 0);
+    const trial = Number(r?.trial ?? 0);
+    return { calls: paid + trial, paid, trial };
   } catch {
-    return 0;
+    return { calls: 0, paid: 0, trial: 0 };
   }
 }
 

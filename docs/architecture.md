@@ -16,6 +16,6 @@ Cloudflare Worker. `compatibility_date` `2026-09-17`, `nodejs_compat`.
 - SSRF allowlist only; mention URLs are never fetched
 - Workers AI summary polish is optional (<250 ms)
 
-Paid REST order: CORS (incl. 402, `maxAge` 86400) → request id → rate limit → 8 KB cap → Zod `.strip()` → idempotency 409/replay → trial CAS or x402 verify → engine → this-request billing → settle on 2xx → D1 idempotency upsert → `waitUntil` D1 `stats_daily` + AE point.
+Paid REST order: CORS (incl. 402, `maxAge` 86400) → request id → rate limit → 8 KB cap → Zod `.strip()` → idempotency 409/replay → trial CAS or x402 verify → engine → this-request billing → settle on 2xx → D1 idempotency upsert → `waitUntil` D1 `stats_daily` + AE point. `stats_daily.calls` increments only on that successful paid or trial persist. `INTERNAL_ERROR` and `SOURCE_UNAVAILABLE` increment `errors` only. Public `GET /stats` reads `SUM(paid)+SUM(trial)`, not the raw `calls` column.
 
 Workers Paid ($5/mo) before production CPU volume. Free is enough for current traffic. Production settles Base USDC via the CDP facilitator; staging remains Base Sepolia / x402.org.

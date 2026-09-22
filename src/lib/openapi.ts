@@ -153,7 +153,7 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
       "/v1/suggest": { get: { tags: ["discovery"], summary: "Free tool router" } },
       "/v1/pricing": { get: { tags: ["discovery"], summary: "Price, trial, networks" } },
       "/health": { get: { tags: ["discovery"], summary: "Liveness + cached circuits (no GDELT)" }, head: { tags: ["discovery"], summary: "Uptime probe" } },
-      "/stats": { get: { tags: ["discovery"], summary: "Public call count" } },
+      "/stats": { get: { tags: ["discovery"], summary: "Successful completions: calls = paid + trial. No revenue." } },
       "/openapi.json": { get: { tags: ["discovery"] } },
       "/llms.txt": { get: { tags: ["discovery"] } },
       "/llms-full.txt": { get: { tags: ["discovery"] } },

@@ -91,11 +91,12 @@ export function createApp() {
   app.onError((err, c) => {
     const id = (c.get("requestId") as string) || "unknown";
     if (err instanceof AgentError) {
-      if (err.code !== "PAYMENT_REQUIRED") {
+      // Completions are counted only in persistResearch. Client rejections must not bump `calls`.
+      if (err.code === "INTERNAL_ERROR" || err.code === "SOURCE_UNAVAILABLE") {
         void bumpStats(c.env, c.executionCtx, {
           paid: false,
           trial: false,
-          error: err.code === "INTERNAL_ERROR" || err.code === "SOURCE_UNAVAILABLE",
+          error: true,
           usdcMicros: 0,
         });
       }

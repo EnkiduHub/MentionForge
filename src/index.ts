@@ -6,7 +6,7 @@ import { logRequest } from "./lib/logger";
 import { applySecurityHeaders, assetKind } from "./lib/security-headers";
 import { absolutizePublicHtml } from "./lib/html";
 import { hydrateLandingHtml } from "./lib/landing";
-import { publicCallCount } from "./lib/analytics";
+import { publicUsage } from "./lib/analytics";
 
 const app = createApp();
 
@@ -53,7 +53,7 @@ export default {
           const html = await asset.text();
           const landing =
             url.pathname === "/" || url.pathname === "" || url.pathname === "/index.html";
-          const calls = landing ? await publicCallCount(env) : 0;
+          const calls = landing ? (await publicUsage(env)).calls : 0;
           const page = hydrateLandingHtml(absolutizePublicHtml(html, url.origin), env, calls);
           const rewritten = new Response(page, {
             status: asset.status,

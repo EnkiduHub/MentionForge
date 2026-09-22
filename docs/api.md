@@ -56,7 +56,7 @@ GET `/v1/research` is supported via query string (`view` / `focus` / `include_ma
 | `GET /v1/entity` | Free Wikipedia + Wikidata identity card |
 | `GET /v1/suggest` | Free tool router |
 | `GET /v1/pricing` | Exact micros + trial rules |
-| `GET /stats` | `{ calls }` from D1 |
+| `GET /stats` | `{ calls, paid, trial }` where `calls` = `paid` + `trial` (successful research completions only). Does not publish revenue. Raw `stats_daily.calls` can still include older non-completion noise; that counter stays on the operator ledger |
 | `GET /openapi.json` | OpenAPI 3.1 + `x-logo` |
 | `GET /llms.txt` | When to call this instead of web_search |
 | `GET /llms-full.txt` | Full agent guide |

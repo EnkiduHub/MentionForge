@@ -10,6 +10,7 @@
 
 ## Unreleased
 
+- Public `GET /stats` is successful product usage only: `{ calls, paid, trial }` with `calls` = paid + trial. Validation, rate limits, and other non-completions no longer increment `calls`. Operator ledger still includes raw `calls`, paid, trial, USDC, and errors. No D1 migration; redeploy the Worker after merge
 - CDP Bazaar discovery: REST POST `/v1/research` advertises type `http` bazaar metadata; MCP `research_mentions` stays type `mcp` / `streamable-http`. Settle re-attaches absolute `https://` `paymentPayload.resource` + bazaar extensions (verify still strips extensions). Unpaid GET/empty POST `/v1/research` return 402 before body validation so CDP probes can index. Search keywords stay honest (no native Reddit/X as default).
 - Paid MCP `research_mentions`: official Bazaar `{ info, schema }` extensions, AgentError `isError` (never opaque Internal Server Error), no settle on research failure
 - Paid MCP verify: facilitator / matching throws map to payment-required (REST parity) instead of wrapper ISE; facilitator verify is called without client-echoed bazaar extensions; MCP x402 `resource.description` uses the Bazaar search blurb so CDP `/verify` is not rejected for a >500-char tool description; paid MCP replays `Idempotency-Key` hits before verify; `INTERNAL_ERROR` includes `details.cause` (`x402_wrapper` / `output_schema` / `uncaught`)
