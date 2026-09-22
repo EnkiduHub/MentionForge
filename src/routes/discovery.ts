@@ -122,6 +122,15 @@ discoveryRoutes.get("/.well-known/x402", (c) => {
         iconUrl: mcpResource.iconUrl,
         extensions: bazaarExtension,
       },
+      {
+        url: discoveryResource(origin, "research_mentions").url,
+        method: "POST",
+        description: httpResource.description,
+        serviceName: httpResource.serviceName,
+        tags: httpResource.tags,
+        iconUrl: httpResource.iconUrl,
+        extensions: bazaarHttpExtension,
+      },
     ],
     network: cfg.network,
     extensions: bazaarHttpExtension,
@@ -203,6 +212,7 @@ Claude CLI: ${claudeMcpAdd(origin)}
 Free first: get_health, get_pricing, get_example, suggest_tool, get_entity_profile.
 Paid ($0.02 USDC, 10 trial calls shared): research_mentions, compare_brands, get_digest, detect_risk, draft_reply, list_mentions, get_trends.
 Call exactly one paid tool per question. Use suggest_tool when unsure.
+Discovery alias (same body and price as POST /v1/research): POST ${origin}/v1/research_mentions.
 
 Price: $0.02 USDC per successful POST ${origin}/v1/research (x402 exact, ${net}).
 Trial: 10 calls with X-Wallet or X-Sandbox-Key.
@@ -239,6 +249,8 @@ This deployment settles on ${net} (${paymentConfig(c.env).network}). Staging use
 ## REST
 POST ${origin}/v1/research
 {"query":${JSON.stringify(SAMPLE_QUERY)},"timeframe":"7d","limit":20,"include_summary":true}
+
+POST ${origin}/v1/research_mentions uses that same JSON. Its x402 resource URL is this path so discovery search can match research_mentions. Same $0.02 USDC.
 
 Also POST-only: ${origin}/v1/compare | /v1/digest | /v1/risk | /v1/reply | /v1/mentions | /v1/trends (same $0.02 USDC x402 resource).
 Free GET: ${origin}/v1/entity?query=  and  ${origin}/v1/suggest?need=

@@ -517,8 +517,9 @@ describe("MCP origin + factory", () => {
     expect(input?.transport).toBe("streamable-http");
     expect(String(input?.description)).toMatch(/social listening/);
     expect(String(input?.description)).toMatch(/brand sentiment/);
+    expect(String(input?.description)).toMatch(/research_mentions/);
     expect(String(input?.description)).not.toMatch(/0x[a-fA-F0-9]{40}/);
-    expect(String(input?.description)).toMatch(/optional operator upgrades/);
+    expect(String(input?.description)).toMatch(/not a native Reddit or X feed/);
   });
 
   it("paid research_mentions succeeds with _meta, header, or both, and settles once", async () => {
@@ -627,7 +628,10 @@ describe("MCP origin + factory", () => {
     expect(doc.payment?.resource?.url).toBe("https://mentionforge.test/v1/research");
     expect(doc.payment?.extensions?.bazaar?.info?.input?.type).toBe("http");
     expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/v1/research")).toBe(true);
+    expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/v1/research_mentions")).toBe(true);
     expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/mcp")).toBe(true);
     expect(doc.resources?.every((r) => String(r.description).includes("MentionForge"))).toBe(true);
+    expect(doc.resources?.every((r) => String(r.description).includes("brand sentiment"))).toBe(true);
+    expect(doc.resources?.every((r) => String(r.description).includes("research_mentions"))).toBe(true);
   });
 });

@@ -301,9 +301,53 @@ describe("HTTP surfaces", () => {
     expect(res.status).toBe(200);
     expect(settleBodies.length).toBe(1);
     expect(settleBodies[0]).toContain("https://mentionforge.test/v1/research");
+    expect(settleBodies[0]).not.toContain("https://mentionforge.test/v1/research_mentions");
     expect(settleBodies[0]).toContain("bazaar");
     expect(settleBodies[0]).toContain("\"http\"");
     expect(settleBodies[0]).not.toMatch(/mcp:\/\//);
+  });
+
+  it("POST /v1/research_mentions 402 and settle keep the alias URL and the same price", async () => {
+    const unpaid = await call("/v1/research_mentions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ query: "ForgeCo", timeframe: "7d" }),
+    });
+    expect(unpaid.status).toBe(402);
+    const unpaidBody = (await unpaid.json()) as {
+      payment?: { resource?: { url?: string; description?: string }; accepts?: Array<{ amount?: string }> };
+    };
+    expect(unpaidBody.payment?.resource?.url).toBe("https://mentionforge.test/v1/research_mentions");
+    expect(unpaidBody.payment?.resource?.description).toMatch(/brand sentiment/);
+    expect(unpaidBody.payment?.resource?.description).toMatch(/social listening/);
+    expect(unpaidBody.payment?.accepts?.[0]?.amount).toBe("20000");
+
+    const orig = getGlobalFetch();
+    const settleBodies: string[] = [];
+    setGlobalFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/settle")) {
+        const raw = input instanceof Request ? await input.clone().text() : typeof init?.body === "string" ? init.body : "";
+        settleBodies.push(raw);
+        return new Response(JSON.stringify({ success: true, transaction: "0xalias", network: "eip155:84532" }), {
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return orig(input as Request, init);
+    });
+    const pay = btoa(
+      unescape(encodeURIComponent(JSON.stringify({ x402Version: 2, payload: { authorization: { from: "payer" } } }))),
+    );
+    const paid = await call("/v1/research_mentions", {
+      method: "POST",
+      headers: { "content-type": "application/json", "PAYMENT-SIGNATURE": pay, "Idempotency-Key": crypto.randomUUID() },
+      body: JSON.stringify({ query: "ForgeCo", timeframe: "7d", limit: 5 }),
+    });
+    expect(paid.status).toBe(200);
+    expect(settleBodies.length).toBe(1);
+    expect(settleBodies[0]).toContain("https://mentionforge.test/v1/research_mentions");
+    expect(settleBodies[0]).toContain("research_mentions");
+    expect(settleBodies[0]).toContain("\"http\"");
   });
 
   it("research responses never expose cache_hit", async () => {
