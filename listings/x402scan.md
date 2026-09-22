@@ -1,11 +1,11 @@
 # x402scan listing
 
-Production Bazaar seed must run **after** a Worker deploy that changes settle catalog (resource URL, HTTP/MCP bazaar extensions, or search copy). Dry-run: `npm run seed-bazaar`. Paid: `PAY_ONCE=1 npm run seed-bazaar` ($0.04: MCP then REST).
+Production Bazaar seed must run **after** a Worker deploy that changes settle catalog (resource URL, HTTP/MCP bazaar extensions, or search copy). Dry-run: `npm run seed-bazaar`. Paid: `PAY_ONCE=1 npm run seed-bazaar` ($0.06: MCP, then `/v1/research`, then `/v1/research_mentions`).
 
 | Field | Value |
 | --- | --- |
 | Origin | `https://mentionforge.mentionforge.workers.dev` |
-| REST resource | `POST /v1/research` (type `http`; paid lenses `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` `/v1/mentions` `/v1/trends` verify against this same URL) |
+| REST resource | `POST /v1/research` (type `http`; paid lenses verify against this same URL). `POST /v1/research_mentions` is the same call with a resource URL that contains `research_mentions`. |
 | MCP resource | `POST /mcp` (type `mcp`; Bazaar indexes `research_mentions`; specialty tools share this URL) |
 | Amount | `20000` atomic USDC (`$0.02`) |
 | Network | `eip155:8453` (Base). Staging remains `eip155:84532` (Base Sepolia). |
@@ -19,4 +19,9 @@ Optional extra origin register (SIWX wallet login, not required for Bazaar): <ht
 CDP Bazaar indexes on settle when `paymentPayload.resource` is absolute HTTPS and `extensions.bazaar` is present. The Worker re-attaches both on settle. After deploy, confirm:
 
 - `GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=MentionForge`
+- `GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=mentionforge`
+- `GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=research_mentions`
+- `GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=brand%20sentiment`
 - `GET https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=social%20listening`
+
+These checks are post-deploy and post-reseed. A result from before that settle is not evidence the new copy is indexed. Ranking can lag the settle by several hours.

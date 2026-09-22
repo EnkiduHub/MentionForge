@@ -3,7 +3,8 @@
  * Bazaar seed: unpaid MCP research_mentions (402) + unpaid REST POST /v1/research (402),
  * then PAY_ONCE settles both so CDP can index type:mcp and type:http.
  *
- * Default is dry-run (no USDC). Spends $0.04 ($0.02 MCP + $0.02 REST) when PAY_ONCE=1 and
+ * Default is dry-run (no USDC). Spends $0.06 ($0.02 MCP + $0.02 /v1/research + $0.02 /v1/research_mentions)
+ * when PAY_ONCE=1 and
  * TEST_PAYER_PRIVATE_KEY / TEST_SEED_PAYER_PRIVATE_KEY is 0x + 64 hex in the environment / .dev.vars.
  *
  * MCP x402 expects `_meta["x402/payment"]` to be the payload object, not REST base64.
@@ -104,6 +105,50 @@ function catalogLog(label: string, doc: Json | unknown): void {
   });
 }
 
+async function expectRest402(path: "/v1/research" | "/v1/research_mentions"): Promise<Json> {
+  const res = await fetch(`${origin}${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID() },
+    body: JSON.stringify(ARGS),
+  });
+  const json = (await res.json()) as { payment?: Json };
+  const required = asPaymentRequired(json.payment) ?? asPaymentRequired(json);
+  if (res.status !== 402 || !required) {
+    console.error("expected REST 402", path, res.status, JSON.stringify(json).slice(0, 800));
+    process.exit(1);
+  }
+  assertAcceptsMainnet(
+    (required.accepts as Array<{ network?: string; asset?: string; extra?: { name?: string } }>)[0],
+  );
+  console.log(`${path} 402/payment-required ok; no funds moved.`);
+  catalogLog(`${path} 402_catalog`, required);
+  return required;
+}
+
+async function payRest(
+  client: { createPaymentPayload: (required: never) => Promise<unknown> },
+  required: Json,
+  path: "/v1/research" | "/v1/research_mentions",
+): Promise<void> {
+  const payload = echoCatalog(await client.createPaymentPayload(required as never), required);
+  catalogLog(`${path} payload_catalog`, payload);
+  const paid = await fetch(`${origin}${path}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "Idempotency-Key": crypto.randomUUID(),
+      "PAYMENT-SIGNATURE": encodePaymentHeader(payload),
+    },
+    body: JSON.stringify(ARGS),
+  });
+  const text = await paid.text();
+  if (paid.status !== 200) {
+    console.error("paid REST failed", { path, status: paid.status, body: text.slice(0, 1500) });
+    process.exit(1);
+  }
+  console.log("paid REST ok", path, paid.status);
+}
+
 async function mcpRpc(body: unknown, extraHeaders: Record<string, string> = {}) {
   const res = await fetch(`${origin}/mcp`, {
     method: "POST",
@@ -164,26 +209,17 @@ async function main() {
   catalogLog("mcp_402_catalog", required);
   console.log("payTo", price.pay_to);
 
-  const restUnpaid = await fetch(`${origin}/v1/research`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "Idempotency-Key": crypto.randomUUID() },
-    body: JSON.stringify(ARGS),
-  });
-  const restUnpaidJson = (await restUnpaid.json()) as { payment?: Json };
-  const restRequired = asPaymentRequired(restUnpaidJson.payment) ?? asPaymentRequired(restUnpaidJson);
-  if (restUnpaid.status !== 402 || !restRequired) {
-    console.error("expected REST 402, got", restUnpaid.status, JSON.stringify(restUnpaidJson).slice(0, 800));
+  const restRequired = await expectRest402("/v1/research");
+  const aliasRequired = await expectRest402("/v1/research_mentions");
+  const aliasUrl = asRecord(aliasRequired.resource)?.url;
+  if (typeof aliasUrl !== "string" || !aliasUrl.endsWith("/v1/research_mentions")) {
+    console.error("alias 402 resource.url must end with /v1/research_mentions", aliasUrl);
     process.exit(1);
   }
-  assertAcceptsMainnet(
-    (restRequired.accepts as Array<{ network?: string; asset?: string; extra?: { name?: string } }>)[0],
-  );
-  console.log("REST 402/payment-required ok; no funds moved.");
-  catalogLog("rest_402_catalog", restRequired);
 
   if (!wantPayOnce()) {
     console.log("Dry-run complete. Then npm run fund-seed-payer and PAY_ONCE=1 (payer must differ from payTo).");
-    console.log("PAY_ONCE spends $0.04: MCP research_mentions then REST POST /v1/research (HTTP Bazaar).");
+    console.log("PAY_ONCE spends $0.06: MCP research_mentions, REST POST /v1/research, REST POST /v1/research_mentions.");
     return;
   }
   if (!price.payments_ready) {
@@ -261,23 +297,8 @@ async function main() {
   }
   console.log("paid MCP ok", paid.res.status);
 
-  const restPayload = echoCatalog(await client.createPaymentPayload(restRequired as never), restRequired);
-  catalogLog("rest_payload_catalog", restPayload);
-  const restPaid = await fetch(`${origin}/v1/research`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "Idempotency-Key": crypto.randomUUID(),
-      "PAYMENT-SIGNATURE": encodePaymentHeader(restPayload),
-    },
-    body: JSON.stringify(ARGS),
-  });
-  const restPaidText = await restPaid.text();
-  if (restPaid.status !== 200) {
-    console.error("paid REST failed", { status: restPaid.status, body: restPaidText.slice(0, 1500) });
-    process.exit(1);
-  }
-  console.log("paid REST ok", restPaid.status);
+  await payRest(client, restRequired, "/v1/research");
+  await payRest(client, aliasRequired, "/v1/research_mentions");
 }
 
 main().catch((err: unknown) => {

@@ -8,6 +8,7 @@ import { overlayBilling, runResearch } from "./research/engine";
 import { projectResearch } from "./research/project";
 import { nextQueries } from "./next-queries";
 import {
+  bazaarSurfaceForPath,
   buildPaymentRequired,
   encodeHeader,
   extractPayer,
@@ -17,6 +18,7 @@ import {
   paymentsReady,
   settlePayment,
   verifyPayment,
+  type BazaarSurface,
   type Billing,
 } from "./x402";
 import { AgentError } from "../schemas/errors";
@@ -33,7 +35,9 @@ export async function runResearchPipeline(
   requestId: string,
 ): Promise<Response> {
   const started = Date.now();
-  const origin = new URL(request.url).origin;
+  const requestUrl = new URL(request.url);
+  const origin = requestUrl.origin;
+  const surface = bazaarSurfaceForPath(requestUrl.pathname);
   const sandbox = sandboxOk(env, request.headers.get("X-Sandbox-Key"));
   const paymentHeader = request.headers.get("PAYMENT-SIGNATURE") ?? request.headers.get("X-PAYMENT");
   const trialWallet = request.headers.get("X-Wallet") ?? undefined;
@@ -100,7 +104,7 @@ export async function runResearchPipeline(
           request_id: requestId,
         });
       }
-      const doc = buildPaymentRequired(env, origin);
+      const doc = buildPaymentRequired(env, origin, "PAYMENT-SIGNATURE header is required", surface);
       throw new AgentError("PAYMENT_REQUIRED", "Payment required for research.", {
         request_id: requestId,
         hint: paymentHint(env, origin),
@@ -118,7 +122,7 @@ export async function runResearchPipeline(
   const { body: research, freshness } = await runResearch(env, req, requestId, executionCtx);
 
   if (paymentPayload) {
-    const settled = await settlePayment(env, origin, paymentPayload, requestId);
+    const settled = await settlePayment(env, origin, paymentPayload, requestId, surface);
     billing = { ...billing, tx_hash: settled.txHash };
   }
 
@@ -218,8 +222,13 @@ export async function executeUnpaidOrPreVerified(
   return persistResearch(env, executionCtx, req, requestId, started, research, freshness, billing, idempKey, bodyHash, project);
 }
 
-export function paymentRequiredHttp(env: Env, origin: string, err: AgentError): Response {
-  const doc = buildPaymentRequired(env, origin, err.message);
+export function paymentRequiredHttp(
+  env: Env,
+  origin: string,
+  err: AgentError,
+  surface: BazaarSurface = "http",
+): Response {
+  const doc = buildPaymentRequired(env, origin, err.message, surface);
   return json(
     { ...err.body(), payment: doc },
     402,

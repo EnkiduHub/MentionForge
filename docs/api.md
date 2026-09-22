@@ -6,6 +6,8 @@ Base URL is the Worker origin. Prefer **POST** `/v1/research` so payment headers
 
 `POST /v1/research`
 
+`POST /v1/research_mentions` is the same body, price, and trial. Its x402 `resource.url` is that path so CDP discovery can match the tool name `research_mentions`. Clients that already call `/v1/research` keep doing that.
+
 ```json
 {
   "query": "Cloudflare Workers",

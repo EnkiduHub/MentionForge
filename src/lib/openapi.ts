@@ -100,6 +100,19 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
           ],
         },
       },
+      "/v1/research_mentions": {
+        post: {
+          tags: ["research"],
+          operationId: "researchMentionsAlias",
+          summary: "Same paid research as POST /v1/research. Resource URL is this path so Bazaar search can match research_mentions.",
+          security: [{ x402: [] }, { sandbox: [] }, { wallet: [] }],
+        },
+        get: {
+          tags: ["research"],
+          operationId: "researchMentionsAliasGet",
+          summary: "Same as GET /v1/research. Unpaid calls return 402 with this path as resource.url.",
+        },
+      },
       "/v1/research/example": { get: { tags: ["discovery"], summary: `Free snapshot for query ${SAMPLE_QUERY}` } },
       "/v1/compare": {
         post: {

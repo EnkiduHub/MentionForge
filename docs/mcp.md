@@ -34,7 +34,7 @@ Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_
 
 ### Paid lenses
 
-`compare_brands`, `get_digest`, `detect_risk`, `draft_reply`, `list_mentions`, `get_trends` — same $0.02 USDC and trial as `research_mentions`. MCP `resource.url` stays `${origin}/mcp`. REST 402 `resource.url` stays `/v1/research`. Bazaar `{ info, schema }` on `research_mentions` (type `mcp`) and on REST POST `/v1/research` (type `http`). Specialized tools parse their own output Zod schema. `draft_reply` never posts and never fetches mention URLs. Do not re-run `PAY_ONCE` for specialty tools.
+`compare_brands`, `get_digest`, `detect_risk`, `draft_reply`, `list_mentions`, `get_trends` — same $0.02 USDC and trial as `research_mentions`. MCP `resource.url` stays `${origin}/mcp`. REST 402 `resource.url` for `/v1/research` stays that path. POST `/v1/research_mentions` is the same research body with its own `resource.url` so CDP's URL-substring fallback can match the tool name. Bazaar `{ info, schema }` on `research_mentions` (type `mcp`) and on both REST research paths (type `http`). Specialized tools parse their own output Zod schema. `draft_reply` never posts and never fetches mention URLs. Do not re-run `PAY_ONCE` for specialty tools.
 
 ## Resources
 

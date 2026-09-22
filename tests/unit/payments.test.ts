@@ -53,12 +53,19 @@ describe("recipient wallet + EIP-712 extras", () => {
     expect(doc.resource.url).not.toMatch(/^mcp:/);
     expect(doc.resource.serviceName).toBe("MentionForge");
     expect(doc.resource.tags).toContain("social listening");
+    expect(doc.resource.tags).toContain("brand sentiment");
+    expect(doc.resource.tags).toContain("research_mentions");
     expect(doc.resource.description).toBe(BAZAAR_RESOURCE_DESC);
     expect(doc.resource.description.length).toBeLessThanOrEqual(480);
     expect(doc.resource.description).toMatch(/brand sentiment/);
+    expect(doc.resource.description).toMatch(/social listening/);
+    expect(doc.resource.description).toMatch(/research_mentions/);
+    expect(doc.resource.description).toMatch(/MentionForge/);
+    expect(doc.resource.description).toMatch(/web_search/);
     expect(doc.resource.description).toMatch(/\$0\.02 USDC/);
     expect(doc.resource.description).not.toMatch(/0x[a-fA-F0-9]{40}/);
-    expect(doc.resource.description).toMatch(/optional operator upgrades/);
+    expect(doc.resource.description).toMatch(/not a native Reddit or X feed/);
+    expect(doc.resource.description).not.toMatch(/native Reddit\/X APIs are the default/);
     const input = (doc.extensions as { bazaar?: { info?: { input?: { type?: string; method?: string; bodyType?: string } } } } | undefined)
       ?.bazaar?.info?.input;
     expect(input?.type).toBe("http");
@@ -73,6 +80,24 @@ describe("recipient wallet + EIP-712 extras", () => {
     }
     expect(BAZAAR_TOOL_DESC).toMatch(/MentionForge/);
     expect(BAZAAR_TOOL_DESC).toMatch(/social listening/);
+    expect(BAZAAR_TOOL_DESC).toMatch(/brand sentiment/);
+    expect(BAZAAR_TOOL_DESC).toMatch(/research_mentions/);
+    expect(BAZAAR_TOOL_DESC).toMatch(/web_search/);
+    expect(BAZAAR_TOOL_DESC).toMatch(/\$0\.02 USDC/);
+    expect(BAZAAR_TOOL_DESC.length).toBeLessThanOrEqual(480);
+    expect(BAZAAR_TOOL_DESC).toMatch(/not a native Reddit or X feed/);
+  });
+
+  it("research_mentions alias keeps the HTTP bazaar type and a distinct resource URL", () => {
+    const doc = buildPaymentRequired(mockEnv(), "https://mentionforge.test", "Payment required for research.", "research_mentions");
+    expect(doc.resource.url).toBe("https://mentionforge.test/v1/research_mentions");
+    expect(doc.resource.url).toContain("research_mentions");
+    expect(doc.resource.description).toBe(BAZAAR_RESOURCE_DESC);
+    expect(doc.accepts[0]?.amount).toBe(buildPaymentRequired(mockEnv(), "https://mentionforge.test").accepts[0]?.amount);
+    const input = (doc.extensions as { bazaar?: { info?: { input?: { type?: string; method?: string } } } } | undefined)
+      ?.bazaar?.info?.input;
+    expect(input?.type).toBe("http");
+    expect(input?.method).toBe("POST");
   });
 
   it("attachBazaarCatalog fills missing resource and bazaar without copying signatures into logs", () => {
