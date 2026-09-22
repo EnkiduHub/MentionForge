@@ -58,7 +58,7 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 - `GET /v1/suggest` — free tool router
 - `GET /v1/pricing` — price, trial, network
 - `GET /health` — liveness (`?deep=1` needs operator bearer)
-- `GET /stats` — public call count
+- `GET /stats` — successful completions `{ calls, paid, trial }` (`calls` = paid + trial; no revenue)
 
 ### MCP
 

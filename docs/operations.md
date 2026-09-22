@@ -31,6 +31,8 @@ Put the real `database_id` in `wrangler.jsonc` (top-level, `env.staging`, `env.p
 
 `GET /operator` with `Authorization: Bearer $OPERATOR_TOKEN` reads D1 `stats_daily` (calls, paid, USDC micros, trial, errors) and draws a 30-day sparkline from `days` reversed into chronological order. Analytics Engine is not queried from the Worker.
 
+`calls` is the raw counter. Rows written before the public-volume fix can be larger than `paid + trial` because validation, rate limits, and other non-completions incremented `calls`. New writes increment `calls` only on a successful paid or trial `persistResearch`. `errors` increments for `INTERNAL_ERROR`, `SOURCE_UNAVAILABLE`, and uncaught exceptions — not for client rejections. Public `GET /stats` ignores the raw counter and returns `{ calls, paid, trial }` with `calls = paid + trial`. It does not include `usdc_micros`.
+
 ## Health
 
 - `HEAD /health` for uptime probes

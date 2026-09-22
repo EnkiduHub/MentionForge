@@ -3,7 +3,7 @@ import { Hono } from "hono";
 import { SAMPLE_QUERY, SERVICE_NAME, SERVICE_VERSION } from "../lib/constants";
 import { paymentsReady, paymentConfig, buildPaymentRequired, bazaarExtension, bazaarHttpExtension, networkPublicName, facilitatorUsable, probeFacilitator, discoveryResource } from "../lib/x402";
 import { openApiDocument } from "../lib/openapi";
-import { publicCallCount } from "../lib/analytics";
+import { publicUsage } from "../lib/analytics";
 import { VALUE_PROP } from "../brand/tokens";
 import { pricingPayload } from "./pricing";
 import { operatorOk } from "../lib/trial";
@@ -78,10 +78,10 @@ discoveryRoutes.on("HEAD", "/health", (c) => {
 });
 
 discoveryRoutes.get("/stats", async (c) => {
-  const calls = await publicCallCount(c.env);
-  return sendPublic(c, { calls }, 200, { "Cache-Control": "public, max-age=15" }, {
+  const usage = await publicUsage(c.env);
+  return sendPublic(c, usage, 200, { "Cache-Control": "public, max-age=15" }, {
     title: "Public volume",
-    hint: "Paid plus trial research calls counted in D1 for this deployment.",
+    hint: "Successful research completions only. calls equals paid plus trial. Validation, rate limits, and other non-completions are excluded. Revenue is not published here.",
   });
 });
 

@@ -27,7 +27,9 @@ describe("HTTP surfaces", () => {
     expect(ex.status).toBe(200);
     expect(pr.status).toBe(200);
     expect(st.status).toBe(200);
-    expect((await st.json() as { calls: number }).calls).toBeTypeOf("number");
+    const volume = (await st.json()) as { calls: number; paid: number; trial: number; usdc_micros?: number };
+    expect(volume).toEqual({ calls: 0, paid: 0, trial: 0 });
+    expect(volume.usdc_micros).toBeUndefined();
     const example = (await ex.json()) as { query: string; citations: Array<{ url: string }> };
     expect(example.query).toBe("Cloudflare Workers");
     expect(JSON.stringify(example)).not.toMatch(/ForgeCo/);

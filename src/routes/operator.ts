@@ -65,7 +65,7 @@ operatorRoutes.get("/operator", async (c) => {
     <header class="hero hero-compact">
       <div>
         <h1 id="main">Operator ledger</h1>
-        <p class="lede">D1 totals for this deployment. Analytics Engine is write-only and is not queried here.</p>
+        <p class="lede">D1 totals for this deployment. Analytics Engine is write-only and is not queried here. Calls is the raw counter and can include historical non-completion noise. Paid, trial, USDC, and errors are the product ledger. Public GET /stats is successful completions only (calls = paid + trial) and omits revenue.</p>
       </div>
       <div class="mark-wrap">
         <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>

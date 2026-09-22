@@ -183,6 +183,8 @@
     if (data.volume && data.volume.total != null) chips.push(`${data.volume.total} mentions`);
     if (data.info && typeof data.info.title === "string") chips.push(data.info.title);
     if (typeof data.calls === "number") chips.push(`${data.calls} calls`);
+    if (typeof data.paid === "number") chips.push(`${data.paid} paid`);
+    if (typeof data.trial === "number") chips.push(`${data.trial} trial`);
     if (data.source_backends && typeof data.source_backends === "object") {
       for (const [name, mode] of Object.entries(data.source_backends)) {
         chips.push(`${name}: ${String(mode)}`);

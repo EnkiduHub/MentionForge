@@ -1,13 +1,24 @@
 import type { ResearchRequest } from "../../src/schemas/research";
 
+const pendingByCtx = new WeakMap<ExecutionContext, Promise<unknown>[]>();
+
 export function executionCtx(): ExecutionContext {
-  return {
+  const pending: Promise<unknown>[] = [];
+  const ctx = {
     waitUntil(promise: Promise<unknown>) {
-      void promise;
+      pending.push(Promise.resolve(promise));
     },
     passThroughOnException() {},
     props: {},
   } as ExecutionContext;
+  pendingByCtx.set(ctx, pending);
+  return ctx;
+}
+
+/** Await `waitUntil` work (stats writes) started on this test context. */
+export async function flushExecution(ctx: ExecutionContext): Promise<void> {
+  const pending = pendingByCtx.get(ctx) ?? [];
+  await Promise.all(pending);
 }
 
 type TrialRow = { used: number; updated_at: string };
@@ -65,11 +76,12 @@ export function memoryD1() {
           if (sql.includes("INSERT INTO stats_daily")) {
             const day = String(binds[0]);
             const cur = stats.get(day) ?? { day, calls: 0, paid: 0, usdc_micros: 0, errors: 0, trial: 0 };
-            cur.calls += 1;
-            cur.paid += Number(binds[1]);
-            cur.usdc_micros += Number(binds[2]);
-            cur.errors += Number(binds[3]);
-            cur.trial += Number(binds[4]);
+            // Bind order matches writeStats: day, calls, paid, usdc_micros, errors, trial.
+            cur.calls += Number(binds[1]);
+            cur.paid += Number(binds[2]);
+            cur.usdc_micros += Number(binds[3]);
+            cur.errors += Number(binds[4]);
+            cur.trial += Number(binds[5]);
             stats.set(day, cur);
             return { meta: { changes: 1 } };
           }
@@ -83,6 +95,15 @@ export function memoryD1() {
           if (sql.includes("FROM idempotency")) {
             const row = idem.get(String(binds[0]));
             return (row as T) ?? null;
+          }
+          if (sql.includes("SUM(paid)") && sql.includes("SUM(trial)")) {
+            let paid = 0;
+            let trial = 0;
+            for (const r of stats.values()) {
+              paid += r.paid;
+              trial += r.trial;
+            }
+            return { paid, trial } as T;
           }
           if (sql.includes("SUM(calls)")) {
             let n = 0;
@@ -104,6 +125,11 @@ export function memoryD1() {
       return stmt;
     },
   };
+}
+
+export function seedStats(env: Env, row: StatsRow): void {
+  const db = env.DB as unknown as { stats: Map<string, StatsRow> };
+  db.stats.set(row.day, { ...row });
 }
 
 export function mockEnv(over: Partial<Env> = {}): Env {
