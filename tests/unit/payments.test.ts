@@ -61,7 +61,7 @@ describe("recipient wallet + EIP-712 extras", () => {
     expect(doc.resource.description).toMatch(/brand sentiment/);
     expect(doc.resource.description).toMatch(/social listening/);
     expect(doc.resource.description).toMatch(/research_mentions/);
-    expect(doc.resource.description).toMatch(/MentionForge/);
+    expect(doc.resource.description).toMatch(/Brand monitoring/);
     expect(doc.resource.description).toMatch(/web_search/);
     expect(doc.resource.description).toMatch(/\$0\.02 USDC/);
     expect(doc.resource.description).not.toMatch(/0x[a-fA-F0-9]{40}/);
