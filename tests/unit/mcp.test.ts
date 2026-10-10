@@ -630,7 +630,7 @@ describe("MCP origin + factory", () => {
     expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/v1/research")).toBe(true);
     expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/v1/research_mentions")).toBe(true);
     expect(doc.resources?.some((r) => r.url === "https://mentionforge.test/mcp")).toBe(true);
-    expect(doc.resources?.every((r) => String(r.description).includes("brand monitoring"))).toBe(true);
+    expect(doc.resources?.every((r) => String(r.description).includes("Brand monitoring"))).toBe(true);
     expect(doc.resources?.every((r) => String(r.description).includes("brand sentiment"))).toBe(true);
     expect(doc.resources?.every((r) => String(r.description).includes("research_mentions"))).toBe(true);
   });
