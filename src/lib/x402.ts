@@ -611,6 +611,75 @@ const BAZAAR_OUTPUT_EXAMPLE = {
   ],
 } as const;
 
+/** JSON Schema for bazaar.info.output.example. Spread onto example; do not require fields absent from BAZAAR_OUTPUT_EXAMPLE. */
+const BAZAAR_OUTPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    query: { type: "string" },
+    timeframe: { type: "string" },
+    volume: {
+      type: "object",
+      properties: {
+        total: { type: "integer" },
+        by_platform: {
+          type: "object",
+          properties: {
+            x: { type: "integer" },
+            reddit: { type: "integer" },
+            web: { type: "integer" },
+            reviews: { type: "integer" },
+            news: { type: "integer" },
+          },
+        },
+      },
+    },
+    sentiment: {
+      type: "object",
+      properties: {
+        overall: { type: "number" },
+        positive: { type: "number" },
+        neutral: { type: "number" },
+        negative: { type: "number" },
+      },
+    },
+    themes: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          theme: { type: "string" },
+          count: { type: "integer" },
+          examples: { type: "array", items: { type: "string" } },
+        },
+      },
+    },
+    mentions: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          platform: { type: "string" },
+          url: { type: "string" },
+          text: { type: "string" },
+        },
+      },
+    },
+    citations: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          url: { type: "string" },
+          title: { type: "string" },
+          source: { type: "string" },
+          accessed_at: { type: "string" },
+        },
+      },
+    },
+    summary: { type: "string" },
+  },
+} as const;
+
 /** Aligned with live research_mentions / POST /v1/research (Zod strip schema). */
 const BAZAAR_INPUT_SCHEMA = {
   type: "object",
@@ -654,7 +723,7 @@ export const bazaarExtension: Record<string, unknown> = (() => {
       transport: "streamable-http",
       inputSchema: BAZAAR_INPUT_SCHEMA,
       example: BAZAAR_EXAMPLE,
-      output: { example: BAZAAR_OUTPUT_EXAMPLE },
+      output: { example: BAZAAR_OUTPUT_EXAMPLE, schema: BAZAAR_OUTPUT_SCHEMA },
     }) as Record<string, unknown>;
   } catch {
     return {};
@@ -669,7 +738,7 @@ export const bazaarHttpExtension: Record<string, unknown> = (() => {
         bodyType: "json",
         input: BAZAAR_EXAMPLE,
         inputSchema: BAZAAR_INPUT_SCHEMA,
-        output: { example: BAZAAR_OUTPUT_EXAMPLE },
+        output: { example: BAZAAR_OUTPUT_EXAMPLE, schema: BAZAAR_OUTPUT_SCHEMA },
       }) as Record<string, unknown>,
       "POST",
     );
