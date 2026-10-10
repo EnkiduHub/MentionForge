@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { isPlaceholderWallet, isWallet, normalizePayTo, SERVICE_NAME } from "../../src/lib/constants";
-import { attachBazaarCatalog, bazaarCatalogLog, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TAGS, BAZAAR_TOOL_DESC, buildPaymentRequired, discoveryResource, paymentConfig, paymentsReady, probeFacilitator } from "../../src/lib/x402";
+import { validateDiscoveryExtension } from "@x402/extensions";
+import { attachBazaarCatalog, bazaarCatalogLog, bazaarExtension, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TAGS, BAZAAR_TOOL_DESC, buildPaymentRequired, discoveryResource, paymentConfig, paymentsReady, probeFacilitator } from "../../src/lib/x402";
 import { generateCdpJwt } from "../../src/lib/cdp-jwt";
 import { jsonResponse, mockEnv, setGlobalFetch } from "../helpers/env";
 
@@ -160,6 +161,21 @@ describe("recipient wallet + EIP-712 extras", () => {
     expect(payload.iss).toBe("cdp");
     expect(payload.uris).toEqual(["GET api.cdp.coinbase.com/platform/v2/x402/supported"]);
     expect(payload.uri).toBe("GET api.cdp.coinbase.com/platform/v2/x402/supported");
+  });
+
+  it("bazaar discovery extensions validate with an output schema that describes mentions", () => {
+    const http = bazaarHttpExtension.bazaar as Parameters<typeof validateDiscoveryExtension>[0];
+    const mcp = bazaarExtension.bazaar as Parameters<typeof validateDiscoveryExtension>[0];
+    expect(validateDiscoveryExtension(http).valid).toBe(true);
+    expect(validateDiscoveryExtension(mcp).valid).toBe(true);
+    const mentionsSchema = (
+      http as {
+        schema?: {
+          properties?: { output?: { properties?: { example?: { properties?: { mentions?: unknown } } } } };
+        };
+      }
+    ).schema?.properties?.output?.properties?.example?.properties?.mentions;
+    expect(mentionsSchema).toBeTruthy();
   });
 
   it("probeFacilitator is false when kinds omit the env network", async () => {
