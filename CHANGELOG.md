@@ -10,6 +10,7 @@
 
 ## Unreleased
 
+- CDP Bazaar discovery copy: `resource.description` leads with brand monitoring and brand sentiment analysis; tag `MCP` replaced with `brand monitoring`. Descriptions stay ≤480 characters and do not claim a native Reddit or X feed.
 - Public `GET /stats` is successful product usage only: `{ calls, paid, trial }` with `calls` = paid + trial. Validation, rate limits, and other non-completions no longer increment `calls`. Operator ledger still includes raw `calls`, paid, trial, USDC, and errors. No D1 migration; redeploy the Worker after merge
 - CDP Bazaar keyword discovery: `resource.description` leads with brand sentiment and social listening, tags include `research_mentions`, and POST `/v1/research_mentions` is the same $0.02 research call whose resource URL contains that tool name. POST `/v1/research` stays the existing HTTP catalog row. Descriptions stay ≤480 characters and do not claim a native Reddit or X feed.
 - CDP Bazaar discovery: REST POST `/v1/research` advertises type `http` bazaar metadata; MCP `research_mentions` stays type `mcp` / `streamable-http`. Settle re-attaches absolute `https://` `paymentPayload.resource` + bazaar extensions (verify still strips extensions). Unpaid GET/empty POST `/v1/research` return 402 before body validation so CDP probes can index. Search keywords stay honest (no native Reddit/X as default).
