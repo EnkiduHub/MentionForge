@@ -1,12 +1,14 @@
-import { GDELT_THROTTLE_S } from "../../constants";
+import { GDELT_THROTTLE_S, SOURCE_TIMEOUT_MS } from "../../constants";
 import { matchFlag, putFlag } from "../../cache";
 import { cleanSnippet } from "../../html";
+import { assertAllowedUrl, cancelBody } from "../../allowlist";
+import { abortMs } from "../../fetch-pool";
 import type { QueryPlan } from "../query-plan";
 import { gdeltTimespan } from "../query-plan";
 import type { ResearchRequest } from "../../../schemas/research";
 import type { SourceMention, SourceResult, TimeWindow } from "../types";
 import type { SourceCtx } from "../http";
-import { cite, getJson, getText } from "../http";
+import { cite, getJson } from "../http";
 import { isSubsourceDisabled } from "../../disabled-sources";
 
 type GdeltDoc = {
@@ -32,6 +34,29 @@ type HnHit = {
   }>;
 };
 
+export type GoogleNewsItem = {
+  title: string;
+  link: string;
+  description: string;
+  pubDate: string;
+};
+
+/** Browser-like UA. The product UA is often sent to Google's consent interstitial from Workers IPs. */
+const GNEWS_BROWSER_UA =
+  "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const GNEWS_ACCEPT = "application/rss+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.1";
+const GNEWS_CONSENT_COOKIE = "CONSENT=YES+cb.20210328-17-p0.en+FX+667";
+const GNEWS_MAX_HOPS = 3;
+
+export function googleNewsRssUrl(query: string, language?: string): string {
+  const q = encodeURIComponent(query);
+  if (language && /^[a-z]{2}$/.test(language) && language !== "en") {
+    const gl = language.toUpperCase();
+    return `https://news.google.com/rss/search?q=${q}&hl=${language}&gl=${gl}&ceid=${gl}:${language}`;
+  }
+  return `https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`;
+}
+
 export async function fetchNews(
   ctx: SourceCtx,
   plan: QueryPlan,
@@ -43,32 +68,22 @@ export async function fetchNews(
   let degraded = false;
 
   if (!isSubsourceDisabled(ctx.env, "gnews")) {
-    const rssQ = encodeURIComponent(plan.news);
-    const lang = req.language && /^[a-z]{2}$/.test(req.language) ? req.language : "en";
-    const gl = lang === "en" ? "US" : lang.toUpperCase();
-    const rss = await getText(ctx, `https://news.google.com/rss/search?q=${rssQ}&hl=${lang}&gl=${gl}&ceid=${gl}:${lang}`);
+    const rss = await fetchGoogleNewsRss(ctx, googleNewsRssUrl(plan.news, req.language));
     if (rss) {
-      const items = [...rss.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 25);
-      for (const item of items) {
-        const block = item[1] ?? "";
-        const title = cleanSnippet(decodeXml(tag(block, "title")));
-        const link = decodeXml(tag(block, "link"));
-        const desc = cleanSnippet(decodeXml(tag(block, "description")));
-        const pub = tag(block, "pubDate");
-        const ts = pub ? new Date(pub) : new Date();
+      for (const item of parseGoogleNewsRss(rss)) {
+        const ts = item.pubDate ? new Date(item.pubDate) : new Date();
         if (ts < win.from || ts > win.to) continue;
-        if (!link) continue;
-        const snippet = [...new Set([title, desc].filter(Boolean))].join(" — ") || link;
+        const snippet = [...new Set([item.title, item.description].filter(Boolean))].join(" — ") || item.link;
         mentions.push({
           platform: "news",
-          url: link,
+          url: item.link,
           author: "news",
           timestamp: ts.toISOString(),
           text: snippet,
           engagement: 1,
-          title,
+          title: item.title,
         });
-        citations.push(cite(link, title || link, "google-news"));
+        citations.push(cite(item.link, item.title || item.link, "google-news"));
       }
     } else {
       degraded = true;
@@ -132,13 +147,224 @@ export async function fetchNews(
   return { source: "news", mentions, citations, degraded };
 }
 
+export function parseGoogleNewsRss(xml: string): GoogleNewsItem[] {
+  const items: GoogleNewsItem[] = [];
+  for (const item of xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)) {
+    const block = item[0] ?? "";
+    const title = cleanSnippet(decodeXml(tag(block, "title")));
+    let link = decodeXml(tag(block, "link")).trim();
+    if (!link) {
+      const guid = decodeXml(tag(block, "guid")).trim();
+      if (/^https?:\/\//i.test(guid)) link = guid;
+    }
+    if (!link) {
+      const href = /<link\b[^>]*\bhref=["']([^"']+)["']/i.exec(block)?.[1];
+      if (href) link = decodeXml(href).trim();
+    }
+    const description = cleanSnippet(decodeXml(tag(block, "description")));
+    const pubDate = tag(block, "pubDate");
+    if (!link) continue;
+    items.push({ title, link, description, pubDate });
+    if (items.length >= 25) break;
+  }
+  return items;
+}
+
+export async function fetchGoogleNewsRss(ctx: SourceCtx, url: string): Promise<string | null> {
+  assertAllowedUrl(url);
+  const start = url;
+  try {
+    return await ctx.pool.run(() => fetchGoogleNewsRssOnce(start, false));
+  } catch (err) {
+    logGnewsFailure({
+      reason: "network",
+      host: hostOf(start),
+      snippet: err instanceof Error ? err.name : "error",
+    });
+    return null;
+  }
+}
+
+async function fetchGoogleNewsRssOnce(startUrl: string, withConsentCookie: boolean): Promise<string | null> {
+  const headers = gnewsHeaders(withConsentCookie);
+  let current = startUrl;
+  for (let hop = 0; hop <= GNEWS_MAX_HOPS; hop++) {
+    const res = await fetch(current, {
+      method: "GET",
+      redirect: "follow",
+      signal: abortMs(SOURCE_TIMEOUT_MS),
+      headers,
+    });
+    const host = responseHost(res, current);
+    const contentType = res.headers.get("content-type");
+
+    if (isConsentHost(host) || locationIsConsent(res)) {
+      cancelBody(res);
+      if (!withConsentCookie) return fetchGoogleNewsRssOnce(startUrl, true);
+      logGnewsFailure({ reason: "consent", status: res.status, host, contentType, snippet: "" });
+      return null;
+    }
+
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get("location");
+      cancelBody(res);
+      if (!loc) {
+        logGnewsFailure({ reason: "http", status: res.status, host, contentType, snippet: "" });
+        return null;
+      }
+      let next: URL;
+      try {
+        next = new URL(loc, current);
+      } catch {
+        logGnewsFailure({ reason: "http", status: res.status, host, contentType, snippet: loc.slice(0, 120) });
+        return null;
+      }
+      if (isConsentHost(next.hostname)) {
+        if (!withConsentCookie) return fetchGoogleNewsRssOnce(startUrl, true);
+        logGnewsFailure({ reason: "consent", status: res.status, host: next.hostname, contentType, snippet: "" });
+        return null;
+      }
+      if (next.protocol !== "https:" || next.hostname !== "news.google.com") {
+        logGnewsFailure({
+          reason: "http",
+          status: res.status,
+          host: next.hostname,
+          contentType,
+          snippet: "",
+        });
+        return null;
+      }
+      current = next.href;
+      continue;
+    }
+
+    const body = await res.text();
+    if (
+      !withConsentCookie &&
+      (isConsentResponse(res, current, body) || (res.ok && !looksLikeRss(body) && isGoogleHtml(contentType, body)))
+    ) {
+      return fetchGoogleNewsRssOnce(startUrl, true);
+    }
+    if (!res.ok) {
+      logGnewsFailure({ reason: "http", status: res.status, host, contentType, snippet: body });
+      return null;
+    }
+    if (host && host !== "news.google.com") {
+      logGnewsFailure({ reason: "http", status: res.status, host, contentType, snippet: body });
+      return null;
+    }
+    if (!looksLikeRss(body)) {
+      logGnewsFailure({ reason: "parse", status: res.status, host, contentType, snippet: body });
+      return null;
+    }
+    return body;
+  }
+  logGnewsFailure({ reason: "http", status: 310, host: hostOf(startUrl), snippet: "too many redirects" });
+  return null;
+}
+
+function gnewsHeaders(withConsentCookie: boolean): Record<string, string> {
+  const headers: Record<string, string> = {
+    "user-agent": GNEWS_BROWSER_UA,
+    accept: GNEWS_ACCEPT,
+    "accept-language": "en-US,en;q=0.9",
+  };
+  if (withConsentCookie) headers.cookie = GNEWS_CONSENT_COOKIE;
+  return headers;
+}
+
+function looksLikeRss(body: string): boolean {
+  return /<(?:rss|rdf:RDF|feed)\b/i.test(body.slice(0, 4096));
+}
+
+function isConsentHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === "consent.google.com" || h.endsWith(".consent.google.com");
+}
+
+function locationIsConsent(res: Response): boolean {
+  return /consent\.google\.com/i.test(res.headers.get("location") ?? "");
+}
+
+function isConsentResponse(res: Response, requestUrl: string, body: string): boolean {
+  if (isConsentHost(responseHost(res, requestUrl)) || locationIsConsent(res)) return true;
+  const head = body.slice(0, 2500).toLowerCase();
+  return head.includes("consent.google.com") || head.includes("before you continue to google") || /sorry\/index/.test(head);
+}
+
+function isGoogleHtml(contentType: string | null, body: string): boolean {
+  const ct = (contentType ?? "").toLowerCase();
+  if (ct.includes("xml") || ct.includes("rss") || ct.includes("atom")) return false;
+  if (looksLikeRss(body)) return false;
+  return ct.includes("text/html") || /<!doctype html|<html[\s>]/i.test(body.slice(0, 1024));
+}
+
+function responseHost(res: Response, fallbackUrl: string): string {
+  try {
+    if (res.url) return new URL(res.url).hostname;
+  } catch {
+    /* ignore */
+  }
+  try {
+    const loc = res.headers.get("location");
+    if (loc) return new URL(loc, fallbackUrl).hostname;
+  } catch {
+    /* ignore */
+  }
+  return hostOf(fallbackUrl);
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return "";
+  }
+}
+
+function logGnewsFailure(fields: {
+  reason: string;
+  status?: number;
+  host?: string;
+  contentType?: string | null;
+  snippet?: string;
+}): void {
+  console.warn(
+    JSON.stringify({
+      msg: "gnews_fetch_failed",
+      reason: fields.reason,
+      status: fields.status ?? null,
+      host: fields.host ?? "",
+      content_type: fields.contentType ?? "",
+      snippet: (fields.snippet ?? "").replace(/\s+/g, " ").slice(0, 120),
+    }),
+  );
+}
+
 function tag(block: string, name: string): string {
-  const m = new RegExp(`<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${name}>|<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i").exec(block);
+  const m = new RegExp(
+    `<${name}(?:\\s[^>]*)?>\\s*(?:<!\\[CDATA\\[([\\s\\S]*?)\\]\\]>|([\\s\\S]*?))\\s*</${name}>`,
+    "i",
+  ).exec(block);
   return (m?.[1] ?? m?.[2] ?? "").trim();
 }
 
 function decodeXml(s: string): string {
-  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+  return s
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex: string) => {
+      const n = Number.parseInt(hex, 16);
+      return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : "";
+    })
+    .replace(/&#(\d+);/g, (_, num: string) => {
+      const n = Number(num);
+      return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : "";
+    });
 }
 
 function parseGdeltDate(s?: string): Date | null {

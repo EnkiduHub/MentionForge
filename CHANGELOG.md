@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Google News RSS fetch follows redirects (`redirect: "follow"`), uses `hl=en-US&gl=US&ceid=US:en` with a browser User-Agent and `Accept: application/rss+xml`, and retries the original URL with a `CONSENT` cookie when Google sends `consent.google.com`. XML parsing accepts CDATA and entities. Non-200 / parse failures log status, final host, content-type, and a 120-char snippet (no secrets).
 - Restore Google News RSS (default on), Hacker News Algolia, and richer news output: HN / GDELT / Google News rows include title plus a short snippet; citation labels are headlines again. `DISABLED_SOURCES` is `x,reddit` in all wrangler blocks (X and Reddit stay off until native API keys exist). `news.google.com` and `hn.algolia.com` are back on the outbound allowlist. `purge:forbidden` no longer treats Google News or HN hosts as hits. Brave web results and Trustpilot review targeting stay on.
 - CDP Bazaar discovery copy: `resource.description` leads with brand monitoring and brand sentiment analysis; tag `MCP` replaced with `brand monitoring`. Descriptions stay ≤480 characters and do not claim a native Reddit or X feed.
 - Public `GET /stats` is successful product usage only: `{ calls, paid, trial }` with `calls` = paid + trial. Validation, rate limits, and other non-completions no longer increment `calls`. Operator ledger still includes raw `calls`, paid, trial, USDC, and errors. No D1 migration; redeploy the Worker after merge
