@@ -7,7 +7,7 @@ import { RESEARCH_ALLOW, assertAllowlist, walkObjectKeys } from "../../src/lib/c
 import { THEME_VOCAB, isThemeVocab } from "../../src/lib/theme-vocab";
 import { intentSchema, aspectSchema, parseResearchInput, researchResponseSchema } from "../../src/schemas/research";
 import { EXAMPLE_RESPONSE } from "../../src/lib/example";
-import { matchResearch, putResearch, readCachedResearchBody } from "../../src/lib/cache";
+import { cacheRequest, matchResearch, putResearch, readCachedResearchBody } from "../../src/lib/cache";
 import { BAZAAR_RESOURCE_DESC, BAZAAR_TOOL_DESC } from "../../src/lib/x402";
 import { openApiDocument } from "../../src/lib/openapi";
 import { assertStripeKeyMode } from "../../src/lib/stripe-keys";
@@ -25,7 +25,7 @@ function sentinelFetch(opts: { braveHits?: boolean; xIds?: string[] } = {}) {
     if (url.includes("api.x.com")) {
       const ids = opts.xIds ?? ["1001", "1002"];
       return jsonResponse({
-        data: ids.map((id) => ({ id, text: "SNTL_TEXT_x", created_at: now })),
+        data: ids.map((id) => ({ id, text: `ForgeCo post ${id} SNTL_TEXT_x`, created_at: now })),
       });
     }
     if (url.includes("reddit.com") || url.includes("oauth.reddit.com")) {
@@ -275,8 +275,21 @@ describe("MF compliant output", () => {
     expect(first.body.x_post_ids).toEqual(["1", "2"]);
     const key = await researchCacheKey(env, req);
     const cached = await readCachedResearchBody(key);
-    expect(() => assertAllowlist(cached, RESEARCH_ALLOW)).not.toThrow();
-    await putResearch(key, { ...first.body, x_post_ids: ["1", "2", "99"], mentions: [...first.body.mentions, { id: "99", url: "https://x.com/i/web/status/99", created_bucket: "2026-10-01T00:00:00.000Z" }] }, 0);
+    const { cached_at: _cachedAt, ...cachedBody } = (cached ?? {}) as Record<string, unknown>;
+    expect(() => assertAllowlist(cachedBody, RESEARCH_ALLOW)).not.toThrow();
+    const staleBody = {
+      ...first.body,
+      x_post_ids: ["1", "2", "99"],
+      mentions: [
+        ...first.body.mentions,
+        { id: "99", url: "https://x.com/i/web/status/99", created_bucket: "2026-10-01T00:00:00.000Z" },
+      ],
+      cached_at: "2020-01-01T00:00:00.000Z",
+    };
+    await caches.default.put(
+      cacheRequest(key),
+      new Response(JSON.stringify(staleBody), { headers: { "Cache-Control": "private, max-age=0" } }),
+    );
     sentinelFetch({ xIds: ["1"] });
     const ctx = executionCtx();
     const second = await runResearch(env, req, "b", ctx);
@@ -290,7 +303,7 @@ describe("MF compliant output", () => {
     const env = mockEnv({ DISABLED_SOURCES: "reddit,brave,reviews", X_BEARER_TOKEN: "t", X_ID_CAP: "5" });
     await incrementXIdUsage(env, 4);
     expect(await rollingXIdSum(env)).toBe(4);
-    sentinelFetch({ xIds: ["a", "b"] });
+    sentinelFetch({ xIds: ["11", "12"] });
     const { body } = await runResearch(
       env,
       parseResearchInput({ query: "ForgeCo", platforms: ["x"], include_summary: false }),
@@ -318,11 +331,13 @@ describe("MF compliant output", () => {
     expect((stripped as { x_post_ids: string[] }).x_post_ids).toEqual([]);
     expect((stripped as { meta: { degraded: string[] } }).meta.degraded).toEqual(expect.arrayContaining(["x_id_cap"]));
     expect(xIdCap(env)).toBe(5);
+    const rollEnv = mockEnv();
     const t0 = Date.parse("2026-01-01T00:00:00Z");
     setXIdUsageNow(t0);
-    await incrementXIdUsage(env, 10);
+    await incrementXIdUsage(rollEnv, 10);
+    expect(await rollingXIdSum(rollEnv)).toBe(10);
     setXIdUsageNow(t0 + 31 * 86400000);
-    expect(await rollingXIdSum(env)).toBe(0);
+    expect(await rollingXIdSum(rollEnv)).toBe(0);
   });
 
   it("A14 intent/aspect enums unchanged; bazaar copy bounds", () => {

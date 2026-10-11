@@ -133,7 +133,7 @@ describe("reddit Brave-only fallback", () => {
       }
       throw new Error(`unexpected fetch ${url}`);
     });
-    const env = mockEnv({ BRAVE_API_KEY: "brave" });
+    const env = mockEnv({ DISABLED_SOURCES: "", BRAVE_API_KEY: "brave" });
     const ctx = { env, pool: new FetchPool(), query: "ForgeCo" };
     const plan = planQuery(parseResearchInput({ query: "ForgeCo", platforms: ["reddit"] }));
     const r = await fetchReddit(ctx, plan, windowFor("7d"));

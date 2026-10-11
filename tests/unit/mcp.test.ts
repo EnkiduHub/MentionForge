@@ -580,7 +580,7 @@ describe("MCP origin + factory", () => {
   });
 
   it("does not settle when paid research fails with SOURCE_UNAVAILABLE", async () => {
-    const session = await mcpInitialize();
+    const session = await mcpInitialize(mockEnv({ DISABLED_SOURCES: "" }));
     const { accepts } = await unpaidResearch(session);
     const stub = stubSourcesFetch({ failSources: true });
     const paid = await paidResearch(session, stubPayment(accepts[0]), "both");

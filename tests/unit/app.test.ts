@@ -33,7 +33,7 @@ describe("HTTP surfaces", () => {
     const example = (await ex.json()) as { query: string; citations: Array<{ url: string }> };
     expect(example.query).toBe("Example Brand");
     expect(JSON.stringify(example)).not.toMatch(/ForgeCo/);
-    expect(example.citations.some((c) => /wikipedia\.org|cloudflare\.com/i.test(c.url))).toBe(true);
+    expect(example.citations.some((c) => /example\.(com|org)/i.test(c.url))).toBe(true);
   });
 
   it("HEAD /health is 200", async () => {
@@ -435,17 +435,18 @@ describe("HTTP surfaces", () => {
     expect(body.payments_ready).toBe(true);
     expect(body.sources).toEqual(["reddit", "news", "web", "reviews", "x"]);
     expect(body.source_backends).toEqual({
-      reddit: "public",
-      x: "web",
+      reddit: "disabled",
+      x: "disabled",
       web: "wiki",
       news: "public",
-      reviews: "web+reddit",
+      reviews: "disabled",
     });
 
     const keyed = await call(
       "/health",
       {},
       mockEnv({
+        DISABLED_SOURCES: "",
         REDDIT_CLIENT_ID: "id",
         REDDIT_CLIENT_SECRET: "secret",
         X_BEARER_TOKEN: "bearer",
@@ -617,7 +618,7 @@ describe("HTTP surfaces", () => {
       method: "POST",
       headers: { "content-type": "application/json", "PAYMENT-SIGNATURE": pay },
       body: JSON.stringify({ query: "ForgeCo", platforms: ["reddit"], timeframe: "7d" }),
-    });
+    }, mockEnv({ DISABLED_SOURCES: "" }));
     expect(res.status).toBe(503);
     const body = (await res.json()) as { error: { code: string } };
     expect(body.error.code).toBe("SOURCE_UNAVAILABLE");

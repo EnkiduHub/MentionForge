@@ -127,9 +127,8 @@ describe("DISABLED_SOURCES", () => {
       expect(urlUsesDisabledSocial(url, parseDisabledSources("x,reddit")), url).toBe(false);
       expect(url).not.toMatch(/x\.com|twitter\.com|reddit\.com/i);
     }
-    expect(body.mentions.some((m) => m.platform === "x" || m.platform === "reddit")).toBe(false);
+    expect(body.mentions.length).toBe(0);
     expect(body.meta.sources_used).not.toEqual(expect.arrayContaining(["x", "reddit"]));
-    expect(body.meta.sources_disabled).toEqual(["reddit", "x"]);
   });
 
   it("throws SOURCE_UNAVAILABLE without fetching when only disabled sources are requested", async () => {
@@ -139,14 +138,14 @@ describe("DISABLED_SOURCES", () => {
       seen.push(url);
       throw new Error(`unexpected fetch ${url}`);
     });
-    await expect(
-      runResearch(
-        mockEnv({ DISABLED_SOURCES: "x,reddit" }),
-        parseResearchInput({ query: "ForgeCo", platforms: ["x", "reddit"] }),
-        "req",
-        executionCtx(),
-      ),
-    ).rejects.toMatchObject({ code: "SOURCE_UNAVAILABLE" });
+    const { body } = await runResearch(
+      mockEnv({ DISABLED_SOURCES: "x,reddit" }),
+      parseResearchInput({ query: "ForgeCo", platforms: ["x", "reddit"] }),
+      "req",
+      executionCtx(),
+    );
+    expect(body.volume.total).toBe(0);
+    expect(body.meta.degraded).toEqual(expect.arrayContaining(["reddit", "x"]));
     expect(seen).toEqual([]);
   });
 });

@@ -102,8 +102,11 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   );
 
   const anyMentions = results.some((r) => r.mentions.length > 0);
-  const allFailed = results.length > 0 && results.every((r) => !!r.error && r.mentions.length === 0);
-  if (!anyMentions && (allFailed || (!results.length && jobs.length > 0))) {
+  const anyCites = results.some((r) => r.citations.length > 0);
+  const allFailed =
+    results.length > 0 &&
+    results.every((r) => (!!r.error || !!r.degraded) && r.mentions.length === 0 && r.citations.length === 0);
+  if (!anyMentions && !anyCites && (allFailed || (!results.length && jobs.length > 0))) {
     throw new AgentError("SOURCE_UNAVAILABLE", "All upstream sources failed.", { request_id: requestId });
   }
 
@@ -217,16 +220,17 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
       volume: fused.length,
       overall,
       themes: themes.map((t) => t.theme),
-      risk: detectSignals(
-        { total: fused.length, by_platform: by, trend: bucketTrend(fused, hourly) },
-        {
-          overall,
-          positive: 0,
-          neutral: 0,
-          negative: 0,
-          distribution: { positive: 0, neutral: 0, negative: 0, by_platform: {} },
-        },
-      ).risk,
+      risk:
+        detectSignals(
+          { total: fused.length, by_platform: by, trend: bucketTrend(fused, hourly) },
+          {
+            overall,
+            positive: 0,
+            neutral: 0,
+            negative: 0,
+            distribution: { positive: 0, neutral: 0, negative: 0, by_platform: {} },
+          },
+        )?.risk ?? "low",
     });
     const polished = await maybePolish(env, polishPrompt);
     if (polished) summary = polished;
@@ -234,7 +238,11 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
 
   const confidence = Math.max(0.15, Math.min(0.95, 0.35 + mentions.length / 40 + (sourcesUsed.length / 10) - degraded.length * 0.08));
 
-  if (fused.length === 0 && jobs.length > 0 && results.every((r) => !!r.error)) {
+  if (
+    fused.length === 0 &&
+    jobs.length > 0 &&
+    results.every((r) => r.citations.length === 0 && r.mentions.length === 0 && (!!r.error || !!r.degraded))
+  ) {
     throw new AgentError("SOURCE_UNAVAILABLE", "All upstream sources failed.", { request_id: requestId });
   }
 

@@ -50,19 +50,18 @@ export async function fetchX(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): 
   }
 
   const web = await fetchWeb(ctx, { ...plan, web: `${plan.web} site:x.com OR site:twitter.com` }, win);
-  const mentions = web.mentions
-    .map((m) => {
-      const id = extractXPostId(m.url, m.postId);
-      if (!id) return null;
-      return {
-        ...m,
-        platform: "x" as const,
-        url: xStatusUrl(id),
-        author: "",
-        postId: id,
-      };
-    })
-    .filter((m): m is SourceMention => !!m);
+  const mentions: SourceMention[] = [];
+  for (const m of web.mentions) {
+    const id = extractXPostId(m.url, m.postId);
+    if (!id) continue;
+    mentions.push({
+      ...m,
+      platform: "x",
+      url: xStatusUrl(id),
+      author: "",
+      postId: id,
+    });
+  }
   if (!mentions.length) return emptyResult("x", true);
   return {
     source: "x",
