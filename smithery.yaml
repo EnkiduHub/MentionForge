@@ -1,0 +1,9 @@
+# Hosted Streamable HTTP MCP for Smithery (remote rescans, no local start).
+target: remote
+startCommand:
+  type: streamableHttp
+  url: https://mentionforge.mentionforge.workers.dev/mcp
+  configSchema:
+    type: object
+    properties: {}
+  exampleConfig: {}
