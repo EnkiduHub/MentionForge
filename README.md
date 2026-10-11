@@ -12,7 +12,22 @@
 
 [![MentionForge MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/card.svg)](https://glama.ai/mcp/servers/EnkiduHub/MentionForge)
 
-**Highest-quality, lowest-latency, agent-optimized social listening + company research.**
+## 60-second Quickstart
+
+1. **Add to Cursor or VS Code** using the install badges in the row above.
+2. **Or paste** this into `mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "mentionforge": {
+      "url": "https://mentionforge.mentionforge.workers.dev/mcp"
+    }
+  }
+}
+```
+
+3. **Try a free tool first:** call `get_example` (optional `view`: `"full"` or `"compact"`). It returns a frozen snapshot of a real research payload so you can inspect the shape before calling anything else.
 
 MentionForge is a Cloudflare Worker: Hono REST plus Streamable HTTP MCP. Structured, cited, multi-source intelligence in a single **$0.02 USDC** x402 call on Base so agents can make better decisions faster.
 
