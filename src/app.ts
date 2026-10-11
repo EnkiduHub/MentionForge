@@ -37,6 +37,7 @@ export function createApp() {
       path === "/openapi.json" ||
       path.startsWith("/llms") ||
       path === "/robots.txt" ||
+      path === "/sitemap.xml" ||
       path === "/stats" ||
       path === "/skill.md" ||
       path === "/server-card.json" ||
