@@ -1,13 +1,5 @@
 # Changelog
 
-## 1.2.2 — 2026-09-21
-
-- Glama TDQS: front-load rate limits in the paid-tool tail (`get_digest` Behavior was 4 for missing limits) and mark compare's vs-join as a cross-field rule the schema cannot encode
-- Keep purpose-first copy and optional free-tool flags from 1.2.1 so the next connector sweep can score Parameters and Conciseness above the stale 10-tool snapshot
-- Official MCP Registry: publish `server.json` `1.2.2` (was left at `1.1.0` after the Worker bumps). GitHub Actions OIDC republishes on this file change. Glama GitHub-listing Available Tools still need Deploy + Make Release — Sync Server only refreshes the README scrape
-- Glama Dockerfile: `WORKDIR /app` + relative `CMD ["node", "scripts/glama-stdio.mjs"]` so a generated clone-into-`/app` inspect does not look for `/home/node/glama-stdio.mjs` and keep the v1.0.0 three-tool snapshot
-- Price remains $0.02 USDC; the 10-call trial stays shared
-
 ## Unreleased
 
 - CDP Bazaar discovery copy: `resource.description` leads with brand monitoring and brand sentiment analysis; tag `MCP` replaced with `brand monitoring`. Descriptions stay ≤480 characters and do not claim a native Reddit or X feed.
@@ -20,6 +12,14 @@
 - Glama GitHub listing: `glama.json` maintainers plus a stdio `Dockerfile` (`CMD`, not `ENTRYPOINT`) and `package.json` `bin`/`start` that bridge to the hosted `/mcp` via `mcp-remote` (no Worker clone). Glama env schema stays empty — `RECIPIENT_WALLET` is Worker `payTo`, not a container var; Glama users still settle on the hosted origin
 - README includes Glama score + card badges (`EnkiduHub/MentionForge` listing URLs); License section is the MIT grant (copyright 2026 MentionForge) plus trademarks from TRADEMARK.md; surfaces list MCP `get_health` / `get_pricing` and discovery routes
 - Agent discoverability: rich MCP server card, Cursor/Claude install in `/llms.txt`, public `GET /skill.md`, forge-mark PNG OG/logo/favicon
+
+## 1.2.2 — 2026-09-21
+
+- Glama TDQS: front-load rate limits in the paid-tool tail (`get_digest` Behavior was 4 for missing limits) and mark compare's vs-join as a cross-field rule the schema cannot encode
+- Keep purpose-first copy and optional free-tool flags from 1.2.1 so the next connector sweep can score Parameters and Conciseness above the stale 10-tool snapshot
+- Official MCP Registry: publish `server.json` `1.2.2` (was left at `1.1.0` after the Worker bumps). GitHub Actions OIDC republishes on this file change. Glama GitHub-listing Available Tools still need Deploy + Make Release — Sync Server only refreshes the README scrape
+- Glama Dockerfile: `WORKDIR /app` + relative `CMD ["node", "scripts/glama-stdio.mjs"]` so a generated clone-into-`/app` inspect does not look for `/home/node/glama-stdio.mjs` and keep the v1.0.0 three-tool snapshot
+- Price remains $0.02 USDC; the 10-call trial stays shared
 
 ## 1.2.1 — 2026-09-21
 
