@@ -2,6 +2,18 @@ import { PLATFORMS, type Platform } from "./constants";
 
 const PLATFORM_SET = new Set<string>(PLATFORMS);
 
+/** Sub-sources that are not platform ids. GDELT stays on the `news` platform. */
+export const SUBSOURCE_IDS = ["gnews", "hn"] as const;
+export type SubsourceId = (typeof SUBSOURCE_IDS)[number];
+const SUBSOURCE_SET = new Set<string>(SUBSOURCE_IDS);
+
+/**
+ * Production / staging / top-level wrangler value. Platforms `x` and `reddit`
+ * plus always-off sub-sources `gnews` and `hn`. Do not add `news` — that would
+ * disable GDELT.
+ */
+export const WRANGLER_DISABLED_SOURCES = "x,reddit,gnews,hn";
+
 /** Comma-separated platform ids from `DISABLED_SOURCES` (e.g. `x,reddit`). */
 export function parseDisabledSources(raw: string | undefined): Set<Platform> {
   const disabled = new Set<Platform>();
@@ -13,8 +25,26 @@ export function parseDisabledSources(raw: string | undefined): Set<Platform> {
   return disabled;
 }
 
+/**
+ * `gnews` and `hn` are fail-closed: disabled when `DISABLED_SOURCES` is unset,
+ * empty, or lists them. No enable flag exists yet, so they stay off.
+ */
+export function parseDisabledSubsources(raw: string | undefined): Set<SubsourceId> {
+  const disabled = new Set<SubsourceId>(SUBSOURCE_IDS);
+  if (!raw?.trim()) return disabled;
+  for (const part of raw.split(",")) {
+    const id = part.trim().toLowerCase();
+    if (SUBSOURCE_SET.has(id)) disabled.add(id as SubsourceId);
+  }
+  return disabled;
+}
+
 export function disabledSourcesFromEnv(env: Env): Set<Platform> {
   return parseDisabledSources(env.DISABLED_SOURCES);
+}
+
+export function isSubsourceDisabled(env: Env, id: SubsourceId): boolean {
+  return parseDisabledSubsources(env.DISABLED_SOURCES).has(id);
 }
 
 export function isSocialHostDisabled(hostname: string, disabled: Set<Platform>): boolean {

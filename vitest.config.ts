@@ -2,9 +2,9 @@
 import { defineConfig } from "vitest/config";
 import { defineWorkersProject } from "@cloudflare/vitest-pool-workers/config";
 
-// Unit tests run in Node (default `npm test`). The workers pool project is
-// configured as required, but miniflare currently breaks under the repo-wide
-// Zod 4.5 override (`z.ostring`). Use `npm run test:worker` after that is fixed.
+// Unit tests run in Node (`npm test`). Worker tests: `npm run test:worker`.
+// remoteBindings:false keeps the pool from opening a wrangler remote proxy
+// (Workers AI is paid). Pool ^0.12.21 is the last line that peers vitest 3.2.
 
 export default defineConfig({
   test: {
@@ -24,6 +24,7 @@ export default defineConfig({
           include: ["tests/worker/**/*.test.ts"],
           poolOptions: {
             workers: {
+              remoteBindings: false,
               wrangler: { configPath: "./wrangler.jsonc" },
               miniflare: {
                 bindings: {

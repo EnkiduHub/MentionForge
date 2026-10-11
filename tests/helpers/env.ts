@@ -268,11 +268,8 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
     if (url.includes("wikidata.org")) {
       return jsonResponse({ search: [{ id: "Q1", label: "ForgeCo", description: "fictional", concepturi: "https://www.wikidata.org/entity/Q1" }] });
     }
-    if (url.includes("news.google.com")) {
-      const d = new Date().toUTCString();
-      return new Response(`<rss><item><title>ForgeCo ships</title><link>https://example.com/n</link><pubDate>${d}</pubDate></item></rss>`, {
-        headers: { "content-type": "application/xml" },
-      });
+    if (url.startsWith("https://news.google.com/") || url.startsWith("https://hn.algolia.com/")) {
+      throw new Error(`forbidden host fetch ${url}`);
     }
     if (url.includes("api.github.com")) {
       return jsonResponse({
@@ -302,7 +299,7 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
         ],
       });
     }
-    if (url.includes("gdeltproject.org") || url.includes("algolia.com") || url.includes("duckduckgo.com") || url.includes("brave.com") || url.includes("x.com")) {
+    if (url.includes("gdeltproject.org") || url.includes("duckduckgo.com") || url.includes("brave.com") || url.includes("x.com")) {
       return jsonResponse({});
     }
     return jsonResponse({}, 404);

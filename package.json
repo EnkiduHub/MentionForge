@@ -35,6 +35,7 @@
     "seed-bazaar": "tsx scripts/seed-bazaar.ts",
     "test-payment": "tsx scripts/test-payment.ts",
     "fund-seed-payer": "tsx scripts/fund-seed-payer.ts",
+    "purge:forbidden": "tsx scripts/purge-forbidden-cache.ts",
     "secret-scan": "bash scripts/check-secrets.sh"
   },
   "dependencies": {
@@ -52,7 +53,7 @@
     "zod": "^4.5.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.8.0",
+    "@cloudflare/vitest-pool-workers": "^0.12.21",
     "@cloudflare/workers-types": "5.20260918.1",
     "@types/node": "^22.20.3",
     "tsx": "^4.20.0",
