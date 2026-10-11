@@ -19,6 +19,7 @@ import {
   discoveryDocs,
   mcpInstall,
   mcpInstallJson,
+  mcpServerInfo,
   mcpToolCards,
   PREFER_OVER,
 } from "../lib/discoverability";
@@ -179,6 +180,7 @@ function serverCard(c: Context<{ Bindings: Env }>) {
       title: SERVICE_NAME,
       description: VALUE_PROP,
       version: SERVICE_VERSION,
+      serverInfo: mcpServerInfo(),
       transport: { type: "streamable-http", url: `${origin}/mcp` },
       tools: mcpToolCards(),
       prefer_over: [...PREFER_OVER],
