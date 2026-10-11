@@ -5,9 +5,22 @@ import {
   isSubsourceDisabled,
   WRANGLER_DISABLED_SOURCES,
 } from "../../src/lib/disabled-sources";
-import { runResearch } from "../../src/lib/research/engine";
-import { parseResearchInput } from "../../src/schemas/research";
-import { executionCtx, jsonResponse, mockEnv, setGlobalFetch, stubCaches } from "../helpers/env";
+import { overlayBilling, runResearch } from "../../src/lib/research/engine";
+import { hnItemUrl } from "../../src/lib/research/hn";
+import { projectCompare, projectDigest, projectList, projectReply, projectRisk } from "../../src/lib/lenses";
+import { parseResearchInput, researchResponseSchema } from "../../src/schemas/research";
+import {
+  HN_STUB_AUTHOR,
+  HN_STUB_OBJECT_ID,
+  HN_STUB_STORY,
+  HN_STUB_TITLE,
+  executionCtx,
+  hnAlgoliaJson,
+  jsonResponse,
+  mockEnv,
+  setGlobalFetch,
+  stubCaches,
+} from "../helpers/env";
 
 function gdeltSeenDate(): string {
   const d = new Date();
@@ -21,9 +34,12 @@ function stubNewsFetch() {
   setGlobalFetch(async (input) => {
     const url = String(input instanceof Request ? input.url : input);
     fetched.push(url);
-    if (url.startsWith("https://news.google.com/") || url.startsWith("https://hn.algolia.com/")) {
+    if (url.startsWith("https://news.google.com/")) {
       forbidden.push(url);
       throw new Error(`forbidden host fetch ${url}`);
+    }
+    if (url.startsWith("https://hn.algolia.com/")) {
+      return jsonResponse(hnAlgoliaJson());
     }
     if (url.includes("wikipedia.org/w/api.php")) {
       return jsonResponse({ query: { search: [{ title: "ForgeCo", snippet: "A fictional brand" }] } });
@@ -70,8 +86,22 @@ function citationHosts(urls: string[]): string[] {
 
 function wranglerDisabledSources(): string[] {
   const raw = readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8");
-  const matches = [...raw.matchAll(/"DISABLED_SOURCES"\s*:\s*"([^"]+)"/g)].map((m) => m[1]!);
-  return matches;
+  return [...raw.matchAll(/"DISABLED_SOURCES"\s*:\s*"([^"]+)"/g)].map((m) => m[1]!);
+}
+
+function assertNoHnTitleAuthor(body: unknown) {
+  const raw = JSON.stringify(body);
+  expect(raw).not.toContain(HN_STUB_TITLE);
+  expect(raw).not.toContain(HN_STUB_AUTHOR);
+  expect(raw).not.toMatch(/"username"\s*:/);
+}
+
+function billingMeta() {
+  return {
+    request_id: "req",
+    latency_ms: 1,
+    billing: { amount_usdc: "0", tx_hash: null, free_trial: true },
+  };
 }
 
 describe("news sub-sources gnews/hn", () => {
@@ -79,23 +109,24 @@ describe("news sub-sources gnews/hn", () => {
     stubCaches();
   });
 
-  it("isSubsourceDisabled is fail-closed for unset, x,reddit, and production value", () => {
+  it("gnews stays fail-closed; hn is on unless listed", () => {
     expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: undefined }), "gnews")).toBe(true);
-    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: undefined }), "hn")).toBe(true);
+    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: undefined }), "hn")).toBe(false);
     expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: "x,reddit" }), "gnews")).toBe(true);
-    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: "x,reddit" }), "hn")).toBe(true);
+    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: "x,reddit" }), "hn")).toBe(false);
     expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: WRANGLER_DISABLED_SOURCES }), "gnews")).toBe(true);
-    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: WRANGLER_DISABLED_SOURCES }), "hn")).toBe(true);
+    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: WRANGLER_DISABLED_SOURCES }), "hn")).toBe(false);
+    expect(isSubsourceDisabled(mockEnv({ DISABLED_SOURCES: "x,reddit,gnews,hn" }), "hn")).toBe(true);
   });
 
-  it("wrangler top-level, staging, and production all set x,reddit,gnews,hn", () => {
+  it("wrangler top-level, staging, and production all set x,reddit,gnews", () => {
     const values = wranglerDisabledSources();
     expect(values.length).toBeGreaterThanOrEqual(3);
     expect(values.every((v) => v === WRANGLER_DISABLED_SOURCES)).toBe(true);
-    expect(WRANGLER_DISABLED_SOURCES).toBe("x,reddit,gnews,hn");
+    expect(WRANGLER_DISABLED_SOURCES).toBe("x,reddit,gnews");
   });
 
-  it("does not fetch Google News or HN when DISABLED_SOURCES is unset; GDELT still runs", async () => {
+  it("fetches HN with default settings and never fetches Google News; GDELT still runs", async () => {
     const { forbidden, fetched } = stubNewsFetch();
     const { body } = await runResearch(
       mockEnv(),
@@ -104,12 +135,18 @@ describe("news sub-sources gnews/hn", () => {
       executionCtx(),
     );
     expect(forbidden).toEqual([]);
+    expect(fetched.some((u) => u.startsWith("https://hn.algolia.com/"))).toBe(true);
+    expect(fetched.some((u) => u.startsWith("https://news.google.com/"))).toBe(false);
     expect(fetched.some((u) => u.includes("api.gdeltproject.org"))).toBe(true);
     expect(citationHosts(body.citations.map((c) => c.url))).not.toContain("news.google.com");
-    expect(citationHosts(body.citations.map((c) => c.url))).not.toContain("news.ycombinator.com");
+    const hnCite = body.citations.find((c) => c.source === "hn");
+    expect(hnCite?.url).toBe(hnItemUrl(HN_STUB_OBJECT_ID));
+    expect(hnCite?.title).toBe("example.com");
+    expect(hnCite?.title).not.toBe(HN_STUB_TITLE);
+    assertNoHnTitleAuthor(body);
   });
 
-  it("does not fetch Google News or HN with the production DISABLED_SOURCES value", async () => {
+  it("fetches HN with the production DISABLED_SOURCES value and never fetches Google News", async () => {
     const { forbidden, fetched } = stubNewsFetch();
     await runResearch(
       mockEnv({ DISABLED_SOURCES: WRANGLER_DISABLED_SOURCES }),
@@ -118,10 +155,12 @@ describe("news sub-sources gnews/hn", () => {
       executionCtx(),
     );
     expect(forbidden).toEqual([]);
+    expect(fetched.some((u) => u.startsWith("https://hn.algolia.com/"))).toBe(true);
+    expect(fetched.some((u) => u.startsWith("https://news.google.com/"))).toBe(false);
     expect(fetched.some((u) => u.includes("api.gdeltproject.org"))).toBe(true);
   });
 
-  it("platforms [news] only uses GDELT", async () => {
+  it("platforms [news] uses GDELT plus HN links/counts, not Google News", async () => {
     const { forbidden, fetched } = stubNewsFetch();
     const { body } = await runResearch(
       mockEnv({ DISABLED_SOURCES: WRANGLER_DISABLED_SOURCES }),
@@ -131,18 +170,59 @@ describe("news sub-sources gnews/hn", () => {
     );
     expect(forbidden).toEqual([]);
     expect(fetched.some((u) => u.includes("api.gdeltproject.org"))).toBe(true);
+    expect(fetched.some((u) => u.startsWith("https://hn.algolia.com/"))).toBe(true);
     const hosts = citationHosts([...body.mentions.map((m) => m.url), ...body.citations.map((c) => c.url)]);
     expect(hosts).not.toContain("news.google.com");
-    expect(hosts).not.toContain("news.ycombinator.com");
-    expect(body.volume.by_platform.news).toBeGreaterThan(0);
     expect(body.mentions.every((m) => m.platform === "news")).toBe(true);
-    expect(body.mentions.every((m) => m.url.includes("gdelt") || m.url.includes("example.com"))).toBe(true);
-    expect(body.citations.every((c) => c.source === "gdelt")).toBe(true);
-    expect(body.volume.by_platform.news).toBe(body.mentions.filter((m) => m.url.includes("example.com/forgeco-gdelt")).length);
+    expect(body.citations.some((c) => c.source === "gdelt")).toBe(true);
+    expect(body.citations.some((c) => c.source === "hn")).toBe(true);
+    const hnRows = body.mentions.filter((m) => m.url.includes("news.ycombinator.com"));
+    expect(hnRows.length).toBeGreaterThan(0);
+    for (const row of hnRows) {
+      expect(row.url).toBe(hnItemUrl(HN_STUB_OBJECT_ID));
+      expect(row.story_url).toBe(HN_STUB_STORY);
+      expect(row.created_bucket).toMatch(/T00:00:00.000Z$/);
+      expect(row.points).toBe(17);
+      expect(row.comments).toBe(5);
+      expect(row).not.toHaveProperty("title");
+      expect(row).not.toHaveProperty("text");
+      expect(row).not.toHaveProperty("author");
+      expect(row).not.toHaveProperty("username");
+    }
+    expect(body.volume.by_platform.news).toBeGreaterThan(0);
+    assertNoHnTitleAuthor(body);
+    expect(researchResponseSchema.safeParse({
+      ...body,
+      meta: { ...body.meta, request_id: "r", latency_ms: 1, billing: { amount_usdc: "0", tx_hash: null, free_trial: true } },
+    }).success).toBe(true);
   });
 
-  it("outbound allowlist rejects Google News and HN Algolia", async () => {
+  it("omits HN title and author from lens and research routes", async () => {
+    stubNewsFetch();
+    const { body } = await runResearch(
+      mockEnv(),
+      parseResearchInput({ query: "ForgeCo", platforms: ["news"] }),
+      "req",
+      executionCtx(),
+    );
+    const full = overlayBilling(body, billingMeta(), "live");
+    const routes = [
+      full,
+      projectDigest(full),
+      projectList(full),
+      projectRisk(full),
+      projectReply(full, { query: "ForgeCo", stance: "neutral" }),
+      projectCompare(full, ["ForgeCo"]),
+    ];
+    for (const payload of routes) {
+      assertNoHnTitleAuthor(payload);
+    }
+  });
+
+  it("outbound allowlist allows HN Algolia and rejects Google News", async () => {
     await expect(allowedFetch("https://news.google.com/rss/search?q=a")).rejects.toThrow(/blocked host/);
-    await expect(allowedFetch("https://hn.algolia.com/api/v1/search?query=a")).rejects.toThrow(/blocked host/);
+    setGlobalFetch(async () => jsonResponse({ hits: [] }));
+    const res = await allowedFetch("https://hn.algolia.com/api/v1/search?query=a");
+    expect(res.status).toBe(200);
   });
 });

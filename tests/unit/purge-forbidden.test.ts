@@ -15,7 +15,7 @@ const allowedXRow = {
 };
 
 describe("purge-forbidden sanitizer", () => {
-  it("flags Google News, HN, and reddit URLs", () => {
+  it("flags Google News and reddit URLs; HN hosts are keep", () => {
     const gnews = sanitizeStoredRecord({
       citations: [{ url: "https://news.google.com/rss/articles/abc", title: "g", source: "google-news" }],
     });
@@ -23,14 +23,16 @@ describe("purge-forbidden sanitizer", () => {
     expect(gnews.action).not.toBe("keep");
 
     const hn = sanitizeStoredRecord({
-      citations: [{ url: "https://news.ycombinator.com/item?id=1", title: "hn", source: "hn" }],
+      citations: [{ url: "https://news.ycombinator.com/item?id=1", title: "example.com", source: "hn" }],
     });
-    expect(hn.hits.some((h) => h.host === "news.ycombinator.com")).toBe(true);
+    expect(hn.hits.some((h) => h.host === "news.ycombinator.com")).toBe(false);
+    expect(hn.action).toBe("keep");
 
     const algolia = sanitizeStoredRecord({
       mentions: [{ platform: "news", url: "https://hn.algolia.com/api/v1/search?query=a", text: "ForgeCo story" }],
     });
-    expect(algolia.hits.some((h) => h.host === "hn.algolia.com")).toBe(true);
+    expect(algolia.hits.some((h) => h.host === "hn.algolia.com")).toBe(false);
+    expect(algolia.action).toBe("keep");
 
     const reddit = sanitizeStoredRecord({
       mentions: [{ platform: "reddit", url: "https://www.reddit.com/r/saas/comments/abc", text: "ForgeCo thread" }],

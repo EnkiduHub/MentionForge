@@ -8,8 +8,6 @@
 
 export const FORBIDDEN_HOSTS = [
   "news.google.com",
-  "news.ycombinator.com",
-  "hn.algolia.com",
 ] as const;
 
 const X_FIELD_HITS = new Set([

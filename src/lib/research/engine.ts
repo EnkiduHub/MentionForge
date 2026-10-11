@@ -25,6 +25,7 @@ import { relevantToBrands, shareOfVoice } from "./sov";
 import { classifyIntent, relevanceScore } from "./intent";
 import { detectSignals, sentimentByPlatform, topVoices } from "./signals";
 import { disabledSourcesFromEnv, urlUsesDisabledSocial } from "../disabled-sources";
+import { hnCreatedBucket } from "./hn";
 import type { Platform } from "../constants";
 
 const failCounts = new Map<string, number>();
@@ -127,22 +128,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
 
   let scored = fused.map((m) => ({ m, s: scoreText(m.text, qTokens) }));
   scored = await maybeDistilbert(env, scored);
-  const mentions: Mention[] = scored.slice(0, req.limit).map(({ m, s }) => {
-    const tagged = classifyIntent(m.text, s.score);
-    return {
-      id: idFor(m),
-      platform: m.platform,
-      url: m.url,
-      author: m.author,
-      timestamp: m.timestamp,
-      text: m.text,
-      engagement: m.engagement,
-      sentiment: s.score,
-      intent: tagged.intent,
-      aspects: tagged.aspects.length ? tagged.aspects : undefined,
-      relevance: relevanceScore(m, qTokens),
-    };
-  });
+  const mentions: Mention[] = scored.slice(0, req.limit).map(({ m, s }) => publicMention(m, s, qTokens));
 
   const by = emptyPlatformCounts();
   for (const m of fused) by[m.platform] += 1;
@@ -166,7 +152,10 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   const pct = (n: number) => Number(((n / totalSent) * 100).toFixed(1));
   const overall = wsum ? Number((weighted / wsum).toFixed(4)) : 0;
 
-  const themes = extractThemes(fused, qTokens);
+  const themes = extractThemes(
+    fused.filter((m) => m.origin !== "hn"),
+    qTokens,
+  );
   const trend = bucketTrend(fused, req.timeframe === "24h");
 
   const citations = dedupeCites(results.flatMap((r) => r.citations))
@@ -284,6 +273,40 @@ function dedupeCites(cites: CachedResearch["citations"]) {
     out.push(c);
   }
   return out;
+}
+
+function publicMention(
+  m: SourceMention,
+  s: { score: number },
+  qTokens: string[],
+): Mention {
+  if (m.origin === "hn") {
+    const row: Mention = {
+      id: idFor(m),
+      platform: m.platform,
+      url: m.url,
+      engagement: m.engagement,
+      created_bucket: hnCreatedBucket(m.timestamp),
+    };
+    if (m.story_url) row.story_url = m.story_url;
+    if (typeof m.points === "number") row.points = m.points;
+    if (typeof m.comments === "number") row.comments = m.comments;
+    return row;
+  }
+  const tagged = classifyIntent(m.text, s.score);
+  return {
+    id: idFor(m),
+    platform: m.platform,
+    url: m.url,
+    author: m.author,
+    timestamp: m.timestamp,
+    text: m.text,
+    engagement: m.engagement,
+    sentiment: s.score,
+    intent: tagged.intent,
+    aspects: tagged.aspects.length ? tagged.aspects : undefined,
+    relevance: relevanceScore(m, qTokens),
+  };
 }
 
 function idFor(m: SourceMention): string {

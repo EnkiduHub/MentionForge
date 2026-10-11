@@ -7,6 +7,7 @@ import type { SourceMention, SourceResult, TimeWindow } from "../types";
 import type { SourceCtx } from "../http";
 import { cite, getJson } from "../http";
 import { isSubsourceDisabled } from "../../disabled-sources";
+import { hnCitationLabel, hnItemUrl } from "../hn";
 
 type GdeltDoc = {
   articles?: Array<{
@@ -60,13 +61,14 @@ export async function fetchNews(
           text: a.title ?? a.url,
           engagement: 2,
           title: a.title,
+          origin: "gdelt",
         });
         citations.push(cite(a.url, a.title ?? a.url, "gdelt"));
       }
     }
   }
 
-  if (!isSubsourceDisabled(ctx.env, "hn") && mentions.length < 3) {
+  if (!isSubsourceDisabled(ctx.env, "hn")) {
     const fromI = Math.floor(win.from.getTime() / 1000);
     const toI = Math.floor(win.to.getTime() / 1000);
     const hn = await getJson<HnHit>(
@@ -74,20 +76,28 @@ export async function fetchNews(
       `https://hn.algolia.com/api/v1/search?query=${encodeURIComponent(plan.news)}&tags=story&numericFilters=${encodeURIComponent(`created_at_i>${fromI},created_at_i<=${toI}`)}`,
     );
     for (const h of hn?.hits ?? []) {
-      const url = h.url ?? (h.objectID ? `https://news.ycombinator.com/item?id=${h.objectID}` : "");
+      const itemUrl = h.objectID ? hnItemUrl(h.objectID) : "";
+      const storyUrl = h.url?.trim() || "";
+      const url = itemUrl || storyUrl;
       if (!url) continue;
       const ts = h.created_at ? new Date(h.created_at) : new Date();
       if (ts < win.from || ts > win.to) continue;
+      const points = h.points ?? 0;
+      const comments = h.num_comments ?? 0;
       mentions.push({
         platform: "news",
         url,
         author: h.author ?? "hn",
         timestamp: ts.toISOString(),
         text: h.title ?? h.story_text ?? url,
-        engagement: (h.points ?? 0) + (h.num_comments ?? 0),
+        engagement: points + comments,
         title: h.title ?? undefined,
+        origin: "hn",
+        ...(storyUrl && storyUrl !== url ? { story_url: storyUrl } : {}),
+        points,
+        comments,
       });
-      citations.push(cite(url, h.title ?? url, "hn"));
+      citations.push(cite(url, hnCitationLabel(storyUrl || url), "hn"));
     }
     if (!hn) degraded = true;
   }
