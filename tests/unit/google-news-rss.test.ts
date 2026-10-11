@@ -55,7 +55,7 @@ describe("Google News RSS", () => {
     expect(gnewsMentionText(items[0]!.title, items[0]!.description, items[0]!.source)).toBe(
       "ForgeCo launches Workers RSS & more",
     );
-    expect(gnewsCitationLabel(items[0]!)).toBe("example.com");
+    expect(gnewsCitationLabel(items[0]!)).toBe("ForgeCo launches Workers RSS & more");
     expect(items[1]).toMatchObject({
       title: `ForgeCo & Co's "launch" — details`,
       link: "https://example.com/forgeco-entities",
