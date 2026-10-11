@@ -24,6 +24,8 @@ import type { SourceMention, SourceResult } from "./types";
 import { relevantToBrands, shareOfVoice } from "./sov";
 import { classifyIntent, relevanceScore } from "./intent";
 import { detectSignals, sentimentByPlatform, topVoices } from "./signals";
+import { disabledSourcesFromEnv, urlUsesDisabledSocial } from "../disabled-sources";
+import type { Platform } from "../constants";
 
 const failCounts = new Map<string, number>();
 
@@ -35,7 +37,8 @@ export async function runResearch(
   requestId: string,
   executionCtx?: { waitUntil(promise: Promise<unknown>): void },
 ): Promise<ResearchRun> {
-  const key = await sha256Hex(cacheKeyMaterial(req));
+  const disabled = [...disabledSourcesFromEnv(env)].sort().join(",");
+  const key = await sha256Hex(`${cacheKeyMaterial(req)}\ndisabled:${disabled}`);
   return coalesce(`research:${key}`, async () => {
     const cached = await matchResearch(key);
     const policy = ttlForTimeframe(req.timeframe);
@@ -62,15 +65,25 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   const pool = new FetchPool();
   const ctx: SourceCtx = { env, pool, query: plan.unquoted, lang: req.language };
   const wanted = new Set(req.platforms);
+  const disabled = disabledSourcesFromEnv(env);
+  const sourcesDisabled = [...wanted].filter((p) => disabled.has(p)).sort();
+  const enabled = [...wanted].filter((p) => !disabled.has(p));
+
+  if (wanted.size > 0 && enabled.length === 0) {
+    throw new AgentError("SOURCE_UNAVAILABLE", "All requested sources are disabled.", { request_id: requestId });
+  }
 
   const jobs: Array<() => Promise<SourceResult>> = [];
-  if (wanted.has("reddit")) jobs.push(() => guarded("reddit", () => fetchReddit(ctx, plan, win)));
-  if (wanted.has("news")) jobs.push(() => guarded("news", () => fetchNews(ctx, plan, win, req)));
-  if (wanted.has("web")) jobs.push(() => guarded("web", () => fetchWeb(ctx, plan, win)));
-  if (wanted.has("reviews")) jobs.push(() => guarded("reviews", () => fetchReviews(ctx, plan, win)));
-  if (wanted.has("x")) jobs.push(() => guarded("x", () => fetchX(ctx, plan, win)));
+  if (wanted.has("reddit") && !disabled.has("reddit")) jobs.push(() => guarded("reddit", () => fetchReddit(ctx, plan, win)));
+  if (wanted.has("news") && !disabled.has("news")) jobs.push(() => guarded("news", () => fetchNews(ctx, plan, win, req)));
+  if (wanted.has("web") && !disabled.has("web")) jobs.push(() => guarded("web", () => fetchWeb(ctx, plan, win)));
+  if (wanted.has("reviews") && !disabled.has("reviews")) jobs.push(() => guarded("reviews", () => fetchReviews(ctx, plan, win)));
+  if (wanted.has("x") && !disabled.has("x")) jobs.push(() => guarded("x", () => fetchX(ctx, plan, win)));
 
-  const results = await collectWithBudget(jobs, ENGINE_BUDGET_MS);
+  const results = dropDisabledSocial(
+    await collectWithBudget(jobs, ENGINE_BUDGET_MS),
+    disabled,
+  );
 
   const anyMentions = results.some((r) => r.mentions.length > 0);
   const allFailed = results.length > 0 && results.every((r) => !!r.error && r.mentions.length === 0);
@@ -213,6 +226,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
       confidence: Number(confidence.toFixed(3)),
       degraded: degraded.length ? degraded : undefined,
       as_of: new Date().toISOString(),
+      ...(sourcesDisabled.length ? { sources_disabled: sourcesDisabled } : {}),
     },
   };
 }
@@ -285,6 +299,17 @@ function sleep(ms: number): Promise<void> {
 
 function unique(xs: string[]): string[] {
   return [...new Set(xs.filter(Boolean))];
+}
+
+function dropDisabledSocial(results: SourceResult[], disabled: Set<Platform>): SourceResult[] {
+  if (disabled.size === 0) return results;
+  return results
+    .filter((r) => !disabled.has(r.source as Platform))
+    .map((r) => ({
+      ...r,
+      mentions: r.mentions.filter((m) => !disabled.has(m.platform) && !urlUsesDisabledSocial(m.url, disabled)),
+      citations: r.citations.filter((c) => !urlUsesDisabledSocial(c.url, disabled)),
+    }));
 }
 
 type DistilbertOut =

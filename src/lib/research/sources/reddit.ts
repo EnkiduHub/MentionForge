@@ -8,6 +8,7 @@ import { allowedFetch } from "../../allowlist";
 import { abortMs } from "../../fetch-pool";
 import { SOURCE_TIMEOUT_MS, UNAUTH_SOURCE_TIMEOUT_MS, USER_AGENT } from "../../constants";
 import { cleanSnippet } from "../../html";
+import { disabledSourcesFromEnv } from "../../disabled-sources";
 
 type RedditListing = {
   data?: {
@@ -32,6 +33,7 @@ type TokenJson = { access_token?: string; expires_in?: number };
 type BraveWeb = { web?: { results?: Array<{ title?: string; url?: string; description?: string }> } };
 
 export async function fetchReddit(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): Promise<SourceResult> {
+  if (disabledSourcesFromEnv(ctx.env).has("reddit")) return emptyResult("reddit", false, "source_disabled");
   const q = encodeURIComponent(plan.reddit);
   const token = await redditOAuthToken(ctx);
   const url = token

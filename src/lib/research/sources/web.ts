@@ -9,6 +9,7 @@ import { wikipediaHost } from "../../allowlist";
 import { GDELT_THROTTLE_S } from "../../constants";
 import { matchFlag, putFlag } from "../../cache";
 import { isOpen, recordFailure, recordSuccess } from "../circuit";
+import { disabledSourcesFromEnv, fetchTargetsDisabledSocial, urlUsesDisabledSocial } from "../../disabled-sources";
 
 type WikiSearch = { query?: { search?: Array<{ title: string; snippet?: string; pageid?: number }> } };
 type WikiSummary = { title?: string; extract?: string; content_urls?: { desktop?: { page?: string } } };
@@ -102,24 +103,28 @@ export async function fetchWeb(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow)
     if (wd.degraded) degradedFlags.push("wikidata");
   }
 
+  const disabled = disabledSourcesFromEnv(ctx.env);
   if (ctx.env.BRAVE_API_KEY) {
-    const brave = await getJson<BraveWeb>(
-      ctx,
-      braveUrl(plan.web, ctx.lang),
-      { "X-Subscription-Token": ctx.env.BRAVE_API_KEY },
-    );
-    for (const r of brave?.web?.results ?? []) {
-      if (!r.url) continue;
-      mentions.push({
-        platform: "web",
-        url: r.url,
-        author: "web",
-        timestamp: stampInWindow(win),
-        text: cleanSnippet([r.title, r.description].filter(Boolean).join(" — ")),
-        engagement: 3,
-        title: r.title ? cleanSnippet(r.title) : r.title,
-      });
-      citations.push(cite(r.url, r.title ?? r.url, "brave"));
+    const braveSearchUrl = braveUrl(plan.web, ctx.lang);
+    if (!fetchTargetsDisabledSocial(braveSearchUrl, disabled)) {
+      const brave = await getJson<BraveWeb>(
+        ctx,
+        braveSearchUrl,
+        { "X-Subscription-Token": ctx.env.BRAVE_API_KEY },
+      );
+      for (const r of brave?.web?.results ?? []) {
+        if (!r.url || urlUsesDisabledSocial(r.url, disabled)) continue;
+        mentions.push({
+          platform: "web",
+          url: r.url,
+          author: "web",
+          timestamp: stampInWindow(win),
+          text: cleanSnippet([r.title, r.description].filter(Boolean).join(" — ")),
+          engagement: 3,
+          title: r.title ? cleanSnippet(r.title) : r.title,
+        });
+        citations.push(cite(r.url, r.title ?? r.url, "brave"));
+      }
     }
   } else {
     degradedFlags.push("brave");

@@ -70,7 +70,7 @@ The root `Dockerfile` uses `WORKDIR /app` and `CMD ["node", "scripts/glama-stdio
 | Field | Paste |
 | --- | --- |
 | Name | MentionForge |
-| Short description | Agent-native social listening. Use `research_mentions` for cited Reddit/news/web mentions, sentiment, volume, and an executive brief. |
+| Short description | Agent-native social listening. Use `research_mentions` for cited mentions from web and news sources, sentiment, volume, and an executive brief. |
 | Server URL | `https://mentionforge.mentionforge.workers.dev/mcp` |
 | Transport | Streamable HTTP (HTTPS) |
 | Website | `https://mentionforge.mentionforge.workers.dev` |

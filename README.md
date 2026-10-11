@@ -161,7 +161,7 @@ Cache stores **research only** (never `meta.billing`, `request_id`, `latency_ms`
 
 Paid tools share **one gather**. `research_mentions` (optional compact/focus/markdown), `compare_brands`, `get_digest`, `detect_risk`, `draft_reply`, `list_mentions`, and `get_trends` project from that gather. Call exactly one paid tool per question; the 10-call trial is shared.
 
-Default research sources are news, Wikipedia/Wikidata, Brave, and review-site web results. Query-gated GitHub/Stack Overflow run **inside** the web adapter (not a sixth platform). Reddit public JSON can fall back to Brave `site:reddit.com` only. `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` and `X_BEARER_TOKEN` are optional coverage upgrades — not required for discovery, trial, or paid research.
+Default research sources are web and news sources (Wikipedia/Wikidata, Brave, news, and review-site web results). Query-gated GitHub/Stack Overflow run **inside** the web adapter (not a sixth platform).
 
 ## Quick start
 

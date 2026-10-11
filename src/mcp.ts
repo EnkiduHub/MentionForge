@@ -232,8 +232,8 @@ async function buildMcpServer(opts: {
         payments_ready: z.boolean().describe("True when paid research_mentions can settle on this origin"),
         source_backends: z
           .object({
-            reddit: z.string().describe("reddit adapter mode: public or oauth"),
-            x: z.string().describe("x adapter mode: web or api"),
+            reddit: z.string().describe("reddit adapter mode: public, oauth, or disabled"),
+            x: z.string().describe("x adapter mode: web, api, or disabled"),
             web: z.string().describe("web adapter mode: wiki or brave+wiki"),
             news: z.string().describe("news adapter mode"),
             reviews: z.string().describe("reviews adapter mode"),

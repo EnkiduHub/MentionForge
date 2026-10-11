@@ -184,6 +184,10 @@ export const metaSchema = z.object({
   request_id: z.string().describe("Request correlation id"),
   latency_ms: z.number().describe("Engine wall time in milliseconds (not billed)"),
   sources_used: z.array(z.string()).describe("Adapter ids that contributed data"),
+  sources_disabled: z
+    .array(z.string())
+    .optional()
+    .describe("Requested platform ids skipped because they are in DISABLED_SOURCES"),
   billing: billingSchema.describe("Charge record for this call (never cached)"),
   confidence: z.number().min(0).max(1).optional().describe("Optional 0–1 confidence in the aggregate"),
   degraded: z.array(z.string()).optional().describe("Optional list of degraded or skipped adapters"),
@@ -213,7 +217,7 @@ export const researchResponseSchema = z.object({
 export type ResearchResponse = z.infer<typeof researchResponseSchema>;
 export type Mention = z.infer<typeof mentionSchema>;
 export type CachedResearch = Omit<ResearchResponse, "meta"> & {
-  meta: Pick<ResearchResponse["meta"], "sources_used" | "confidence" | "degraded" | "as_of">;
+  meta: Pick<ResearchResponse["meta"], "sources_used" | "sources_disabled" | "confidence" | "degraded" | "as_of">;
 };
 
 export function emptyPlatformCounts(): Record<Platform, number> {

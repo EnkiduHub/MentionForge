@@ -35,6 +35,7 @@ interface Env {
   RECIPIENT_WALLET: string;
   ALLOWED_ORIGINS: string;
   SERVICE_VERSION: string;
+  DISABLED_SOURCES?: string;
   SANDBOX_KEY?: string;
   OPERATOR_TOKEN?: string;
   BRAVE_API_KEY?: string;
