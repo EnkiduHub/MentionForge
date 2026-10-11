@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/EnkiduHub/MentionForge/blob/main/docs/README.md
+    about: Operator and protocol notes (API, MCP, architecture, operations).
+  - name: Security policy
+    url: https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md
+    about: How to report vulnerabilities. Do not open a public issue that includes secrets.
