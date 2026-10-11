@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
-import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, toolInputJsonSchema } from "../../src/lib/discoverability";
+import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
 import { healthInputSchema } from "../../src/schemas/lenses";
 import { researchRequestSchema } from "../../src/schemas/research";
@@ -160,6 +160,28 @@ describe("agent discoverability", () => {
     expect(txt).toMatch(/Allow: \/server-card\.json/);
     expect(txt).toMatch(/Allow: \/v1\/entity/);
     expect(txt).toMatch(/Allow: \/v1\/suggest/);
+    expect(txt).toMatch(/^Sitemap: https:\/\/mentionforge\.test\/sitemap\.xml$/m);
+  });
+
+  it("sitemap.xml lists landing, llms.txt, and existing public docs routes", async () => {
+    const res = await call("/sitemap.xml");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toMatch(/xml/);
+    const xml = await res.text();
+    expect(xml).toContain("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/llms.txt");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/llms-full.txt");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/skill.md");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/openapi.json");
+    for (const path of PUBLIC_SITEMAP_PATHS) {
+      const loc = path === "/" ? "https://mentionforge.test/" : `https://mentionforge.test${path}`;
+      expect(xml).toContain(`<loc>${loc}</loc>`);
+    }
+    for (const path of ["/llms.txt", "/llms-full.txt", "/skill.md", "/openapi.json", "/server-card.json"] as const) {
+      const live = await call(path);
+      expect(live.status, path).toBe(200);
+    }
   });
 
   it("operator HTML uses the 96px chrome mark and PNG favicon", async () => {
