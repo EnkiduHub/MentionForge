@@ -25,7 +25,8 @@
     // Public payTo. Same 0x on ETH/Arb/Base. Default NETWORK is Base Sepolia (test USDC), not mainnet.
     "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
     "ALLOWED_ORIGINS": "*",
-    "SERVICE_VERSION": "1.2.2"
+    "SERVICE_VERSION": "1.2.2",
+    "DISABLED_SOURCES": "x,reddit,brave,reviews"
   },
   "d1_databases": [
     {
@@ -89,7 +90,7 @@
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
         "SERVICE_VERSION": "1.2.2",
-        "DISABLED_SOURCES": "x,reddit"
+        "DISABLED_SOURCES": "x,reddit,brave,reviews"
       }
     },
     "production": {
@@ -120,7 +121,7 @@
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
         "SERVICE_VERSION": "1.2.2",
-        "DISABLED_SOURCES": "x,reddit"
+        "DISABLED_SOURCES": "x,reddit,brave,reviews"
       }
     }
   }

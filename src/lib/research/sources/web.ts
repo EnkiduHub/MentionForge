@@ -9,7 +9,7 @@ import { wikipediaHost } from "../../allowlist";
 import { GDELT_THROTTLE_S } from "../../constants";
 import { matchFlag, putFlag } from "../../cache";
 import { isOpen, recordFailure, recordSuccess } from "../circuit";
-import { disabledSourcesFromEnv, fetchTargetsDisabledSocial, urlUsesDisabledSocial } from "../../disabled-sources";
+import { disabledSourcesFromEnv, fetchTargetsDisabledSocial, isBraveDisabled, urlUsesDisabledSocial } from "../../disabled-sources";
 
 type WikiSearch = { query?: { search?: Array<{ title: string; snippet?: string; pageid?: number }> } };
 type WikiSummary = { title?: string; extract?: string; content_urls?: { desktop?: { page?: string } } };
@@ -86,13 +86,12 @@ export async function fetchWeb(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow)
     mentions.push({
       platform: "web",
       url,
-      author: "wikipedia",
+      author: "",
       timestamp: stampInWindow(win),
       text,
       engagement: 8,
-      title: sum?.title ?? top,
     });
-    citations.push(cite(url, sum?.title ?? top, "wikipedia"));
+    citations.push(cite(url, "", "wikipedia"));
   } else if (!siteScoped) {
     degradedFlags.push("wikipedia");
   }
@@ -104,29 +103,15 @@ export async function fetchWeb(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow)
   }
 
   const disabled = disabledSourcesFromEnv(ctx.env);
-  if (ctx.env.BRAVE_API_KEY) {
+  const braveOff = isBraveDisabled(ctx.env);
+  if (ctx.env.BRAVE_API_KEY && !braveOff) {
     const braveSearchUrl = braveUrl(plan.web, ctx.lang);
     if (!fetchTargetsDisabledSocial(braveSearchUrl, disabled)) {
-      const brave = await getJson<BraveWeb>(
-        ctx,
-        braveSearchUrl,
-        { "X-Subscription-Token": ctx.env.BRAVE_API_KEY },
-      );
-      for (const r of brave?.web?.results ?? []) {
-        if (!r.url || urlUsesDisabledSocial(r.url, disabled)) continue;
-        mentions.push({
-          platform: "web",
-          url: r.url,
-          author: "web",
-          timestamp: stampInWindow(win),
-          text: cleanSnippet([r.title, r.description].filter(Boolean).join(" — ")),
-          engagement: 3,
-          title: r.title ? cleanSnippet(r.title) : r.title,
-        });
-        citations.push(cite(r.url, r.title ?? r.url, "brave"));
-      }
+      // Called only when the Brave flag is on (dev). Results are never fused:
+      // titles/snippets stay out of mentions, citations, and aggregates (A3).
+      await getJson<BraveWeb>(ctx, braveSearchUrl, { "X-Subscription-Token": ctx.env.BRAVE_API_KEY });
     }
-  } else {
+  } else if (!ctx.env.BRAVE_API_KEY || braveOff) {
     degradedFlags.push("brave");
   }
 
@@ -174,13 +159,12 @@ async function fetchGithub(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): Pr
     mentions.push({
       platform: "web",
       url: item.html_url,
-      author: item.user?.login ?? "github",
+      author: "",
       timestamp: ts.toISOString(),
-      text: cleanSnippet([item.title, item.body].filter(Boolean).join(" — ")).slice(0, 500),
+      text: cleanSnippet(item.title ?? "").slice(0, 500),
       engagement: item.comments ?? 1,
-      title: item.title,
     });
-    citations.push(cite(item.html_url, item.title ?? item.html_url, "github"));
+    citations.push(cite(item.html_url, "", "github"));
   }
   return { source: "github", mentions, citations };
 }
@@ -208,13 +192,12 @@ async function fetchStackOverflow(ctx: SourceCtx, plan: QueryPlan, win: TimeWind
     mentions.push({
       platform: "web",
       url: item.link,
-      author: item.owner?.display_name ?? "stackoverflow",
+      author: "",
       timestamp: ts.toISOString(),
-      text: cleanSnippet([item.title, item.body].filter(Boolean).join(" — ")).slice(0, 500),
+      text: cleanSnippet(item.title ?? "").slice(0, 500),
       engagement: item.score ?? 1,
-      title: item.title,
     });
-    citations.push(cite(item.link, item.title ?? item.link, "stackoverflow"));
+    citations.push(cite(item.link, "", "stackoverflow"));
   }
   return { source: "stackoverflow", mentions, citations };
 }

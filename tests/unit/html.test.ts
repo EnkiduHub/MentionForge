@@ -54,10 +54,10 @@ describe("html helpers", () => {
 <div id="fixture-root"><p class="muted">Loading snapshot…</p></div>`;
     const out = hydrateLandingHtml(src, mockEnv({ BRAVE_API_KEY: "brave" }), 15);
     expect(out).toContain('data-ready="true"');
-    expect(out).toContain("web: brave+wiki");
-    expect(out).toContain("reddit: public");
+    expect(out).toContain("web: wiki");
+    expect(out).toContain("reddit: disabled");
     expect(out).toContain('<p class="stat" id="calls">15</p>');
-    expect(out).toContain("Cloudflare Workers");
+    expect(out).toContain("Example Brand");
     expect(out).not.toContain("Loading snapshot");
     expect(out).not.toContain("ForgeCo");
     expect(out).not.toMatch(/0x[a-fA-F0-9]{40}/);

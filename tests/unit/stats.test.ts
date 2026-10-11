@@ -86,6 +86,7 @@ describe("public volume", () => {
   it("counts successful completions only and records source failures as errors", async () => {
     let allowPaid = false;
     const env = mockEnv({
+      DISABLED_SOURCES: "",
       PAID_LIMIT: { async limit() { return { success: allowPaid }; } },
     });
     const ctx = executionCtx();

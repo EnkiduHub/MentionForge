@@ -1,7 +1,5 @@
-import type { Mention, ResearchResponse } from "../../schemas/research";
+import type { ResearchResponse } from "../../schemas/research";
 import type { Platform } from "../constants";
-
-const PLACEHOLDER_AUTHOR = /^(wikipedia|wikidata|news|web|official|gdelt|hn|reddit|x|unknown)$/i;
 
 export function detectSignals(
   volume: ResearchResponse["volume"],
@@ -46,18 +44,3 @@ export function sentimentByPlatform(
   return out;
 }
 
-export function topVoices(mentions: Mention[]): ResearchResponse["voices"] {
-  const map = new Map<string, { author: string; platform: Mention["platform"]; mentions: number; engagement: number }>();
-  for (const m of mentions) {
-    const author = (m.author || "").trim();
-    if (!author || PLACEHOLDER_AUTHOR.test(author)) continue;
-    const key = `${m.platform}|${author.toLowerCase()}`;
-    const cur = map.get(key) ?? { author, platform: m.platform, mentions: 0, engagement: 0 };
-    cur.mentions += 1;
-    cur.engagement += m.engagement;
-    map.set(key, cur);
-  }
-  return [...map.values()]
-    .sort((a, b) => b.engagement - a.engagement || b.mentions - a.mentions)
-    .slice(0, 8);
-}

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Compliance output (MF-X-SAFE): allowlist-only REST/MCP JSON, X Post-ID rows only, Brave and reviews off by default, text-free cache, synthetic example, D1 rolling 30-day X ID cap, test-mode Stripe live-key gate. Theme labels come from a fixed vocabulary; citations are `{url, domain}`.
 - CDP Bazaar discovery copy: `resource.description` leads with brand monitoring and brand sentiment analysis; tag `MCP` replaced with `brand monitoring`. Descriptions stay ≤480 characters and do not claim a native Reddit or X feed.
 - Public `GET /stats` is successful product usage only: `{ calls, paid, trial }` with `calls` = paid + trial. Validation, rate limits, and other non-completions no longer increment `calls`. Operator ledger still includes raw `calls`, paid, trial, USDC, and errors. No D1 migration; redeploy the Worker after merge
 - CDP Bazaar keyword discovery: `resource.description` leads with brand sentiment and social listening, tags include `research_mentions`, and POST `/v1/research_mentions` is the same $0.02 research call whose resource URL contains that tool name. POST `/v1/research` stays the existing HTTP catalog row. Descriptions stay ≤480 characters and do not claim a native Reddit or X feed.

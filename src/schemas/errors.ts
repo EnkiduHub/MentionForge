@@ -11,6 +11,7 @@ export const errorCodeSchema = z.enum([
   "RATE_LIMITED",
   "TRIAL_EXHAUSTED",
   "SOURCE_UNAVAILABLE",
+  "X_ID_CAP_REACHED",
   "IDEMPOTENCY_CONFLICT",
   "INTERNAL_ERROR",
 ]);
@@ -38,6 +39,7 @@ const RECOVERABLE: Record<ErrorCode, boolean> = {
   RATE_LIMITED: true,
   TRIAL_EXHAUSTED: true,
   SOURCE_UNAVAILABLE: true,
+  X_ID_CAP_REACHED: true,
   IDEMPOTENCY_CONFLICT: true,
   INTERNAL_ERROR: false,
 };
@@ -52,6 +54,7 @@ const HTTP: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   TRIAL_EXHAUSTED: 402,
   SOURCE_UNAVAILABLE: 503,
+  X_ID_CAP_REACHED: 429,
   IDEMPOTENCY_CONFLICT: 409,
   INTERNAL_ERROR: 500,
 };
@@ -113,6 +116,8 @@ function defaultHint(code: ErrorCode): string {
       return "Free trial used. Pay $0.02 USDC via x402 PAYMENT-SIGNATURE and retry.";
     case "SOURCE_UNAVAILABLE":
       return "All upstream sources failed. Retry once after 15s with the same Idempotency-Key.";
+    case "X_ID_CAP_REACHED":
+      return "Rolling 30-day X Post-ID cap reached. Retry after retry_after_days." ;
     case "IDEMPOTENCY_CONFLICT":
       return "This Idempotency-Key was used with a different body. Generate a new UUID key.";
     default:

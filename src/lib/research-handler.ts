@@ -25,6 +25,7 @@ import { AgentError } from "../schemas/errors";
 import { bumpStats } from "./analytics";
 import { PAYMENT_EXPOSE_HEADERS } from "./cors";
 import { logRequest } from "./logger";
+import { decideXIdCap, incrementXIdUsage } from "./x-id-cap";
 
 type Waiter = { waitUntil(promise: Promise<unknown>): void };
 
@@ -142,7 +143,6 @@ export async function runResearchPipeline(
           request_id: requestId,
           latency_ms: Date.now() - started,
           sources_used: research.meta.sources_used,
-          sources_disabled: research.meta.sources_disabled,
           billing,
           next_queries: nextQueries(req),
           as_of: research.meta.as_of,
@@ -181,7 +181,6 @@ export async function persistResearch(
       request_id: requestId,
       latency_ms: Date.now() - started,
       sources_used: research.meta.sources_used,
-      sources_disabled: research.meta.sources_disabled,
       billing,
       next_queries: nextQueries(req),
       as_of: research.meta.as_of,
@@ -191,7 +190,8 @@ export async function persistResearch(
     freshness,
   );
   const overlaid = projectResearch(billed, req);
-  const response = project ? await project(overlaid) : overlaid;
+  const projected = project ? await project(overlaid) : overlaid;
+  const response = await enforceXIdCap(env, projected, requestId);
 
   await storeIdempotency(env, idempKey, bodyHash, response, billing);
   const queryHash = await sha256Hex(req.query.normalize("NFC").trim().toLowerCase());
@@ -315,6 +315,55 @@ function receiptHeaders(billing: Billing | null, env: Env): Record<string, strin
   const h: Record<string, string> = { "Cache-Control": "no-store" };
   if (billing && !billing.free_trial) h["PAYMENT-RESPONSE"] = paymentResponseHeader(billing.tx_hash, env);
   return h;
+}
+
+async function enforceXIdCap(
+  env: Env,
+  response: ResearchResponse | Record<string, unknown>,
+  requestId: string,
+): Promise<ResearchResponse | Record<string, unknown>> {
+  const rec = response as Record<string, unknown>;
+  const n = countReturnedXIds(rec);
+  const decision = await decideXIdCap(env, n);
+  if (decision.ok) {
+    await incrementXIdUsage(env, n);
+    return response;
+  }
+  const mentionsExport = "mentions" in rec && !("volume" in rec) && !("groups" in rec) && !("drafts" in rec) && !("signals" in rec);
+  if (mentionsExport) {
+    throw new AgentError("X_ID_CAP_REACHED", "Rolling X Post-ID cap reached.", {
+      request_id: requestId,
+      details: { code: "X_ID_CAP_REACHED", retry_after_days: decision.retry_after_days },
+    });
+  }
+  return stripReturnedXIds(rec);
+}
+
+function countReturnedXIds(rec: Record<string, unknown>): number {
+  if (Array.isArray(rec.x_post_ids)) return rec.x_post_ids.length;
+  if (Array.isArray(rec.mentions)) return rec.mentions.length;
+  const groups = rec.groups as Record<string, { x_post_ids?: string[] }> | undefined;
+  if (groups) {
+    return Object.values(groups).reduce((s, g) => s + (g.x_post_ids?.length ?? 0), 0);
+  }
+  return 0;
+}
+
+function stripReturnedXIds(rec: Record<string, unknown>): Record<string, unknown> {
+  const next: Record<string, unknown> = { ...rec, mentions: [], x_post_ids: [] };
+  if (rec.groups && typeof rec.groups === "object") {
+    const g = rec.groups as Record<string, Record<string, unknown>>;
+    const stripped: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(g)) {
+      stripped[k] = { ...v, x_post_ids: [], count: 0 };
+    }
+    next.groups = stripped;
+  }
+  const meta = { ...((rec.meta as Record<string, unknown>) ?? {}) };
+  const degraded = [...new Set([...(Array.isArray(meta.degraded) ? meta.degraded : []), "x_id_cap"])];
+  meta.degraded = degraded;
+  next.meta = meta;
+  return next;
 }
 
 function json(body: unknown, status: number, headers: Record<string, string>): Response {
@@ -464,25 +513,28 @@ export async function runLensPipeline(
     });
   } catch (err) {
     logRequest({ msg: "persist_after_settle_fail", err: String(err), request_id: requestId });
-    const response = await parsed.project(
-      projectResearch(
-        overlayBilling(
-          research,
-          {
-            request_id: requestId,
-            latency_ms: Date.now() - started,
-            sources_used: research.meta.sources_used,
-            sources_disabled: research.meta.sources_disabled,
-            billing,
-            next_queries: nextQueries(parsed.research),
-            as_of: research.meta.as_of,
-            confidence: research.meta.confidence,
-            degraded: research.meta.degraded,
-          },
-          freshness,
+    const response = await enforceXIdCap(
+      env,
+      await parsed.project(
+        projectResearch(
+          overlayBilling(
+            research,
+            {
+              request_id: requestId,
+              latency_ms: Date.now() - started,
+              sources_used: research.meta.sources_used,
+              billing,
+              next_queries: nextQueries(parsed.research),
+              as_of: research.meta.as_of,
+              confidence: research.meta.confidence,
+              degraded: research.meta.degraded,
+            },
+            freshness,
+          ),
+          parsed.research,
         ),
-        parsed.research,
       ),
+      requestId,
     );
     return json(response, 200, {
       ...receiptHeaders(billing, env),

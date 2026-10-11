@@ -48,13 +48,12 @@ export async function fetchWikidata(ctx: SourceCtx, plan: QueryPlan, win: TimeWi
     mentions.push({
       platform: "web",
       url: entityUrl,
-      author: "wikidata",
+      author: "",
       timestamp: stampInWindow(win),
       text: [e.label, e.description].filter(Boolean).join(" — "),
       engagement: 5,
-      title: e.label,
     });
-    citations.push(cite(entityUrl, e.label ?? "wikidata", "wikidata"));
+    citations.push(cite(entityUrl, "", "wikidata"));
   }
 
   const officialEntity = entities.find((e) => e.id && /^Q\d+$/i.test(e.id));
@@ -73,13 +72,12 @@ export async function fetchWikidata(ctx: SourceCtx, plan: QueryPlan, win: TimeWi
       mentions.push({
         platform: "web",
         url: site,
-        author: "official",
+        author: "",
         timestamp: stampInWindow(win),
         text: `${officialEntity?.label ?? plan.brand} official site`,
         engagement: 9,
-        title: officialEntity?.label,
       });
-      citations.push(cite(site, `${officialEntity?.label ?? plan.brand} official site`, "wikidata-official"));
+      citations.push(cite(site, "", "wikidata-official"));
     }
   }
 

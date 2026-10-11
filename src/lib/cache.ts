@@ -57,7 +57,7 @@ export async function putResearch(keyHex: string, body: CachedResearch, ttlSec: 
   }
 }
 
-/** Never persist billing, request_id, or latency — those are per payer. */
+/** Never persist billing, request_id, latency, voices, or raw text. */
 export function researchOnly(body: CachedResearch): CachedResearch {
   const meta = body.meta ?? { sources_used: [] };
   return {
@@ -65,16 +65,17 @@ export function researchOnly(body: CachedResearch): CachedResearch {
     timeframe: body.timeframe,
     volume: body.volume,
     sentiment: body.sentiment,
-    themes: body.themes,
-    mentions: body.mentions,
+    themes: (body.themes ?? []).map((t) => ({ theme: t.theme, count: t.count })),
+    mentions: body.mentions ?? [],
+    x_post_ids: body.x_post_ids ?? [],
     summary: body.summary,
-    citations: body.citations,
-    ...(body.share_of_voice ? { share_of_voice: body.share_of_voice } : {}),
+    citations: (body.citations ?? []).map((c) => ({ url: c.url, domain: c.domain })),
+    ...(body.share_of_voice
+      ? { share_of_voice: body.share_of_voice.map((r) => ({ brand: r.brand, mentions: r.mentions, share: r.share })) }
+      : {}),
     ...(body.signals ? { signals: body.signals } : {}),
-    ...(body.voices ? { voices: body.voices } : {}),
     meta: {
       sources_used: meta.sources_used,
-      ...(meta.sources_disabled?.length ? { sources_disabled: meta.sources_disabled } : {}),
       confidence: meta.confidence,
       degraded: meta.degraded,
       as_of: meta.as_of,
@@ -99,5 +100,16 @@ export async function putFlag(name: string, ttlSec: number): Promise<void> {
     );
   } catch {
     /* ignore */
+  }
+}
+
+/** Last Cache API payload for tests (A11). */
+export async function readCachedResearchBody(keyHex: string): Promise<unknown | null> {
+  try {
+    const res = await caches.default.match(cacheRequest(keyHex));
+    if (!res) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
 }

@@ -45,6 +45,7 @@ import {
   TRENDS_DESC,
 } from "./lib/mcp-desc";
 import { initPaidMcpSession, mcpToolError, wrapPaidTool } from "./lib/mcp-paid";
+import { assertStripeKeyMode } from "./lib/stripe-keys";
 import {
   compareInputSchema,
   compareOutputSchema,
@@ -113,6 +114,7 @@ function originHostnames(env: Env): string[] | "*" {
 }
 
 export async function handleMcp(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  assertStripeKeyMode(env);
   if (!originOk(request, env)) {
     return new Response(JSON.stringify({ error: "invalid origin" }), {
       status: 403,

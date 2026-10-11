@@ -493,7 +493,7 @@ describe("MCP origin + factory", () => {
     const themes = compact?.themes;
     expect(Array.isArray(mentions) && mentions.length).toBeLessThanOrEqual(8);
     expect(Array.isArray(citations) && citations.length).toBeLessThanOrEqual(8);
-    expect(Array.isArray(themes) && themes.every((t) => Array.isArray(asRecord(t)?.examples) && (asRecord(t)?.examples as unknown[]).length === 0)).toBe(true);
+    expect(Array.isArray(themes) && themes.every((t) => asRecord(t)?.examples === undefined)).toBe(true);
   });
 
   it("x402 resource description stays under the CDP verify length cap", async () => {
@@ -580,7 +580,7 @@ describe("MCP origin + factory", () => {
   });
 
   it("does not settle when paid research fails with SOURCE_UNAVAILABLE", async () => {
-    const session = await mcpInitialize();
+    const session = await mcpInitialize(mockEnv({ DISABLED_SOURCES: "" }));
     const { accepts } = await unpaidResearch(session);
     const stub = stubSourcesFetch({ failSources: true });
     const paid = await paidResearch(session, stubPayment(accepts[0]), "both");

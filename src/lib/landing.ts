@@ -32,11 +32,10 @@ export function hydrateLandingHtml(html: string, env: Env, calls: number): strin
   const sovBars = (ex.share_of_voice ?? [])
     .map((r) => barRow(r.brand, r.share * 100))
     .join("");
-  const mentions = (ex.mentions ?? [])
+  const mentions = (ex.citations ?? [])
     .slice(0, 4)
     .map((m) => {
-      const intent = m.intent ? `<span class="intent">${escapeHtml(m.intent)}</span>` : "";
-      return `<article class="mention"><header><span>${escapeHtml(m.platform)} · ${escapeHtml(m.author)}</span>${intent}</header><p>${escapeHtml(m.text.slice(0, 180))}</p></article>`;
+      return `<article class="mention"><header><span>${escapeHtml(m.domain)}</span></header><p>${escapeHtml(m.url.slice(0, 180))}</p></article>`;
     })
     .join("");
   const gallery = mcpToolCards()

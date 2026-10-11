@@ -58,13 +58,12 @@ export async function fetchNews(
       mentions.push({
         platform: "news",
         url: link,
-        author: "news",
+        author: "",
         timestamp: ts.toISOString(),
         text: title || link,
         engagement: 1,
-        title,
       });
-      citations.push(cite(link, title || link, "google-news"));
+      citations.push(cite(link, "", "google-news"));
     }
   } else {
     degraded = true;
@@ -84,13 +83,12 @@ export async function fetchNews(
         mentions.push({
           platform: "news",
           url: a.url,
-          author: a.domain ?? "gdelt",
+          author: "",
           timestamp: ts.toISOString(),
           text: a.title ?? a.url,
           engagement: 2,
-          title: a.title,
         });
-        citations.push(cite(a.url, a.title ?? a.url, "gdelt"));
+        citations.push(cite(a.url, "", "gdelt"));
       }
     }
   }
@@ -110,13 +108,12 @@ export async function fetchNews(
       mentions.push({
         platform: "news",
         url,
-        author: h.author ?? "hn",
+        author: "",
         timestamp: ts.toISOString(),
-        text: h.title ?? h.story_text ?? url,
+        text: h.title ?? url,
         engagement: (h.points ?? 0) + (h.num_comments ?? 0),
-        title: h.title ?? undefined,
       });
-      citations.push(cite(url, h.title ?? url, "hn"));
+      citations.push(cite(url, "", "hn"));
     }
     if (!hn) degraded = true;
   }
