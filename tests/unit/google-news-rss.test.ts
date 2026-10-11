@@ -164,7 +164,7 @@ describe("Google News RSS", () => {
     expect(gnewsMentionText(item!.title, item!.description, item!.source)).not.toContain(" — ");
   });
 
-  it("prefers a publisher article URL from the RSS and labels the citation with the source domain", () => {
+  it("prefers a publisher article URL from the RSS and labels the citation with the headline", () => {
     const xml = `<?xml version="1.0"?><rss><channel>
       <item>
         <title>ForgeCo direct - Wire</title>
@@ -184,9 +184,10 @@ describe("Google News RSS", () => {
     </channel></rss>`;
     const items = parseGoogleNewsRss(xml);
     expect(items[0]?.link).toBe("https://wire.example/forgeco-direct");
-    expect(gnewsCitationLabel(items[0]!)).toBe("wire.example");
+    expect(gnewsCitationLabel(items[0]!)).toBe("ForgeCo direct - Wire");
     expect(items[1]?.link).toBe("https://news.google.com/rss/articles/CBMiGoogleOnly");
-    expect(gnewsCitationLabel(items[1]!)).toBe("wire.example");
+    expect(gnewsCitationLabel(items[1]!)).toBe("ForgeCo google-only - Wire");
+    expect(gnewsCitationLabel({ title: "", link: "https://x.example/a", publisher: "wire.example" })).toBe("wire.example");
   });
 
   it("does not request a redirect host other than news.google.com or consent.google.com", async () => {
@@ -263,13 +264,13 @@ describe("Google News RSS", () => {
     expect(echo?.author).toBe("The Example Times");
     expect(echo?.url).toBe("https://news.google.com/rss/articles/CBMiRow");
     const echoCite = result.citations.find((c) => c.url === echo?.url);
-    expect(echoCite?.title).toBe("example.com");
+    expect(echoCite?.title).toBe("ForgeCo ships - The Example Times");
     expect(echoCite?.source).toBe("google-news");
     const direct = result.mentions.find((m) => m.title === "ForgeCo analysis - Wire");
     expect(direct?.url).toBe("https://wire.example/analysis");
     expect(direct?.publisher).toBe("wire.example");
     const directCite = result.citations.find((c) => c.url === "https://wire.example/analysis");
-    expect(directCite?.title).toBe("wire.example");
+    expect(directCite?.title).toBe("ForgeCo analysis - Wire");
     expect(result.citations.some((c) => c.url.includes("CBMiWire"))).toBe(false);
   });
 });

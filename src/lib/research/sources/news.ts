@@ -189,7 +189,7 @@ export function gnewsMentionText(title: string, description: string, sourceName?
 }
 
 export function gnewsCitationLabel(item: Pick<GoogleNewsItem, "title" | "link" | "source" | "publisher">): string {
-  return item.publisher || item.source || item.title || item.link;
+  return item.title || item.publisher || item.source || item.link;
 }
 
 export function gnewsDescriptionEchoesTitle(title: string, description: string, sourceName?: string): boolean {
