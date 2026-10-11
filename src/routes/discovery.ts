@@ -22,6 +22,7 @@ import {
   mcpServerInfo,
   mcpToolCards,
   PREFER_OVER,
+  sitemapXml,
 } from "../lib/discoverability";
 
 export const discoveryRoutes = new Hono<{ Bindings: Env }>();
@@ -301,7 +302,18 @@ discoveryRoutes.get("/skill.md", (c) => {
   });
 });
 
-discoveryRoutes.get("/robots.txt", () => {
+discoveryRoutes.get("/sitemap.xml", (c) => {
+  const origin = new URL(c.req.url).origin;
+  return new Response(sitemapXml(origin), {
+    headers: {
+      "content-type": "application/xml; charset=utf-8",
+      "cache-control": "public, max-age=3600",
+    },
+  });
+});
+
+discoveryRoutes.get("/robots.txt", (c) => {
+  const origin = new URL(c.req.url).origin;
   const txt = `User-agent: *
 Allow: /
 Allow: /.well-known/
@@ -316,6 +328,8 @@ Allow: /v1/pricing
 Allow: /v1/research/example
 Allow: /v1/entity
 Allow: /v1/suggest
+Allow: /sitemap.xml
+Sitemap: ${origin}/sitemap.xml
 `;
   return new Response(txt, { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
 });

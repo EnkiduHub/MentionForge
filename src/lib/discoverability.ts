@@ -171,6 +171,33 @@ export function discoveryDocs(origin: string) {
   };
 }
 
+/** Public GET surfaces for /sitemap.xml: landing, agent docs, and existing discovery routes. */
+export const PUBLIC_SITEMAP_PATHS = [
+  "/",
+  "/llms.txt",
+  "/llms-full.txt",
+  "/skill.md",
+  "/openapi.json",
+  "/server-card.json",
+  "/.well-known/mcp",
+  "/.well-known/x402",
+  "/health",
+  "/stats",
+  "/v1/pricing",
+  "/v1/research/example",
+  "/v1/entity",
+  "/v1/suggest",
+] as const;
+
+export function sitemapXml(origin: string): string {
+  const base = origin.replace(/\/$/, "");
+  const urls = PUBLIC_SITEMAP_PATHS.map((path) => {
+    const loc = path === "/" ? `${base}/` : `${base}${path}`;
+    return `  <url><loc>${loc}</loc></url>`;
+  }).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
+}
+
 export function directoryLinks() {
   return {
     github: DIRECTORY_LINKS.github,

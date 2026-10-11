@@ -542,6 +542,20 @@ describe("HTTP surfaces", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
+  it("GET /sitemap.xml is served even when ASSETS 404s", async () => {
+    const { default: worker } = await import("../../src/index");
+    const env = mockEnv({
+      ASSETS: { fetch: async () => new Response("not found", { status: 404 }) } as unknown as Env["ASSETS"],
+    });
+    const res = await worker.fetch(new Request("https://mentionforge.test/sitemap.xml"), env, executionCtx());
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toMatch(/xml/);
+    const xml = await res.text();
+    expect(xml).toContain("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+    expect(xml).toContain("<loc>https://mentionforge.test/llms.txt</loc>");
+    expect(xml).not.toMatch(/NOT_FOUND/);
+  });
+
   it("unknown routes return JSON 404 with error code NOT_FOUND", async () => {
     const res = await call("/this-route-does-not-exist");
     expect(res.status).toBe(404);
