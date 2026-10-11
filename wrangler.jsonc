@@ -26,7 +26,7 @@
     "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
     "ALLOWED_ORIGINS": "*",
     "SERVICE_VERSION": "1.2.2",
-    "DISABLED_SOURCES": "x,reddit,gnews,hn"
+    "DISABLED_SOURCES": "x,reddit,gnews"
   },
   "d1_databases": [
     {
@@ -90,7 +90,7 @@
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
         "SERVICE_VERSION": "1.2.2",
-        "DISABLED_SOURCES": "x,reddit,gnews,hn"
+        "DISABLED_SOURCES": "x,reddit,gnews"
       }
     },
     "production": {
@@ -121,7 +121,7 @@
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
         "SERVICE_VERSION": "1.2.2",
-        "DISABLED_SOURCES": "x,reddit,gnews,hn"
+        "DISABLED_SOURCES": "x,reddit,gnews"
       }
     }
   }

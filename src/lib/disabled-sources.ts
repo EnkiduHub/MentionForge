@@ -7,12 +7,15 @@ export const SUBSOURCE_IDS = ["gnews", "hn"] as const;
 export type SubsourceId = (typeof SUBSOURCE_IDS)[number];
 const SUBSOURCE_SET = new Set<string>(SUBSOURCE_IDS);
 
+/** Google News stays fail-closed. HN is a normal sub-source (off only when listed). */
+export const ALWAYS_DISABLED_SUBSOURCES: readonly SubsourceId[] = ["gnews"];
+
 /**
  * Production / staging / top-level wrangler value. Platforms `x` and `reddit`
- * plus always-off sub-sources `gnews` and `hn`. Do not add `news` — that would
- * disable GDELT.
+ * plus always-off sub-source `gnews`. Do not add `news` — that would disable
+ * GDELT. Do not add `hn` — Hacker News Algolia is on.
  */
-export const WRANGLER_DISABLED_SOURCES = "x,reddit,gnews,hn";
+export const WRANGLER_DISABLED_SOURCES = "x,reddit,gnews";
 
 /** Comma-separated platform ids from `DISABLED_SOURCES` (e.g. `x,reddit`). */
 export function parseDisabledSources(raw: string | undefined): Set<Platform> {
@@ -26,11 +29,11 @@ export function parseDisabledSources(raw: string | undefined): Set<Platform> {
 }
 
 /**
- * `gnews` and `hn` are fail-closed: disabled when `DISABLED_SOURCES` is unset,
- * empty, or lists them. No enable flag exists yet, so they stay off.
+ * `gnews` is fail-closed: disabled when `DISABLED_SOURCES` is unset, empty, or
+ * lists it. `hn` is enabled unless the comma list includes `hn`.
  */
 export function parseDisabledSubsources(raw: string | undefined): Set<SubsourceId> {
-  const disabled = new Set<SubsourceId>(SUBSOURCE_IDS);
+  const disabled = new Set<SubsourceId>(ALWAYS_DISABLED_SUBSOURCES);
   if (!raw?.trim()) return disabled;
   for (const part of raw.split(",")) {
     const id = part.trim().toLowerCase();

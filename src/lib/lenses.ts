@@ -1,5 +1,6 @@
 import { MAX_QUERY_CHARS, SAMPLE_QUERY } from "./constants";
 import { parseResearchInput, type Mention, type ResearchRequest, type ResearchResponse } from "../schemas/research";
+import { isHnPublicRow } from "./research/hn";
 import {
   compareInputSchema,
   digestInputSchema,
@@ -23,13 +24,30 @@ type Compact = {
   id: string;
   platform: Mention["platform"];
   url: string;
-  author: string;
-  text: string;
-  sentiment: number;
+  author?: string;
+  text?: string;
+  sentiment?: number;
   intent?: Mention["intent"];
+  story_url?: string;
+  created_bucket?: string;
+  points?: number;
+  comments?: number;
+  engagement?: number;
 };
 
 function compactOf(m: Mention): Compact {
+  if (isHnPublicRow(m)) {
+    return {
+      id: m.id,
+      platform: m.platform,
+      url: m.url,
+      ...(m.story_url ? { story_url: m.story_url } : {}),
+      created_bucket: m.created_bucket,
+      ...(typeof m.points === "number" ? { points: m.points } : {}),
+      ...(typeof m.comments === "number" ? { comments: m.comments } : {}),
+      engagement: m.engagement,
+    };
+  }
   return {
     id: m.id,
     platform: m.platform,
@@ -195,7 +213,7 @@ export function mapReply(raw: unknown): {
 
 function themesForBrand(full: ResearchResponse, attributed: Mention[]): string[] {
   const fromMentions = attributed.flatMap((m) => m.aspects ?? []);
-  const hay = attributed.map((m) => m.text.toLowerCase()).join(" ");
+  const hay = attributed.map((m) => (m.text ?? "").toLowerCase()).join(" ");
   const fromCatalog = full.themes.filter((t) => hay.includes(t.theme.toLowerCase())).map((t) => t.theme);
   return [...new Set([...fromMentions, ...fromCatalog])].slice(0, 3);
 }
@@ -203,11 +221,12 @@ function themesForBrand(full: ResearchResponse, attributed: Mention[]): string[]
 export function projectCompare(full: ResearchResponse, brands: string[]): Record<string, unknown> {
   const sov = full.share_of_voice ?? brands.map((brand) => ({ brand, mentions: 0, engagement: 0, share: 0 }));
   const brands_detail = brands.map((brand) => {
-    const attributed = full.mentions.filter((m) => brandHits(`${m.text} ${m.url}`, brand));
+    const attributed = full.mentions.filter((m) => brandHits(`${m.text ?? ""} ${m.url}`, brand));
+    const scored = attributed.filter((m) => typeof m.sentiment === "number");
     const sentiment =
-      attributed.length === 0
+      scored.length === 0
         ? 0
-        : Number((attributed.reduce((s, m) => s + m.sentiment, 0) / attributed.length).toFixed(4));
+        : Number((scored.reduce((s, m) => s + (m.sentiment ?? 0), 0) / scored.length).toFixed(4));
     const themes = themesForBrand(full, attributed);
     return { brand, sentiment, mention_count: attributed.length, themes };
   });
@@ -224,11 +243,11 @@ export function projectCompare(full: ResearchResponse, brands: string[]): Record
 
 export function projectDigest(full: ResearchResponse): Record<string, unknown> {
   const praise = take(
-    full.mentions.filter((m) => m.intent === "praise" || m.sentiment > 0.12),
+    full.mentions.filter((m) => m.intent === "praise" || (m.sentiment ?? 0) > 0.12),
     5,
   );
   const pain = take(
-    full.mentions.filter((m) => m.intent === "complaint" || m.sentiment < -0.12),
+    full.mentions.filter((m) => m.intent === "complaint" || (m.sentiment ?? 0) < -0.12),
     5,
   );
   const news = take(
@@ -240,7 +259,7 @@ export function projectDigest(full: ResearchResponse): Record<string, unknown> {
     5,
   );
   const reply_worthy = take(
-    full.mentions.filter((m) => m.intent === "question" || m.intent === "complaint" || m.sentiment < -0.12),
+    full.mentions.filter((m) => m.intent === "question" || m.intent === "complaint" || (m.sentiment ?? 0) < -0.12),
     5,
   );
   return {
@@ -251,6 +270,18 @@ export function projectDigest(full: ResearchResponse): Record<string, unknown> {
 }
 
 function exportOf(m: Mention) {
+  if (isHnPublicRow(m)) {
+    return {
+      id: m.id,
+      platform: m.platform,
+      url: m.url,
+      ...(m.story_url ? { story_url: m.story_url } : {}),
+      created_bucket: m.created_bucket,
+      ...(typeof m.points === "number" ? { points: m.points } : {}),
+      ...(typeof m.comments === "number" ? { comments: m.comments } : {}),
+      engagement: m.engagement,
+    };
+  }
   return {
     id: m.id,
     platform: m.platform,
@@ -285,8 +316,8 @@ export function projectTrends(full: ResearchResponse): Record<string, unknown> {
 
 export function projectRisk(full: ResearchResponse): Record<string, unknown> {
   const negatives = [...full.mentions]
-    .filter((m) => m.sentiment < 0 || m.intent === "complaint")
-    .sort((a, b) => a.sentiment - b.sentiment)
+    .filter((m) => (m.sentiment ?? 0) < 0 || m.intent === "complaint")
+    .sort((a, b) => (a.sentiment ?? 0) - (b.sentiment ?? 0))
     .slice(0, 5)
     .map(compactOf);
   return {
@@ -309,10 +340,10 @@ function pickReplyMentions(full: ResearchResponse, input: ReplyInput): Mention[]
   }
   if (input.quote) {
     const q = input.quote.toLowerCase().slice(0, 80);
-    const hit = full.mentions.find((m) => m.text.toLowerCase().includes(q));
+    const hit = full.mentions.find((m) => (m.text ?? "").toLowerCase().includes(q));
     if (hit) return [hit];
   }
-  const worthy = full.mentions.filter((m) => m.intent === "question" || m.intent === "complaint" || m.sentiment < -0.12);
+  const worthy = full.mentions.filter((m) => m.intent === "question" || m.intent === "complaint" || (m.sentiment ?? 0) < -0.12);
   return (worthy.length ? worthy : full.mentions).slice(0, 3);
 }
 

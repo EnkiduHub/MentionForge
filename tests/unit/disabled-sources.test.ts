@@ -54,8 +54,11 @@ describe("DISABLED_SOURCES", () => {
       const url = String(input instanceof Request ? input.url : input);
       seen.push(url);
       assertNoDisabledSocialFetch(url);
-      if (url.startsWith("https://news.google.com/") || url.startsWith("https://hn.algolia.com/")) {
+      if (url.startsWith("https://news.google.com/")) {
         throw new Error(`forbidden host fetch ${url}`);
+      }
+      if (url.startsWith("https://hn.algolia.com/")) {
+        return jsonResponse({ hits: [] });
       }
       if (url.includes("wikipedia.org/w/api.php")) {
         return jsonResponse({ query: { search: [{ title: "ForgeCo", snippet: "A fictional brand" }] } });
