@@ -281,10 +281,11 @@ Skill: ${origin}/skill.md
 Payment meta: _meta["x402/payment"] / _meta["x402/payment-response"]
 
 ## Sources
-Default platforms are reddit, news, web, reviews, and x. Native Reddit search and X recent-search are optional operator upgrades (currently off via DISABLED_SOURCES). News is GDELT plus Hacker News Algolia (URLs and counts only). Google News is permanently off. GET /health lists source_backends.
+Default live sources: Wikipedia/Wikidata, Brave web results, Google News RSS, GDELT, Hacker News, and Trustpilot/G2/Capterra review targeting. News rows include title plus a short snippet; citation labels are headlines.
+Native X and Reddit stay off (DISABLED_SOURCES=x,reddit) until developer API keys exist. GET /health lists source_backends.
 
 ## Output
-volume, sentiment, themes, mentions (id, platform, url, author, timestamp, text, engagement, sentiment, optional intent/aspects/relevance; Hacker News rows are URLs and counts only), citations, summary, optional share_of_voice / signals / voices / markdown, meta.billing, meta.as_of, meta.freshness, meta.next_queries
+volume, sentiment, themes, mentions (id, platform, url, author, timestamp, text, engagement, sentiment, optional intent/aspects/relevance), citations, summary, optional share_of_voice / signals / voices / markdown, meta.billing, meta.as_of, meta.freshness, meta.next_queries
 `;
   return sendPublic(c, txt, 200, { "Cache-Control": "public, max-age=300" }, {
     title: "Full agent guide",

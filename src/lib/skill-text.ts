@@ -42,5 +42,5 @@ Read [GET /v1/research/example](https://mentionforge.mentionforge.workers.dev/v1
 
 ## Output
 
-\`volume\`, \`sentiment\`, \`themes\`, \`mentions\` (id, platform, url, author, timestamp, text ≤500, engagement, sentiment, optional intent/aspects/relevance; Hacker News rows are URLs and counts only), \`citations\`, optional \`summary\` / \`share_of_voice\` / \`signals\` / \`voices\` / \`markdown\`, \`meta.billing\`, \`meta.as_of\`, \`meta.freshness\`, \`meta.next_queries\`.
+\`volume\`, \`sentiment\`, \`themes\`, \`mentions\` (id, platform, url, author, timestamp, text ≤500, engagement, sentiment, optional intent/aspects/relevance), \`citations\`, optional \`summary\` / \`share_of_voice\` / \`signals\` / \`voices\` / \`markdown\`, \`meta.billing\`, \`meta.as_of\`, \`meta.freshness\`, \`meta.next_queries\`.
 `;

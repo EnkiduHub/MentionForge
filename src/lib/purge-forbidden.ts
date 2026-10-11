@@ -6,9 +6,8 @@
  * `https://x.com/i/status/<id>`, and `created_bucket`.
  */
 
-export const FORBIDDEN_HOSTS = [
-  "news.google.com",
-] as const;
+/** Hosts that must not remain in cache/D1. Google News and HN are live sources. */
+export const FORBIDDEN_HOSTS = [] as const;
 
 const X_FIELD_HITS = new Set([
   "text",

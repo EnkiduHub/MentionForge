@@ -90,18 +90,14 @@ export const mentionSchema = z
     id: z.string().describe("Stable mention id within this response"),
     platform: platformSchema.describe("Surface this mention was gathered from"),
     url: z.string().describe("Canonical URL of the mention, or empty when the source had no permalink"),
-    author: z.string().optional().describe("Display name or handle. Omitted on Hacker News rows."),
-    timestamp: z.string().optional().describe("When the mention was published or accessed (ISO-8601 when known). Omitted on Hacker News rows (see created_bucket)."),
-    text: z.string().optional().describe("Mention body, truncated to the engine cap. Omitted on Hacker News rows."),
-    engagement: z.number().describe("Relative engagement score (0 when unknown); HN rows use points + comments"),
-    sentiment: z.number().min(-1).max(1).optional().describe("Per-mention sentiment from -1 (negative) to 1 (positive). Omitted on Hacker News rows."),
+    author: z.string().describe("Display name or handle; may be empty"),
+    timestamp: z.string().describe("When the mention was published or accessed (ISO-8601 when known)"),
+    text: z.string().describe("Mention body, truncated to the engine cap"),
+    engagement: z.number().describe("Relative engagement score (0 when unknown)"),
+    sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 (negative) to 1 (positive)"),
     intent: intentSchema.optional().describe("Optional intent class for this mention"),
     aspects: z.array(aspectSchema).optional().describe("Optional product aspects tagged on this mention"),
     relevance: z.number().min(0).max(1).optional().describe("Optional 0–1 overlap with the query"),
-    story_url: z.string().optional().describe("HN external story URL when it differs from the item URL"),
-    created_bucket: z.string().optional().describe("HN daily UTC created bucket (ISO-8601 midnight)"),
-    points: z.number().optional().describe("HN story points"),
-    comments: z.number().optional().describe("HN comment count"),
   })
   .strict();
 

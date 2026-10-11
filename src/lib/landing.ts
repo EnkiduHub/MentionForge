@@ -36,7 +36,7 @@ export function hydrateLandingHtml(html: string, env: Env, calls: number): strin
     .slice(0, 4)
     .map((m) => {
       const intent = m.intent ? `<span class="intent">${escapeHtml(m.intent)}</span>` : "";
-      return `<article class="mention"><header><span>${escapeHtml(m.platform)} · ${escapeHtml(m.author ?? "")}</span>${intent}</header><p>${escapeHtml((m.text ?? "").slice(0, 180))}</p></article>`;
+      return `<article class="mention"><header><span>${escapeHtml(m.platform)} · ${escapeHtml(m.author)}</span>${intent}</header><p>${escapeHtml(m.text.slice(0, 180))}</p></article>`;
     })
     .join("");
   const gallery = mcpToolCards()

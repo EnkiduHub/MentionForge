@@ -8,11 +8,6 @@ export type SourceMention = {
   text: string;
   engagement: number;
   title?: string;
-  /** Internal origin tag; never serialized on paid mentions. */
-  origin?: "hn" | "gdelt";
-  story_url?: string;
-  points?: number;
-  comments?: number;
 };
 
 export type SourceResult = {

@@ -161,7 +161,7 @@ Cache stores **research only** (never `meta.billing`, `request_id`, `latency_ms`
 
 Paid tools share **one gather**. `research_mentions` (optional compact/focus/markdown), `compare_brands`, `get_digest`, `detect_risk`, `draft_reply`, `list_mentions`, and `get_trends` project from that gather. Call exactly one paid tool per question; the 10-call trial is shared.
 
-Default research sources are web and news (Wikipedia/Wikidata, Brave, GDELT, Hacker News Algolia, and review-site web results). Hacker News rows are URLs and counts only. Google News is permanently off. X and Reddit stay in `DISABLED_SOURCES`. Query-gated GitHub/Stack Overflow run **inside** the web adapter (not a sixth platform).
+Default research sources are web and news: Wikipedia/Wikidata, Brave web results, Google News RSS, GDELT, Hacker News, and Trustpilot/G2/Capterra review-site web results. Query-gated GitHub/Stack Overflow run **inside** the web adapter (not a sixth platform). Native X and Reddit stay off (`DISABLED_SOURCES=x,reddit`) until developer API keys exist; news rows include title plus a short snippet, and citation labels are headlines.
 
 ## Quick start
 

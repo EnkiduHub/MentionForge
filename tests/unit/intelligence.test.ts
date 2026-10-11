@@ -224,7 +224,7 @@ describe("vs query scoring", () => {
       "req",
       executionCtx(),
     );
-    const hit = body.mentions.find((m) => /RivalCo/i.test(m.text ?? ""));
+    const hit = body.mentions.find((m) => /RivalCo/i.test(m.text));
     expect(hit).toBeTruthy();
     expect(hit?.relevance ?? 0).toBeGreaterThan(0);
   });

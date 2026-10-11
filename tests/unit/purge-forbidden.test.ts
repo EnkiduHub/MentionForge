@@ -15,15 +15,15 @@ const allowedXRow = {
 };
 
 describe("purge-forbidden sanitizer", () => {
-  it("flags Google News and reddit URLs; HN hosts are keep", () => {
+  it("keeps Google News and HN URLs; still flags reddit URLs", () => {
     const gnews = sanitizeStoredRecord({
-      citations: [{ url: "https://news.google.com/rss/articles/abc", title: "g", source: "google-news" }],
+      citations: [{ url: "https://news.google.com/rss/articles/abc", title: "ForgeCo ships", source: "google-news" }],
     });
-    expect(gnews.hits.some((h) => h.host === "news.google.com")).toBe(true);
-    expect(gnews.action).not.toBe("keep");
+    expect(gnews.hits.some((h) => h.host === "news.google.com")).toBe(false);
+    expect(gnews.action).toBe("keep");
 
     const hn = sanitizeStoredRecord({
-      citations: [{ url: "https://news.ycombinator.com/item?id=1", title: "example.com", source: "hn" }],
+      citations: [{ url: "https://news.ycombinator.com/item?id=1", title: "ForgeCo on HN", source: "hn" }],
     });
     expect(hn.hits.some((h) => h.host === "news.ycombinator.com")).toBe(false);
     expect(hn.action).toBe("keep");
@@ -143,6 +143,7 @@ describe("purge-forbidden sanitizer", () => {
     const b = bindingsFromWrangler(doc, "production");
     expect(b.d1_databases[0]?.database_name).toBe("mentionforge");
     expect(b.kv_namespaces).toEqual([]);
-    expect(WRANGLER_DISABLED_SOURCES).toContain("gnews");
+    expect(WRANGLER_DISABLED_SOURCES).toBe("x,reddit");
+    expect(WRANGLER_DISABLED_SOURCES).not.toContain("gnews");
   });
 });

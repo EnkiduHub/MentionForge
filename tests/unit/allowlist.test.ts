@@ -10,6 +10,8 @@ describe("allowlist", () => {
     expect(() => assertAllowedUrl("http://api.github.com/")).toThrow(/non-https/);
     expect(assertAllowedUrl("https://api.github.com/search/issues").hostname).toBe("api.github.com");
     expect(assertAllowedUrl("https://api.stackexchange.com/2.3/search").hostname).toBe("api.stackexchange.com");
+    expect(assertAllowedUrl("https://news.google.com/rss/search?q=ForgeCo").hostname).toBe("news.google.com");
+    expect(assertAllowedUrl("https://hn.algolia.com/api/v1/search?query=ForgeCo").hostname).toBe("hn.algolia.com");
   });
 
   it("refuses redirects off the allowlist", async () => {

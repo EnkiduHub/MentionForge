@@ -16,15 +16,10 @@ const compactMentionSchema = z.object({
   id: z.string().describe("Mention id from this gather"),
   platform: platformSchema.describe("Surface this mention was gathered from"),
   url: z.string().describe("Canonical URL, or empty when the source had no permalink"),
-  author: z.string().optional().describe("Display name or handle. Omitted on Hacker News rows."),
-  text: z.string().optional().describe("Mention body, truncated. Omitted on Hacker News rows."),
-  sentiment: z.number().min(-1).max(1).optional().describe("Per-mention sentiment from -1 to 1. Omitted on Hacker News rows."),
+  author: z.string().describe("Display name or handle; may be empty"),
+  text: z.string().describe("Mention body, truncated"),
+  sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 to 1"),
   intent: intentSchema.optional().describe("Optional intent class for this mention"),
-  story_url: z.string().optional().describe("HN external story URL when it differs from the item URL"),
-  created_bucket: z.string().optional().describe("HN daily UTC created bucket"),
-  points: z.number().optional().describe("HN story points"),
-  comments: z.number().optional().describe("HN comment count"),
-  engagement: z.number().optional().describe("Relative engagement; HN rows use points + comments"),
 });
 
 const lensMetaSchema = z.object({
@@ -252,16 +247,12 @@ export const exportMentionSchema = z.object({
   id: z.string().describe("Mention id from this gather"),
   platform: platformSchema.describe("Surface this mention was gathered from"),
   url: z.string().describe("Canonical URL, or empty when the source had no permalink"),
-  author: z.string().optional().describe("Display name or handle. Omitted on Hacker News rows."),
-  text: z.string().optional().describe("Mention body, truncated. Omitted on Hacker News rows."),
-  timestamp: z.string().optional().describe("When the mention was published or accessed. Omitted on Hacker News rows."),
-  engagement: z.number().describe("Relative engagement score (0 when unknown); HN rows use points + comments"),
-  sentiment: z.number().min(-1).max(1).optional().describe("Per-mention sentiment from -1 to 1. Omitted on Hacker News rows."),
+  author: z.string().describe("Display name or handle; may be empty"),
+  text: z.string().describe("Mention body, truncated"),
+  timestamp: z.string().describe("When the mention was published or accessed (ISO-8601 when known)"),
+  engagement: z.number().describe("Relative engagement score (0 when unknown)"),
+  sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 to 1"),
   intent: intentSchema.optional().describe("Optional intent class for this mention"),
-  story_url: z.string().optional().describe("HN external story URL when it differs from the item URL"),
-  created_bucket: z.string().optional().describe("HN daily UTC created bucket"),
-  points: z.number().optional().describe("HN story points"),
-  comments: z.number().optional().describe("HN comment count"),
 });
 
 export const listOutputSchema = z.object({

@@ -164,28 +164,6 @@ export const sampleReq: ResearchRequest = {
   include_summary: true,
 };
 
-export const HN_STUB_TITLE = "ForgeCoSecretHeadlineFromAlgolia";
-export const HN_STUB_AUTHOR = "hnuser_dang_secret";
-export const HN_STUB_OBJECT_ID = "42424242";
-export const HN_STUB_STORY = "https://example.com/forgeco-hn-story";
-
-export function hnAlgoliaJson() {
-  return {
-    hits: [
-      {
-        objectID: HN_STUB_OBJECT_ID,
-        title: HN_STUB_TITLE,
-        url: HN_STUB_STORY,
-        author: HN_STUB_AUTHOR,
-        created_at: new Date().toISOString(),
-        points: 17,
-        num_comments: 5,
-        story_text: null,
-      },
-    ],
-  };
-}
-
 export function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
 }
@@ -291,10 +269,27 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
       return jsonResponse({ search: [{ id: "Q1", label: "ForgeCo", description: "fictional", concepturi: "https://www.wikidata.org/entity/Q1" }] });
     }
     if (url.startsWith("https://news.google.com/")) {
-      throw new Error(`forbidden host fetch ${url}`);
+      const pub = new Date().toUTCString();
+      return new Response(
+        `<?xml version="1.0"?><rss><channel><item><title><![CDATA[ForgeCo ships from Google News]]></title><link>https://example.com/forgeco-gnews</link><description><![CDATA[ForgeCo coverage on Google News.]]></description><pubDate>${pub}</pubDate></item></channel></rss>`,
+        { status: 200, headers: { "content-type": "application/rss+xml" } },
+      );
     }
     if (url.startsWith("https://hn.algolia.com/")) {
-      return jsonResponse(hnAlgoliaJson());
+      return jsonResponse({
+        hits: [
+          {
+            objectID: "1",
+            title: "ForgeCo on HN",
+            url: "https://example.com/forgeco-hn",
+            author: "ops",
+            created_at: new Date().toISOString(),
+            points: 10,
+            num_comments: 2,
+            story_text: "ForgeCo discussion",
+          },
+        ],
+      });
     }
     if (url.includes("api.github.com")) {
       return jsonResponse({

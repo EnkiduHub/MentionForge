@@ -55,7 +55,11 @@ describe("DISABLED_SOURCES", () => {
       seen.push(url);
       assertNoDisabledSocialFetch(url);
       if (url.startsWith("https://news.google.com/")) {
-        throw new Error(`forbidden host fetch ${url}`);
+        const pub = new Date().toUTCString();
+        return new Response(
+          `<?xml version="1.0"?><rss><channel><item><title><![CDATA[ForgeCo ships from Google News]]></title><link>https://example.com/forgeco-gnews</link><description><![CDATA[ForgeCo coverage.]]></description><pubDate>${pub}</pubDate></item></channel></rss>`,
+          { status: 200, headers: { "content-type": "application/rss+xml" } },
+        );
       }
       if (url.startsWith("https://hn.algolia.com/")) {
         return jsonResponse({ hits: [] });
