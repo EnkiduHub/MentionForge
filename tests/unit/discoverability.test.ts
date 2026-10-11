@@ -1,10 +1,13 @@
 import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
-import { DIRECTORY_LINKS, mcpToolCards } from "../../src/lib/discoverability";
+import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, toolInputJsonSchema } from "../../src/lib/discoverability";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
+import { healthInputSchema } from "../../src/schemas/lenses";
+import { researchRequestSchema } from "../../src/schemas/research";
 import { executionCtx, mockEnv } from "../helpers/env";
 
 const app = createApp();
@@ -68,12 +71,13 @@ describe("agent discoverability", () => {
     const res = await call("/server-card.json");
     expect(res.status).toBe(200);
     const card = await res.json() as {
-      tools: Array<{ name: string; description: string; when_to_use: string }>;
+      tools: Array<{ name: string; description: string; when_to_use: string; inputSchema?: unknown }>;
       prefer_over: string[];
       install: { mcpServers: { mentionforge: { url: string } } };
       docs: { llms: string; llms_full: string; skill: string };
       directories: { github: string };
       pricing: { pay_to: string; tool: string };
+      serverInfo?: { name: string; version: string };
     };
     expect(card.tools.map((t) => t.name).slice(0, 5)).toEqual([
       "get_health",
@@ -181,6 +185,36 @@ describe("agent discoverability", () => {
     ]);
     expect(cards.map((c) => c.name)).toContain("research_mentions");
     expect(JSON.stringify(cards)).not.toMatch(/0x[a-fA-F0-9]{40}/);
+  });
+
+  it("server card serverInfo matches package.json and tool inputSchema matches live Zod", async () => {
+    const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
+      version: string;
+    };
+    expect(mcpServerInfo()).toEqual({ name: "MentionForge", version: pkg.version });
+
+    const res = await call("/server-card.json");
+    expect(res.status).toBe(200);
+    const card = (await res.json()) as {
+      serverInfo: { name: string; version: string };
+      tools: Array<{ name: string; inputSchema: unknown }>;
+    };
+    expect(card.serverInfo).toEqual(mcpServerInfo());
+    expect(card.serverInfo.version).toBe(pkg.version);
+
+    const live = mcpToolCards();
+    expect(card.tools.map((t) => t.name)).toEqual(live.map((t) => t.name));
+    for (const tool of card.tools) {
+      const def = live.find((t) => t.name === tool.name);
+      expect(tool.inputSchema, tool.name).toEqual(def?.inputSchema);
+      expect(tool.inputSchema).toMatchObject({ type: "object" });
+    }
+    expect(card.tools.find((t) => t.name === "get_health")?.inputSchema).toEqual(
+      toolInputJsonSchema(healthInputSchema),
+    );
+    expect(card.tools.find((t) => t.name === "research_mentions")?.inputSchema).toEqual(
+      z.toJSONSchema(researchRequestSchema, { target: "draft-2020-12", io: "input" }),
+    );
   });
 
   it("Glama stdio bridge is a mcp-remote proxy to the hosted Worker, not a Worker clone", () => {
