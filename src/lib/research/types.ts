@@ -8,6 +8,8 @@ export type SourceMention = {
   text: string;
   engagement: number;
   title?: string;
+  /** Publisher name or domain from Google News `<source>` when present. */
+  publisher?: string;
 };
 
 export type SourceResult = {

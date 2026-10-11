@@ -39,6 +39,10 @@ export type GoogleNewsItem = {
   link: string;
   description: string;
   pubDate: string;
+  /** Publisher display name from the RSS `<source>` element. */
+  source?: string;
+  /** Registrable hostname from `<source url>`, without a leading `www.`. */
+  publisher?: string;
 };
 
 /** Browser-like UA. The product UA is often sent to Google's consent interstitial from Workers IPs. */
@@ -73,17 +77,20 @@ export async function fetchNews(
       for (const item of parseGoogleNewsRss(rss)) {
         const ts = item.pubDate ? new Date(item.pubDate) : new Date();
         if (ts < win.from || ts > win.to) continue;
-        const snippet = [...new Set([item.title, item.description].filter(Boolean))].join(" — ") || item.link;
+        const snippet = gnewsMentionText(item.title, item.description, item.source) || item.link;
         mentions.push({
           platform: "news",
           url: item.link,
-          author: "news",
+          author: item.source || item.publisher || "news",
           timestamp: ts.toISOString(),
           text: snippet,
           engagement: 1,
           title: item.title,
+          ...(item.publisher || item.source
+            ? { publisher: item.publisher || item.source }
+            : {}),
         });
-        citations.push(cite(item.link, item.title || item.link, "google-news"));
+        citations.push(cite(item.link, gnewsCitationLabel(item), "google-news"));
       }
     } else {
       degraded = true;
@@ -152,22 +159,56 @@ export function parseGoogleNewsRss(xml: string): GoogleNewsItem[] {
   for (const item of xml.matchAll(/<item\b[\s\S]*?<\/item>/gi)) {
     const block = item[0] ?? "";
     const title = cleanSnippet(decodeXml(tag(block, "title")));
-    let link = decodeXml(tag(block, "link")).trim();
-    if (!link) {
-      const guid = decodeXml(tag(block, "guid")).trim();
-      if (/^https?:\/\//i.test(guid)) link = guid;
-    }
-    if (!link) {
-      const href = /<link\b[^>]*\bhref=["']([^"']+)["']/i.exec(block)?.[1];
-      if (href) link = decodeXml(href).trim();
-    }
-    const description = cleanSnippet(decodeXml(tag(block, "description")));
+    const rawDescription = decodeXml(tag(block, "description"));
+    const description = cleanSnippet(rawDescription);
     const pubDate = tag(block, "pubDate");
+    const src = parseRssSource(block);
+    const publisher = src.url ? registrableHost(src.url) : undefined;
+    const link = pickGnewsArticleUrl(block, rawDescription);
     if (!link) continue;
-    items.push({ title, link, description, pubDate });
+    items.push({
+      title,
+      link,
+      description,
+      pubDate,
+      ...(src.name ? { source: src.name } : {}),
+      ...(publisher ? { publisher } : {}),
+    });
     if (items.length >= 25) break;
   }
   return items;
+}
+
+/** Strip HTML (via `cleanSnippet`) is done by the caller; drop a description that only repeats the headline. */
+export function gnewsMentionText(title: string, description: string, sourceName?: string): string {
+  const t = title.trim();
+  const d = description.trim();
+  if (!t) return d;
+  if (!d || gnewsDescriptionEchoesTitle(t, d, sourceName)) return t;
+  return `${t} — ${d}`;
+}
+
+export function gnewsCitationLabel(item: Pick<GoogleNewsItem, "title" | "link" | "source" | "publisher">): string {
+  return item.publisher || item.source || item.title || item.link;
+}
+
+export function gnewsDescriptionEchoesTitle(title: string, description: string, sourceName?: string): boolean {
+  const t = collapseWs(title);
+  const d = collapseWs(description);
+  if (!d) return true;
+  const tLower = t.toLowerCase();
+  const dLower = d.toLowerCase();
+  if (dLower === tLower) return true;
+  const tCore = stripTrailingSource(t, sourceName).toLowerCase();
+  const dCore = stripTrailingSource(d, sourceName).toLowerCase();
+  if (dCore === tCore || dCore === tLower || dLower === tCore) return true;
+  if (sourceName) {
+    const src = collapseWs(sourceName).toLowerCase();
+    if (!src) return false;
+    if (dLower === `${tLower} ${src}` || dLower === `${tCore} ${src}`) return true;
+    if (dLower === `${tLower} - ${src}` || dLower === `${tCore} - ${src}`) return true;
+  }
+  return false;
 }
 
 export async function fetchGoogleNewsRss(ctx: SourceCtx, url: string): Promise<string | null> {
@@ -189,9 +230,21 @@ async function fetchGoogleNewsRssOnce(startUrl: string, withConsentCookie: boole
   const headers = gnewsHeaders(withConsentCookie);
   let current = startUrl;
   for (let hop = 0; hop <= GNEWS_MAX_HOPS; hop++) {
+    let currentUrl: URL;
+    try {
+      currentUrl = new URL(current);
+    } catch {
+      logGnewsFailure({ reason: "http", host: hostOf(current), snippet: "invalid url" });
+      return null;
+    }
+    if (currentUrl.protocol !== "https:" || !isGnewsFetchHost(currentUrl.hostname)) {
+      logGnewsFailure({ reason: "http", host: currentUrl.hostname, snippet: "blocked redirect host" });
+      return null;
+    }
+
     const res = await fetch(current, {
       method: "GET",
-      redirect: "follow",
+      redirect: "manual",
       signal: abortMs(SOURCE_TIMEOUT_MS),
       headers,
     });
@@ -219,19 +272,18 @@ async function fetchGoogleNewsRssOnce(startUrl: string, withConsentCookie: boole
         logGnewsFailure({ reason: "http", status: res.status, host, contentType, snippet: loc.slice(0, 120) });
         return null;
       }
-      if (isConsentHost(next.hostname)) {
-        if (!withConsentCookie) return fetchGoogleNewsRssOnce(startUrl, true);
-        logGnewsFailure({ reason: "consent", status: res.status, host: next.hostname, contentType, snippet: "" });
-        return null;
-      }
-      if (next.protocol !== "https:" || next.hostname !== "news.google.com") {
+      if (next.protocol !== "https:" || !isGnewsFetchHost(next.hostname)) {
         logGnewsFailure({
           reason: "http",
           status: res.status,
           host: next.hostname,
           contentType,
-          snippet: "",
+          snippet: "blocked redirect host",
         });
+        return null;
+      }
+      if (hop === GNEWS_MAX_HOPS) {
+        logGnewsFailure({ reason: "http", status: 310, host: next.hostname, snippet: "too many redirects" });
         return null;
       }
       current = next.href;
@@ -280,6 +332,12 @@ function looksLikeRss(body: string): boolean {
 function isConsentHost(host: string): boolean {
   const h = host.toLowerCase();
   return h === "consent.google.com" || h.endsWith(".consent.google.com");
+}
+
+/** Only these hosts may be requested while resolving the Google News RSS feed. */
+export function isGnewsFetchHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === "news.google.com" || isConsentHost(h);
 }
 
 function locationIsConsent(res: Response): boolean {
@@ -339,6 +397,66 @@ function logGnewsFailure(fields: {
       snippet: (fields.snippet ?? "").replace(/\s+/g, " ").slice(0, 120),
     }),
   );
+}
+
+function parseRssSource(block: string): { name: string; url: string } {
+  const m = /<source\b([^>]*)>([\s\S]*?)<\/source>/i.exec(block);
+  if (!m) return { name: "", url: "" };
+  const urlRaw = /\burl\s*=\s*["']([^"']+)["']/i.exec(m[1] ?? "")?.[1] ?? "";
+  return {
+    name: cleanSnippet(decodeXml(m[2] ?? "")),
+    url: decodeXml(urlRaw).trim(),
+  };
+}
+
+function pickGnewsArticleUrl(block: string, rawDescription: string): string {
+  const tagged = decodeXml(tag(block, "link")).trim();
+  const guid = decodeXml(tag(block, "guid")).trim();
+  const href = decodeXml(/<link\b[^>]*\bhref=["']([^"']+)["']/i.exec(block)?.[1] ?? "").trim();
+  const descHrefs = [...rawDescription.matchAll(/\bhref=["']([^"']+)["']/gi)].map((m) =>
+    decodeXml(m[1] ?? "").trim(),
+  );
+  const candidates = [tagged, href, /^https?:\/\//i.test(guid) ? guid : "", ...descHrefs];
+  for (const c of candidates) {
+    if (isDirectPublisherUrl(c)) return c;
+  }
+  for (const c of candidates) {
+    if (/^https?:\/\//i.test(c)) return c;
+  }
+  return "";
+}
+
+function isDirectPublisherUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && !isGnewsFetchHost(u.hostname);
+  } catch {
+    return false;
+  }
+}
+
+function registrableHost(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+  } catch {
+    return "";
+  }
+}
+
+function collapseWs(s: string): string {
+  return s.replace(/\s+/g, " ").trim();
+}
+
+function stripTrailingSource(text: string, sourceName?: string): string {
+  const t = collapseWs(text);
+  if (sourceName) {
+    const src = collapseWs(sourceName);
+    if (src) {
+      const suffix = ` - ${src}`;
+      if (t.toLowerCase().endsWith(suffix.toLowerCase())) return t.slice(0, -suffix.length).trim();
+    }
+  }
+  return t.replace(/\s+-\s+[^-]+$/, "").trim();
 }
 
 function tag(block: string, name: string): string {
