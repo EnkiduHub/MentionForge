@@ -96,10 +96,11 @@ function assertNoHnTitleAuthor(body: unknown) {
   expect(raw).not.toMatch(/"username"\s*:/);
 }
 
-function billingMeta() {
+function billingMeta(sourcesUsed: string[]) {
   return {
     request_id: "req",
     latency_ms: 1,
+    sources_used: sourcesUsed,
     billing: { amount_usdc: "0", tx_hash: null, free_trial: true },
   };
 }
@@ -205,7 +206,7 @@ describe("news sub-sources gnews/hn", () => {
       "req",
       executionCtx(),
     );
-    const full = overlayBilling(body, billingMeta(), "live");
+    const full = overlayBilling(body, billingMeta(body.meta.sources_used), "live");
     const routes = [
       full,
       projectDigest(full),
