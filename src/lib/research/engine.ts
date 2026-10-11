@@ -159,7 +159,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   const trend = bucketTrend(fused, req.timeframe === "24h");
 
   const citations = dedupeCites(results.flatMap((r) => r.citations))
-    .filter((c) => onTopic({ text: c.title, url: c.url }))
+    .filter((c) => c.source === "hn" || onTopic({ text: c.title, url: c.url }))
     .slice(0, 40);
 
   const fusedUrls = new Set(fused.map((m) => m.url));

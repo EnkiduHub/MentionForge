@@ -97,7 +97,7 @@ export async function fetchNews(
         points,
         comments,
       });
-      citations.push(cite(url, hnCitationLabel(storyUrl || url), "hn"));
+      citations.push(cite(storyUrl || url, hnCitationLabel(storyUrl || url), "hn"));
     }
     if (!hn) degraded = true;
   }

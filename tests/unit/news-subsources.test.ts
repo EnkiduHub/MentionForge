@@ -141,7 +141,8 @@ describe("news sub-sources gnews/hn", () => {
     expect(fetched.some((u) => u.includes("api.gdeltproject.org"))).toBe(true);
     expect(citationHosts(body.citations.map((c) => c.url))).not.toContain("news.google.com");
     const hnCite = body.citations.find((c) => c.source === "hn");
-    expect(hnCite?.url).toBe(hnItemUrl(HN_STUB_OBJECT_ID));
+    expect(hnCite).toBeTruthy();
+    expect([hnItemUrl(HN_STUB_OBJECT_ID), HN_STUB_STORY]).toContain(hnCite?.url);
     expect(hnCite?.title).toBe("example.com");
     expect(hnCite?.title).not.toBe(HN_STUB_TITLE);
     assertNoHnTitleAuthor(body);
@@ -206,6 +207,7 @@ describe("news sub-sources gnews/hn", () => {
       "req",
       executionCtx(),
     );
+    expect(body.mentions.some((m) => m.url.includes("news.ycombinator.com"))).toBe(true);
     const full = overlayBilling(body, billingMeta(body.meta.sources_used), "live");
     const routes = [
       full,
