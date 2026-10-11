@@ -3,6 +3,7 @@ import { SAMPLE_QUERY } from "../lib/constants";
 
 export const errorCodeSchema = z.enum([
   "VALIDATION_ERROR",
+  "NOT_FOUND",
   "PAYLOAD_TOO_LARGE",
   "PAYMENT_REQUIRED",
   "PAYMENT_UNAVAILABLE",
@@ -29,6 +30,7 @@ export type AgentErrorBody = {
 
 const RECOVERABLE: Record<ErrorCode, boolean> = {
   VALIDATION_ERROR: true,
+  NOT_FOUND: true,
   PAYLOAD_TOO_LARGE: true,
   PAYMENT_REQUIRED: true,
   PAYMENT_UNAVAILABLE: true,
@@ -42,6 +44,7 @@ const RECOVERABLE: Record<ErrorCode, boolean> = {
 
 const HTTP: Record<ErrorCode, number> = {
   VALIDATION_ERROR: 400,
+  NOT_FOUND: 404,
   PAYLOAD_TOO_LARGE: 413,
   PAYMENT_REQUIRED: 402,
   PAYMENT_UNAVAILABLE: 503,
@@ -94,6 +97,8 @@ function defaultHint(code: ErrorCode): string {
   switch (code) {
     case "VALIDATION_ERROR":
       return `Send JSON like ${JSON.stringify({ query: SAMPLE_QUERY, timeframe: "7d", limit: 20 })}. Unknown fields are ignored.`;
+    case "NOT_FOUND":
+      return "That path is not a MentionForge surface. See GET /llms.txt and GET /openapi.json.";
     case "PAYLOAD_TOO_LARGE":
       return "Request body must be ≤ 8KB. Shorten query or drop unused fields.";
     case "PAYMENT_REQUIRED":

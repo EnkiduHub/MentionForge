@@ -73,4 +73,11 @@ describe("research schemas", () => {
     expect(err.status()).toBe(401);
     expect(err.body().error.recoverable).toBe(true);
   });
+
+  it("maps NOT_FOUND to 404", () => {
+    const err = new AgentError("NOT_FOUND", "Not found", { request_id: "r1" });
+    expect(err.status()).toBe(404);
+    expect(err.body().error.code).toBe("NOT_FOUND");
+    expect(err.body().error.recoverable).toBe(true);
+  });
 });
