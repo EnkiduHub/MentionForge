@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<rss version="2.0" xmlns:media="http://search.yahoo.com/mrss/">
+  <channel>
+    <title>ForgeCo - Google News</title>
+    <link>https://news.google.com/search?q=ForgeCo&amp;hl=en-US&amp;gl=US&amp;ceid=US:en</link>
+    <language>en-US</language>
+    <item>
+      <title>
+        <![CDATA[ ForgeCo launches Workers RSS & more ]]>
+      </title>
+      <link>https://news.google.com/rss/articles/CBMiAAForgeship</link>
+      <guid isPermaLink="false">CBMiAAForgeship</guid>
+      <pubDate>Sun, 11 Oct 2026 16:00:00 GMT</pubDate>
+      <description>
+        <![CDATA[<a href="https://news.google.com/rss/articles/CBMiAAForgeship">ForgeCo launches Workers RSS &amp; more</a>&nbsp;&nbsp;<font color="#6f6f6f">The Example Times</font>]]>
+      </description>
+      <source url="https://example.com">The Example Times</source>
+    </item>
+    <item>
+      <title>ForgeCo &amp; Co&#39;s &quot;launch&quot; &#x2014; details</title>
+      <link>https://example.com/forgeco-entities</link>
+      <pubDate>Sun, 11 Oct 2026 15:30:00 GMT</pubDate>
+      <description>Quoted &apos;coverage&apos; from &amp;lt;wire&amp;gt;</description>
+    </item>
+    <item>
+      <title>Guid-only permalink</title>
+      <guid isPermaLink="true">https://example.com/forgeco-guid</guid>
+      <pubDate>Sun, 11 Oct 2026 15:00:00 GMT</pubDate>
+      <description><![CDATA[Story referenced only by guid.]]></description>
+    </item>
+  </channel>
+</rss>

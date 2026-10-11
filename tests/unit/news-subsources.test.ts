@@ -123,6 +123,7 @@ describe("news sub-sources gnews/hn", () => {
       executionCtx(),
     );
     expect(fetched.some((u) => u.startsWith("https://news.google.com/rss/search"))).toBe(true);
+    expect(fetched.some((u) => u.includes("hl=en-US") && u.includes("gl=US") && u.includes("ceid=US:en"))).toBe(true);
     expect(fetched.some((u) => u.includes("api.gdeltproject.org"))).toBe(true);
     const gnewsCite = body.citations.find((c) => c.source === "google-news");
     expect(gnewsCite).toBeTruthy();
