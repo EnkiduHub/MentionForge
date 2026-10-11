@@ -12,14 +12,10 @@ import {
 } from "./research";
 import { MAX_QUERY_CHARS } from "../lib/constants";
 
-const compactMentionSchema = z.object({
-  id: z.string().describe("Mention id from this gather"),
-  platform: platformSchema.describe("Surface this mention was gathered from"),
-  url: z.string().describe("Canonical URL, or empty when the source had no permalink"),
-  author: z.string().describe("Display name or handle; may be empty"),
-  text: z.string().describe("Mention body, truncated"),
-  sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 to 1"),
-  intent: intentSchema.optional().describe("Optional intent class for this mention"),
+const digestGroupSchema = z.object({
+  count: z.number().int().describe("Items in this group"),
+  themes: z.array(z.string()).describe("Theme labels"),
+  x_post_ids: z.array(z.string()).describe("X post ids in this group"),
 });
 
 const lensMetaSchema = z.object({
@@ -197,8 +193,7 @@ export const compareOutputSchema = z.object({
     .array(
       z.object({
         url: z.string().describe("Source URL"),
-        title: z.string().describe("Source title"),
-        source: z.string().describe("Publisher or site label"),
+        domain: z.string().describe("Source domain"),
       }),
     )
     .describe("Compact citations (max 8)"),
@@ -210,11 +205,11 @@ export const digestOutputSchema = z.object({
   query: z.string().describe("Echo of the researched query"),
   groups: z
     .object({
-      praise: z.array(compactMentionSchema).describe("Up to 5 praise mentions"),
-      pain: z.array(compactMentionSchema).describe("Up to 5 complaint mentions"),
-      news: z.array(compactMentionSchema).describe("Up to 5 news-intent mentions"),
-      reviews: z.array(compactMentionSchema).describe("Up to 5 review-platform mentions"),
-      reply_worthy: z.array(compactMentionSchema).describe("Up to 5 questions or complaints worth a human reply"),
+      praise: digestGroupSchema.describe("Praise bucket"),
+      pain: digestGroupSchema.describe("Complaint bucket"),
+      news: digestGroupSchema.describe("News bucket"),
+      reviews: digestGroupSchema.describe("Reviews bucket (empty when reviews are disabled)"),
+      reply_worthy: digestGroupSchema.describe("Reply-worthy bucket"),
     })
     .describe("Grouped mentions, each list capped at 5"),
   meta: lensMetaSchema.describe("Billing and freshness for this call"),
@@ -223,7 +218,9 @@ export const digestOutputSchema = z.object({
 export const riskOutputSchema = z.object({
   query: z.string().describe("Echo of the researched query"),
   signals: signalsSchema.describe("Crisis-style risk from volume spike and negatives"),
-  negatives: z.array(compactMentionSchema).describe("Up to 5 most negative mentions"),
+  negatives: z
+    .array(z.object({ id: z.string(), severity: z.string() }))
+    .describe("Up to 5 negative X post ids"),
   next_queries: z.array(z.string()).max(3).describe("Follow-up queries"),
   meta: lensMetaSchema.describe("Billing and freshness for this call"),
 });
@@ -232,9 +229,8 @@ export const replyOutputSchema = z.object({
   drafts: z
     .array(
       z.object({
-        text: z.string().describe("Unsent reply copy. Review before sending. This tool does not post."),
-        source_url: z.string().describe("URL of the mention this draft is about"),
-        mention_id: z.string().describe("Mention id from this gather"),
+        text: z.string().describe("Unsent MF template copy. Review before sending. This tool does not post."),
+        mention_id: z.string().describe("X post id from this gather"),
         unsent: z.literal(true).describe("Always true. MentionForge never posts replies."),
       }),
     )
@@ -244,15 +240,11 @@ export const replyOutputSchema = z.object({
 });
 
 export const exportMentionSchema = z.object({
-  id: z.string().describe("Mention id from this gather"),
-  platform: platformSchema.describe("Surface this mention was gathered from"),
-  url: z.string().describe("Canonical URL, or empty when the source had no permalink"),
-  author: z.string().describe("Display name or handle; may be empty"),
-  text: z.string().describe("Mention body, truncated"),
-  timestamp: z.string().describe("When the mention was published or accessed (ISO-8601 when known)"),
-  engagement: z.number().describe("Relative engagement score (0 when unknown)"),
-  sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 to 1"),
-  intent: intentSchema.optional().describe("Optional intent class for this mention"),
+  id: z.string().describe("X post id"),
+  url: z.string().describe("Canonical https://x.com/i/web/status/<id> URL"),
+  created_bucket: z.string().describe("Hour or day ISO bucket"),
+  sentiment: z.number().min(-1).max(1).optional(),
+  intent: intentSchema.optional(),
 });
 
 export const listOutputSchema = z.object({

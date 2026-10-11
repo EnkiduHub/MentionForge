@@ -30,7 +30,7 @@ describe("research schemas", () => {
   });
 
   it("validates the live Cloudflare Workers snapshot", () => {
-    expect(researchResponseSchema.parse(EXAMPLE_RESPONSE).query).toBe(SAMPLE_QUERY);
+    expect(researchResponseSchema.parse(EXAMPLE_RESPONSE).query).toBe("Example Brand");
   });
 
   it("describes every research request field for MCP JSON Schema", () => {

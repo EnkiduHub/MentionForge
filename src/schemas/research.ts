@@ -87,31 +87,22 @@ export type Timeframe = z.infer<typeof timeframeSchema>;
 
 export const mentionSchema = z
   .object({
-    id: z.string().describe("Stable mention id within this response"),
-    platform: platformSchema.describe("Surface this mention was gathered from"),
-    url: z.string().describe("Canonical URL of the mention, or empty when the source had no permalink"),
-    author: z.string().describe("Display name or handle; may be empty"),
-    timestamp: z.string().describe("When the mention was published or accessed (ISO-8601 when known)"),
-    text: z.string().describe("Mention body, truncated to the engine cap"),
-    engagement: z.number().describe("Relative engagement score (0 when unknown)"),
-    sentiment: z.number().min(-1).max(1).describe("Per-mention sentiment from -1 (negative) to 1 (positive)"),
-    intent: intentSchema.optional().describe("Optional intent class for this mention"),
-    aspects: z.array(aspectSchema).optional().describe("Optional product aspects tagged on this mention"),
-    relevance: z.number().min(0).max(1).optional().describe("Optional 0–1 overlap with the query"),
+    id: z.string().describe("X post id"),
+    url: z.string().describe("Canonical https://x.com/i/web/status/<id> URL"),
+    created_bucket: z.string().describe("Hour or day ISO bucket (not an exact timestamp)"),
+    sentiment: z.number().min(-1).max(1).optional().describe("Present only when X_PER_POST_LABELS=on"),
+    intent: intentSchema.optional().describe("Present only when X_PER_POST_LABELS=on"),
   })
   .strict();
 
 export const themeSchema = z.object({
-  theme: z.string().describe("Short theme label clustered from mention text"),
-  count: z.number().int().describe("How many mentions support this theme"),
-  examples: z.array(z.string()).describe("Short supporting snippets"),
+  theme: z.string().describe("Label from the fixed MF theme vocabulary"),
+  count: z.number().int().describe("How many fused items support this theme"),
 });
 
 export const citationSchema = z.object({
   url: z.string().describe("Source URL"),
-  title: z.string().describe("Source title"),
-  source: z.string().describe("Publisher or site label"),
-  accessed_at: z.string().describe("When MentionForge fetched this source (ISO-8601)"),
+  domain: z.string().describe("Registrable host of the source URL"),
 });
 
 export const volumeSchema = z.object({
@@ -119,7 +110,7 @@ export const volumeSchema = z.object({
   by_platform: z
     .object({
       x: z.number().int().describe("Mentions attributed to x"),
-      reddit: z.number().int().describe("Mentions attributed to reddit"),
+      reddit: z.number().int().optional().describe("Omitted; Reddit is not an output platform"),
       web: z.number().int().describe("Mentions attributed to web"),
       reviews: z.number().int().describe("Mentions attributed to reviews"),
       news: z.number().int().describe("Mentions attributed to news"),
@@ -157,7 +148,6 @@ export const sentimentSchema = z.object({
 export const shareOfVoiceSchema = z.object({
   brand: z.string().describe("Brand or `other` when no brand token matched"),
   mentions: z.number().int().describe("Mentions attributed to this brand"),
-  engagement: z.number().describe("Sum of engagement for attributed mentions"),
   share: z.number().min(0).max(1).describe("Fraction of fused mentions (0–1)"),
 });
 
@@ -184,10 +174,6 @@ export const metaSchema = z.object({
   request_id: z.string().describe("Request correlation id"),
   latency_ms: z.number().describe("Engine wall time in milliseconds (not billed)"),
   sources_used: z.array(z.string()).describe("Adapter ids that contributed data"),
-  sources_disabled: z
-    .array(z.string())
-    .optional()
-    .describe("Requested platform ids skipped because they are in DISABLED_SOURCES"),
   billing: billingSchema.describe("Charge record for this call (never cached)"),
   confidence: z.number().min(0).max(1).optional().describe("Optional 0–1 confidence in the aggregate"),
   degraded: z.array(z.string()).optional().describe("Optional list of degraded or skipped adapters"),
@@ -204,12 +190,12 @@ export const researchResponseSchema = z.object({
   volume: volumeSchema.describe("Mention counts and trend for the window"),
   sentiment: sentimentSchema.describe("Aggregate and per-class sentiment"),
   themes: z.array(themeSchema).describe("Ranked themes extracted from mentions"),
-  mentions: z.array(mentionSchema).describe("Cited mention rows (may be empty — empty windows still succeed)"),
+  mentions: z.array(mentionSchema).describe("X Post-ID rows only (empty when X is disabled or capped)"),
+  x_post_ids: z.array(z.string()).optional().describe("X post ids returned in this response"),
   summary: z.string().optional().describe("Executive summary when include_summary was true"),
-  citations: z.array(citationSchema).describe("Sources used to build the brief"),
+  citations: z.array(citationSchema).describe("URL + domain only"),
   share_of_voice: z.array(shareOfVoiceSchema).optional().describe("Present when the query is a vs / multi-brand compare"),
   signals: signalsSchema.optional().describe("Spike and negative-concentration flags for this window"),
-  voices: z.array(voiceSchema).optional().describe("Top non-placeholder authors by engagement"),
   markdown: z.string().optional().describe("Deterministic pasteable brief when include_markdown was true"),
   meta: metaSchema.describe("Request metadata including billing and freshness"),
 });
@@ -217,7 +203,7 @@ export const researchResponseSchema = z.object({
 export type ResearchResponse = z.infer<typeof researchResponseSchema>;
 export type Mention = z.infer<typeof mentionSchema>;
 export type CachedResearch = Omit<ResearchResponse, "meta"> & {
-  meta: Pick<ResearchResponse["meta"], "sources_used" | "sources_disabled" | "confidence" | "degraded" | "as_of">;
+  meta: Pick<ResearchResponse["meta"], "sources_used" | "confidence" | "degraded" | "as_of">;
 };
 
 export function emptyPlatformCounts(): Record<Platform, number> {

@@ -24,11 +24,13 @@ export async function flushExecution(ctx: ExecutionContext): Promise<void> {
 type TrialRow = { used: number; updated_at: string };
 type IdemRow = { key: string; body_hash: string; status: string; response: string; billing: string; created_at: string };
 type StatsRow = { day: string; calls: number; paid: number; usdc_micros: number; errors: number; trial: number };
+type XIdRow = { day: string; ids: number };
 
 export function memoryD1() {
   const trial = new Map<string, TrialRow>();
   const idem = new Map<string, IdemRow>();
   const stats = new Map<string, StatsRow>();
+  const xIdUsage = new Map<string, XIdRow>();
 
   return {
     trial,
@@ -73,6 +75,14 @@ export function memoryD1() {
             idem.delete(String(binds[0]));
             return { meta: { changes: 1 } };
           }
+          if (sql.includes("INSERT INTO x_id_usage")) {
+            const day = String(binds[0]);
+            const add = Number(binds[1]);
+            const cur = xIdUsage.get(day) ?? { day, ids: 0 };
+            cur.ids += add;
+            xIdUsage.set(day, cur);
+            return { meta: { changes: 1 } };
+          }
           if (sql.includes("INSERT INTO stats_daily")) {
             const day = String(binds[0]);
             const cur = stats.get(day) ?? { day, calls: 0, paid: 0, usdc_micros: 0, errors: 0, trial: 0 };
@@ -88,6 +98,14 @@ export function memoryD1() {
           return { meta: { changes: 0 } };
         },
         async first<T>() {
+          if (sql.includes("FROM x_id_usage") && sql.includes("SUM(ids)")) {
+            const minDay = String(binds[0] ?? "");
+            let n = 0;
+            for (const r of xIdUsage.values()) {
+              if (!minDay || r.day >= minDay) n += r.ids;
+            }
+            return { n } as T;
+          }
           if (sql.includes("FROM trial_wallets")) {
             const row = trial.get(String(binds[0]));
             return (row as T) ?? null;
@@ -116,6 +134,18 @@ export function memoryD1() {
           return null;
         },
         async all<T>() {
+          if (sql.includes("FROM x_id_usage")) {
+            if (sql.includes("SUM(ids)")) {
+              const minDay = String(binds[0] ?? "");
+              let n = 0;
+              for (const r of xIdUsage.values()) {
+                if (!minDay || r.day >= minDay) n += r.ids;
+              }
+              return { n } as T;
+            }
+            const row = xIdUsage.get(String(binds[0]));
+            return (row as T) ?? null;
+          }
           if (sql.includes("FROM stats_daily")) {
             return { results: [...stats.values()] as T[] };
           }

@@ -36,6 +36,10 @@ interface Env {
   ALLOWED_ORIGINS: string;
   SERVICE_VERSION: string;
   DISABLED_SOURCES?: string;
+  X_PER_POST_LABELS?: string;
+  X_ID_CAP?: string;
+  STRIPE_SECRET_KEY?: string;
+  LEGAL_DISCLOSURE?: string;
   SANDBOX_KEY?: string;
   OPERATOR_TOKEN?: string;
   BRAVE_API_KEY?: string;

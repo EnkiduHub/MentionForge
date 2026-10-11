@@ -24,7 +24,7 @@ describe("DISABLED_SOURCES", () => {
 
   it("parses a comma list of platform ids", () => {
     expect([...parseDisabledSources("x, reddit,nope")].sort()).toEqual(["reddit", "x"]);
-    expect(parseDisabledSources(undefined).size).toBe(0);
+    expect([...parseDisabledSources(undefined)].sort()).toEqual(["reddit", "reviews", "x"]);
     expect(urlUsesDisabledSocial("https://www.reddit.com/r/x/1", parseDisabledSources("x,reddit"))).toBe(true);
     expect(urlUsesDisabledSocial("https://x.com/a/status/1", parseDisabledSources("x,reddit"))).toBe(true);
     expect(urlUsesDisabledSocial("https://en.wikipedia.org/wiki/ForgeCo", parseDisabledSources("x,reddit"))).toBe(false);

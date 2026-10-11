@@ -1,20 +1,35 @@
 import { PLATFORMS, type Platform } from "./constants";
 
 const PLATFORM_SET = new Set<string>(PLATFORMS);
+const EXTRA_SET = new Set(["brave"]);
 
-/** Comma-separated platform ids from `DISABLED_SOURCES` (e.g. `x,reddit`). */
+/** Production default: X, Reddit, Brave, and review-site adapters off. */
+export const DEFAULT_DISABLED_SOURCES = "x,reddit,brave,reviews";
+
+/** Comma-separated platform ids from `DISABLED_SOURCES` (e.g. `x,reddit`). Extra token: `brave`. */
 export function parseDisabledSources(raw: string | undefined): Set<Platform> {
+  return parseDisabledList(raw).platforms;
+}
+
+export function parseDisabledList(raw: string | undefined): { platforms: Set<Platform>; extra: Set<string> } {
   const disabled = new Set<Platform>();
-  if (!raw?.trim()) return disabled;
-  for (const part of raw.split(",")) {
+  const extra = new Set<string>();
+  const source = raw === undefined ? DEFAULT_DISABLED_SOURCES : raw;
+  if (!source.trim()) return { platforms: disabled, extra };
+  for (const part of source.split(",")) {
     const id = part.trim().toLowerCase();
     if (PLATFORM_SET.has(id)) disabled.add(id as Platform);
+    if (EXTRA_SET.has(id)) extra.add(id);
   }
-  return disabled;
+  return { platforms: disabled, extra };
 }
 
 export function disabledSourcesFromEnv(env: Env): Set<Platform> {
-  return parseDisabledSources(env.DISABLED_SOURCES);
+  return parseDisabledList(env.DISABLED_SOURCES).platforms;
+}
+
+export function isBraveDisabled(env: Env): boolean {
+  return parseDisabledList(env.DISABLED_SOURCES).extra.has("brave");
 }
 
 export function isSocialHostDisabled(hostname: string, disabled: Set<Platform>): boolean {

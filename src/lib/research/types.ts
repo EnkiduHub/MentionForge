@@ -8,6 +8,7 @@ export type SourceMention = {
   text: string;
   engagement: number;
   title?: string;
+  postId?: string;
 };
 
 export type SourceResult = {

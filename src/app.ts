@@ -15,11 +15,13 @@ import { limitOrThrow } from "./lib/rate-limit";
 import { logRequest } from "./lib/logger";
 import { wantsHtmlDocument } from "./lib/http-json";
 import { discoveryDocumentHtml } from "./lib/html";
+import { assertStripeKeyMode } from "./lib/stripe-keys";
 
 export function createApp() {
   const app = new Hono<{ Bindings: Env }>();
 
   app.use("*", async (c, next) => {
+    assertStripeKeyMode(c.env);
     const id = c.req.header("X-Request-Id") || crypto.randomUUID();
     c.set("requestId", id);
     c.header("X-Request-Id", id);
@@ -101,6 +103,13 @@ export function createApp() {
       if (err.code === "UNAUTHORIZED") {
         headers["Cache-Control"] = "no-store";
         headers["WWW-Authenticate"] = WWW_AUTHENTICATE;
+      }
+      if (err.code === "X_ID_CAP_REACHED") {
+        return c.json(
+          { code: "X_ID_CAP_REACHED", retry_after_days: err.details.retry_after_days ?? 30 },
+          429,
+          headers,
+        );
       }
       logRequest({ msg: "agent_error", code: err.code, request_id: err.request_id });
       const res = c.json(err.body(), err.status() as 400, headers);

@@ -55,16 +55,15 @@ describe("researchOnly + cache key overlays", () => {
       themes: [],
       mentions: [],
       citations: [],
-      share_of_voice: [{ brand: "ForgeCo", mentions: 1, engagement: 1, share: 1 }],
+      share_of_voice: [{ brand: "ForgeCo", mentions: 1, share: 1 }],
       signals: { risk: "low", spike: false, reasons: ["no spike or negative concentration"] },
-      voices: [{ author: "u/ops", platform: "reddit", mentions: 1, engagement: 3 }],
       markdown: "should not cache",
       meta: { sources_used: ["reddit"], request_id: "x", latency_ms: 1, billing: { amount_usdc: "0.02", tx_hash: null, free_trial: false } },
     } as unknown as CachedResearch;
     const out = researchOnly(body);
     expect(out.share_of_voice?.[0]?.brand).toBe("ForgeCo");
     expect(out.signals?.risk).toBe("low");
-    expect(out.voices?.[0]?.author).toBe("u/ops");
+    expect("voices" in out).toBe(false);
     expect("markdown" in out).toBe(false);
     expect(out.meta).not.toHaveProperty("billing");
     expect(out.meta).not.toHaveProperty("request_id");
@@ -219,14 +218,12 @@ describe("vs query scoring", () => {
       return jsonResponse({});
     });
     const { body } = await runResearch(
-      mockEnv(),
+      mockEnv({ DISABLED_SOURCES: "x,brave,reviews" }),
       parseResearchInput({ query: "ForgeCo vs RivalCo", platforms: ["reddit"] }),
       "req",
       executionCtx(),
     );
-    const hit = body.mentions.find((m) => /RivalCo/i.test(m.text));
-    expect(hit).toBeTruthy();
-    expect(hit?.relevance ?? 0).toBeGreaterThan(0);
+    expect(body.share_of_voice?.some((r) => /RivalCo/i.test(r.brand))).toBe(true);
   });
 });
 
@@ -236,22 +233,18 @@ describe("list and trends projections", () => {
     timeframe: "7d",
     volume: { total: 1, by_platform: { x: 0, reddit: 1, web: 0, reviews: 0, news: 0 }, trend: [{ t: "2026-09-21T00:00:00.000Z", count: 1 }] },
     sentiment: { overall: 0.2, positive: 100, neutral: 0, negative: 0, distribution: { positive: 100, neutral: 0, negative: 0, by_platform: { reddit: 1 } } },
-    themes: [{ theme: "launch", count: 1, examples: ["shipped"] }],
+    themes: [{ theme: "launch", count: 1 }],
     mentions: [
       {
         id: "m1",
-        platform: "reddit",
-        url: "https://www.reddit.com/r/saas/comments/m1",
-        author: "ops",
-        timestamp: "2026-09-21T00:00:00.000Z",
-        text: "ForgeCo shipped",
-        engagement: 3,
+        url: "https://x.com/i/web/status/m1",
+        created_bucket: "2026-09-21T00:00:00.000Z",
         sentiment: 0.4,
         intent: "praise",
       },
     ],
     citations: [],
-    share_of_voice: [{ brand: "ForgeCo", mentions: 1, engagement: 3, share: 1 }],
+    share_of_voice: [{ brand: "ForgeCo", mentions: 1, share: 1 }],
     signals: { risk: "low", spike: false, reasons: ["no spike"] },
     meta: {
       sources_used: ["reddit"],
@@ -265,7 +258,7 @@ describe("list and trends projections", () => {
     const out = projectList(full);
     expect(out.query).toBe("ForgeCo");
     expect(out.mentions).toEqual([
-      expect.objectContaining({ id: "m1", platform: "reddit", text: "ForgeCo shipped", timestamp: "2026-09-21T00:00:00.000Z" }),
+      expect.objectContaining({ id: "m1", url: "https://x.com/i/web/status/m1" }),
     ]);
     expect(out).not.toHaveProperty("themes");
     expect(out).not.toHaveProperty("share_of_voice");

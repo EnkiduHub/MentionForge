@@ -31,7 +31,7 @@ describe("HTTP surfaces", () => {
     expect(volume).toEqual({ calls: 0, paid: 0, trial: 0 });
     expect(volume.usdc_micros).toBeUndefined();
     const example = (await ex.json()) as { query: string; citations: Array<{ url: string }> };
-    expect(example.query).toBe("Cloudflare Workers");
+    expect(example.query).toBe("Example Brand");
     expect(JSON.stringify(example)).not.toMatch(/ForgeCo/);
     expect(example.citations.some((c) => /wikipedia\.org|cloudflare\.com/i.test(c.url))).toBe(true);
   });
@@ -410,7 +410,7 @@ describe("HTTP surfaces", () => {
     expect(paths["/skill.md"]).toBeTruthy();
     expect(paths["/llms-full.txt"]).toBeTruthy();
     expect(paths["/server-card.json"]).toBeTruthy();
-    expect(doc.paths["/v1/research"].post.requestBody.content["application/json"].examples.sample.value.query).toBe("Cloudflare Workers");
+    expect(doc.paths["/v1/research"].post.requestBody.content["application/json"].examples.sample.value.query).toBe("Example Brand");
     expect(doc.paths["/v1/research"].post.responses["402"]).toBeTruthy();
     expect(doc.paths["/v1/research"].post.responses["402"].content["application/json"].examples.pay.value.error.hint).toMatch(/Cloudflare Workers/);
     expect(JSON.stringify(doc)).not.toMatch(/ForgeCo/);

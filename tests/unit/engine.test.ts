@@ -9,7 +9,7 @@ describe("engine failure", () => {
     setGlobalFetch(async () => {
       throw new Error("offline");
     });
-    const env = mockEnv();
+    const env = mockEnv({ DISABLED_SOURCES: "" });
     await expect(
       runResearch(env, parseResearchInput({ query: "ForgeCo", platforms: ["reddit"] }), "req", executionCtx()),
     ).rejects.toMatchObject({ code: "SOURCE_UNAVAILABLE" });

@@ -493,7 +493,7 @@ describe("MCP origin + factory", () => {
     const themes = compact?.themes;
     expect(Array.isArray(mentions) && mentions.length).toBeLessThanOrEqual(8);
     expect(Array.isArray(citations) && citations.length).toBeLessThanOrEqual(8);
-    expect(Array.isArray(themes) && themes.every((t) => Array.isArray(asRecord(t)?.examples) && (asRecord(t)?.examples as unknown[]).length === 0)).toBe(true);
+    expect(Array.isArray(themes) && themes.every((t) => asRecord(t)?.examples === undefined)).toBe(true);
   });
 
   it("x402 resource description stays under the CDP verify length cap", async () => {

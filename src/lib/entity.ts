@@ -67,8 +67,8 @@ async function loadCard(
     description = cleanSnippet((sum?.extract ?? description) || title);
   }
 
-  const wdMention = wd.mentions.find((m) => m.author === "wikidata");
-  const official = wd.mentions.find((m) => m.author === "official");
+  const wdMention = wd.mentions.find((m) => /wikidata\.org/i.test(m.url));
+  const official = wd.mentions.find((m) => !/wikidata\.org/i.test(m.url));
   if (!description && wdMention?.text) description = wdMention.text;
   if (!title && wdMention?.title) title = wdMention.title;
 
