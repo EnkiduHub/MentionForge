@@ -282,7 +282,7 @@ Payment meta: _meta["x402/payment"] / _meta["x402/payment-response"]
 
 ## Sources
 Default live sources: Wikipedia/Wikidata, Brave web results, Google News RSS, GDELT, Hacker News, and Trustpilot/G2/Capterra review targeting. News rows include title plus a short snippet; citation labels are headlines.
-Native X and Reddit stay off (`DISABLED_SOURCES=x,reddit`) until developer API keys exist. GET /health lists source_backends.
+Native X and Reddit stay off (DISABLED_SOURCES=x,reddit) until developer API keys exist. GET /health lists source_backends.
 
 ## Output
 volume, sentiment, themes, mentions (id, platform, url, author, timestamp, text, engagement, sentiment, optional intent/aspects/relevance), citations, summary, optional share_of_voice / signals / voices / markdown, meta.billing, meta.as_of, meta.freshness, meta.next_queries
