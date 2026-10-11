@@ -1,0 +1,30 @@
+name: Tool request
+description: Request a change or addition to an MCP or HTTP tool
+title: "[tool] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Protocol notes live in [docs/mcp.md](https://github.com/EnkiduHub/MentionForge/blob/main/docs/mcp.md) and [docs/api.md](https://github.com/EnkiduHub/MentionForge/blob/main/docs/api.md).
+  - type: input
+    id: tool-name
+    attributes:
+      label: Tool or path
+      description: Existing tool name or HTTP path, if this is a change.
+    validations:
+      required: true
+  - type: textarea
+    id: request
+    attributes:
+      label: What should change
+      description: Behavior, inputs, or outputs you need.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: The agent or operator problem this solves.
+    validations:
+      required: true
