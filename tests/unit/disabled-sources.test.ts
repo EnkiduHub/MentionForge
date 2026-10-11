@@ -50,20 +50,12 @@ describe("DISABLED_SOURCES", () => {
 
   it("does not fetch x.com, twitter.com, reddit.com, or Brave site: queries, and drops those URLs", async () => {
     const seen: string[] = [];
-    const now = new Date().toUTCString();
     setGlobalFetch(async (input) => {
       const url = String(input instanceof Request ? input.url : input);
       seen.push(url);
       assertNoDisabledSocialFetch(url);
-      if (url.includes("news.google.com")) {
-        return new Response(
-          `<rss>
-            <item><title>ForgeCo ships</title><link>https://example.com/n</link><pubDate>${now}</pubDate></item>
-            <item><title>ForgeCo on reddit</title><link>https://www.reddit.com/r/saas/comments/x</link><pubDate>${now}</pubDate></item>
-            <item><title>ForgeCo on x</title><link>https://x.com/ops/status/1</link><pubDate>${now}</pubDate></item>
-          </rss>`,
-          { headers: { "content-type": "application/xml" } },
-        );
+      if (url.startsWith("https://news.google.com/") || url.startsWith("https://hn.algolia.com/")) {
+        throw new Error(`forbidden host fetch ${url}`);
       }
       if (url.includes("wikipedia.org/w/api.php")) {
         return jsonResponse({ query: { search: [{ title: "ForgeCo", snippet: "A fictional brand" }] } });
@@ -93,7 +85,18 @@ describe("DISABLED_SOURCES", () => {
           },
         });
       }
-      if (url.includes("gdeltproject.org") || url.includes("algolia.com")) return jsonResponse({});
+      if (url.includes("gdeltproject.org")) {
+        return jsonResponse({
+          articles: [
+            {
+              url: "https://example.com/forgeco-gdelt",
+              title: "ForgeCo ships",
+              seendate: `${new Date().toISOString().replace(/[-:TZ.]/g, "").slice(0, 14)}`,
+              domain: "example.com",
+            },
+          ],
+        });
+      }
       return jsonResponse({}, 404);
     });
 

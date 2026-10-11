@@ -2,8 +2,6 @@ const ALLOWED = new Set([
   "www.reddit.com",
   "oauth.reddit.com",
   "api.gdeltproject.org",
-  "news.google.com",
-  "hn.algolia.com",
   "en.wikipedia.org",
   "www.wikidata.org",
   "query.wikidata.org",
