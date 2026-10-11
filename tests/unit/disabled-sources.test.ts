@@ -54,8 +54,15 @@ describe("DISABLED_SOURCES", () => {
       const url = String(input instanceof Request ? input.url : input);
       seen.push(url);
       assertNoDisabledSocialFetch(url);
-      if (url.startsWith("https://news.google.com/") || url.startsWith("https://hn.algolia.com/")) {
-        throw new Error(`forbidden host fetch ${url}`);
+      if (url.startsWith("https://news.google.com/")) {
+        const pub = new Date().toUTCString();
+        return new Response(
+          `<?xml version="1.0"?><rss><channel><item><title><![CDATA[ForgeCo ships from Google News]]></title><link>https://example.com/forgeco-gnews</link><description><![CDATA[ForgeCo coverage.]]></description><pubDate>${pub}</pubDate></item></channel></rss>`,
+          { status: 200, headers: { "content-type": "application/rss+xml" } },
+        );
+      }
+      if (url.startsWith("https://hn.algolia.com/")) {
+        return jsonResponse({ hits: [] });
       }
       if (url.includes("wikipedia.org/w/api.php")) {
         return jsonResponse({ query: { search: [{ title: "ForgeCo", snippet: "A fictional brand" }] } });

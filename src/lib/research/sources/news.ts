@@ -1,11 +1,12 @@
 import { GDELT_THROTTLE_S } from "../../constants";
 import { matchFlag, putFlag } from "../../cache";
+import { cleanSnippet } from "../../html";
 import type { QueryPlan } from "../query-plan";
 import { gdeltTimespan } from "../query-plan";
 import type { ResearchRequest } from "../../../schemas/research";
 import type { SourceMention, SourceResult, TimeWindow } from "../types";
 import type { SourceCtx } from "../http";
-import { cite, getJson } from "../http";
+import { cite, getJson, getText } from "../http";
 import { isSubsourceDisabled } from "../../disabled-sources";
 
 type GdeltDoc = {
@@ -40,6 +41,39 @@ export async function fetchNews(
   const mentions: SourceMention[] = [];
   const citations: SourceResult["citations"] = [];
   let degraded = false;
+
+  if (!isSubsourceDisabled(ctx.env, "gnews")) {
+    const rssQ = encodeURIComponent(plan.news);
+    const lang = req.language && /^[a-z]{2}$/.test(req.language) ? req.language : "en";
+    const gl = lang === "en" ? "US" : lang.toUpperCase();
+    const rss = await getText(ctx, `https://news.google.com/rss/search?q=${rssQ}&hl=${lang}&gl=${gl}&ceid=${gl}:${lang}`);
+    if (rss) {
+      const items = [...rss.matchAll(/<item>([\s\S]*?)<\/item>/g)].slice(0, 25);
+      for (const item of items) {
+        const block = item[1] ?? "";
+        const title = cleanSnippet(decodeXml(tag(block, "title")));
+        const link = decodeXml(tag(block, "link"));
+        const desc = cleanSnippet(decodeXml(tag(block, "description")));
+        const pub = tag(block, "pubDate");
+        const ts = pub ? new Date(pub) : new Date();
+        if (ts < win.from || ts > win.to) continue;
+        if (!link) continue;
+        const snippet = [...new Set([title, desc].filter(Boolean))].join(" — ") || link;
+        mentions.push({
+          platform: "news",
+          url: link,
+          author: "news",
+          timestamp: ts.toISOString(),
+          text: snippet,
+          engagement: 1,
+          title,
+        });
+        citations.push(cite(link, title || link, "google-news"));
+      }
+    } else {
+      degraded = true;
+    }
+  }
 
   const throttled = await matchFlag("throttle:gdelt");
   if (!throttled) {
@@ -78,22 +112,33 @@ export async function fetchNews(
       if (!url) continue;
       const ts = h.created_at ? new Date(h.created_at) : new Date();
       if (ts < win.from || ts > win.to) continue;
+      const title = h.title ?? undefined;
+      const snippet = [title, h.story_text].filter(Boolean).join(" — ") || url;
       mentions.push({
         platform: "news",
         url,
         author: h.author ?? "hn",
         timestamp: ts.toISOString(),
-        text: h.title ?? h.story_text ?? url,
+        text: snippet,
         engagement: (h.points ?? 0) + (h.num_comments ?? 0),
-        title: h.title ?? undefined,
+        title,
       });
-      citations.push(cite(url, h.title ?? url, "hn"));
+      citations.push(cite(url, title ?? url, "hn"));
     }
     if (!hn) degraded = true;
   }
 
   if (!mentions.length) return { source: "news", mentions: [], citations: [], degraded };
   return { source: "news", mentions, citations, degraded };
+}
+
+function tag(block: string, name: string): string {
+  const m = new RegExp(`<${name}[^>]*><!\\[CDATA\\[([\\s\\S]*?)\\]\\]><\\/${name}>|<${name}[^>]*>([\\s\\S]*?)<\\/${name}>`, "i").exec(block);
+  return (m?.[1] ?? m?.[2] ?? "").trim();
+}
+
+function decodeXml(s: string): string {
+  return s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
 }
 
 function parseGdeltDate(s?: string): Date | null {

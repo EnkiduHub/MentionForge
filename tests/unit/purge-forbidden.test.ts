@@ -15,22 +15,24 @@ const allowedXRow = {
 };
 
 describe("purge-forbidden sanitizer", () => {
-  it("flags Google News, HN, and reddit URLs", () => {
+  it("keeps Google News and HN URLs; still flags reddit URLs", () => {
     const gnews = sanitizeStoredRecord({
-      citations: [{ url: "https://news.google.com/rss/articles/abc", title: "g", source: "google-news" }],
+      citations: [{ url: "https://news.google.com/rss/articles/abc", title: "ForgeCo ships", source: "google-news" }],
     });
-    expect(gnews.hits.some((h) => h.host === "news.google.com")).toBe(true);
-    expect(gnews.action).not.toBe("keep");
+    expect(gnews.hits.some((h) => h.host === "news.google.com")).toBe(false);
+    expect(gnews.action).toBe("keep");
 
     const hn = sanitizeStoredRecord({
-      citations: [{ url: "https://news.ycombinator.com/item?id=1", title: "hn", source: "hn" }],
+      citations: [{ url: "https://news.ycombinator.com/item?id=1", title: "ForgeCo on HN", source: "hn" }],
     });
-    expect(hn.hits.some((h) => h.host === "news.ycombinator.com")).toBe(true);
+    expect(hn.hits.some((h) => h.host === "news.ycombinator.com")).toBe(false);
+    expect(hn.action).toBe("keep");
 
     const algolia = sanitizeStoredRecord({
       mentions: [{ platform: "news", url: "https://hn.algolia.com/api/v1/search?query=a", text: "ForgeCo story" }],
     });
-    expect(algolia.hits.some((h) => h.host === "hn.algolia.com")).toBe(true);
+    expect(algolia.hits.some((h) => h.host === "hn.algolia.com")).toBe(false);
+    expect(algolia.action).toBe("keep");
 
     const reddit = sanitizeStoredRecord({
       mentions: [{ platform: "reddit", url: "https://www.reddit.com/r/saas/comments/abc", text: "ForgeCo thread" }],
@@ -141,6 +143,7 @@ describe("purge-forbidden sanitizer", () => {
     const b = bindingsFromWrangler(doc, "production");
     expect(b.d1_databases[0]?.database_name).toBe("mentionforge");
     expect(b.kv_namespaces).toEqual([]);
-    expect(WRANGLER_DISABLED_SOURCES).toContain("gnews");
+    expect(WRANGLER_DISABLED_SOURCES).toBe("x,reddit");
+    expect(WRANGLER_DISABLED_SOURCES).not.toContain("gnews");
   });
 });

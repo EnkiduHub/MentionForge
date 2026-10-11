@@ -268,8 +268,28 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
     if (url.includes("wikidata.org")) {
       return jsonResponse({ search: [{ id: "Q1", label: "ForgeCo", description: "fictional", concepturi: "https://www.wikidata.org/entity/Q1" }] });
     }
-    if (url.startsWith("https://news.google.com/") || url.startsWith("https://hn.algolia.com/")) {
-      throw new Error(`forbidden host fetch ${url}`);
+    if (url.startsWith("https://news.google.com/")) {
+      const pub = new Date().toUTCString();
+      return new Response(
+        `<?xml version="1.0"?><rss><channel><item><title><![CDATA[ForgeCo ships from Google News]]></title><link>https://example.com/forgeco-gnews</link><description><![CDATA[ForgeCo coverage on Google News.]]></description><pubDate>${pub}</pubDate></item></channel></rss>`,
+        { status: 200, headers: { "content-type": "application/rss+xml" } },
+      );
+    }
+    if (url.startsWith("https://hn.algolia.com/")) {
+      return jsonResponse({
+        hits: [
+          {
+            objectID: "1",
+            title: "ForgeCo on HN",
+            url: "https://example.com/forgeco-hn",
+            author: "ops",
+            created_at: new Date().toISOString(),
+            points: 10,
+            num_comments: 2,
+            story_text: "ForgeCo discussion",
+          },
+        ],
+      });
     }
     if (url.includes("api.github.com")) {
       return jsonResponse({

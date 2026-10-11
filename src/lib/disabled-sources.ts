@@ -9,10 +9,10 @@ const SUBSOURCE_SET = new Set<string>(SUBSOURCE_IDS);
 
 /**
  * Production / staging / top-level wrangler value. Platforms `x` and `reddit`
- * plus always-off sub-sources `gnews` and `hn`. Do not add `news` — that would
- * disable GDELT.
+ * stay off until native API keys exist. Google News (`gnews`) and HN are on
+ * by default. Do not add `news` — that would disable GDELT.
  */
-export const WRANGLER_DISABLED_SOURCES = "x,reddit,gnews,hn";
+export const WRANGLER_DISABLED_SOURCES = "x,reddit";
 
 /** Comma-separated platform ids from `DISABLED_SOURCES` (e.g. `x,reddit`). */
 export function parseDisabledSources(raw: string | undefined): Set<Platform> {
@@ -26,11 +26,11 @@ export function parseDisabledSources(raw: string | undefined): Set<Platform> {
 }
 
 /**
- * `gnews` and `hn` are fail-closed: disabled when `DISABLED_SOURCES` is unset,
- * empty, or lists them. No enable flag exists yet, so they stay off.
+ * `gnews` and `hn` are opt-out: disabled only when listed in `DISABLED_SOURCES`.
+ * Unset or empty leaves Google News and Hacker News on.
  */
 export function parseDisabledSubsources(raw: string | undefined): Set<SubsourceId> {
-  const disabled = new Set<SubsourceId>(SUBSOURCE_IDS);
+  const disabled = new Set<SubsourceId>();
   if (!raw?.trim()) return disabled;
   for (const part of raw.split(",")) {
     const id = part.trim().toLowerCase();
