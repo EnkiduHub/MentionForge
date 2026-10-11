@@ -58,16 +58,11 @@ export function createApp() {
   app.route("/", researchRoutes);
 
   app.notFound((c) => {
-    const body = {
-      error: {
-        code: "VALIDATION_ERROR",
-        message: "Not found",
-        recoverable: true,
-        hint: "See GET /llms.txt and GET /openapi.json",
-        details: {},
-      },
-      request_id: c.get("requestId"),
-    };
+    const err = new AgentError("NOT_FOUND", "Not found", {
+      request_id: String(c.get("requestId") ?? "unknown"),
+      hint: "See GET /llms.txt and GET /openapi.json",
+    });
+    const body = err.body();
     if (wantsHtmlDocument(c)) {
       const path = new URL(c.req.url).pathname;
       return c.html(

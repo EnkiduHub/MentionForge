@@ -539,7 +539,16 @@ describe("HTTP surfaces", () => {
     const res = await worker.fetch(new Request("https://mentionforge.test/v1/nope"), env, executionCtx());
     expect(res.status).toBe(404);
     const body = await res.json() as { error: { code: string } };
-    expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(body.error.code).toBe("NOT_FOUND");
+  });
+
+  it("unknown routes return JSON 404 with error code NOT_FOUND", async () => {
+    const res = await call("/this-route-does-not-exist");
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string; recoverable: boolean; hint: string } };
+    expect(body.error.code).toBe("NOT_FOUND");
+    expect(body.error.recoverable).toBe(true);
+    expect(body.error.hint).toMatch(/llms\.txt/);
   });
 
   it("document GET unknown path is a branded 404, not a raw JSON dump", async () => {
@@ -549,7 +558,8 @@ describe("HTTP surfaces", () => {
     const html = await res.text();
     expect(html).toMatch(/Not found/);
     expect(html).toMatch(/href="\/llms.txt"/);
-    expect(html).toMatch(/VALIDATION_ERROR/);
+    expect(html).toMatch(/NOT_FOUND/);
+    expect(html).not.toMatch(/VALIDATION_ERROR/);
   });
 
   it("does not treat PAYMENT-SIGNATURE from as an X-Wallet trial", async () => {
