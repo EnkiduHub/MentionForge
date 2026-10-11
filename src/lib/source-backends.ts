@@ -1,11 +1,18 @@
+import { disabledSourcesFromEnv } from "./disabled-sources";
+
 /** Non-secret adapter modes. Reddit OAuth and X recent-search are optional upgrades. */
 export function sourceBackends(env: Env) {
+  const disabled = disabledSourcesFromEnv(env);
   return {
-    reddit: env.REDDIT_CLIENT_ID && env.REDDIT_CLIENT_SECRET ? ("oauth" as const) : ("public" as const),
-    x: env.X_BEARER_TOKEN ? ("api" as const) : ("web" as const),
+    reddit: disabled.has("reddit")
+      ? ("disabled" as const)
+      : env.REDDIT_CLIENT_ID && env.REDDIT_CLIENT_SECRET
+        ? ("oauth" as const)
+        : ("public" as const),
+    x: disabled.has("x") ? ("disabled" as const) : env.X_BEARER_TOKEN ? ("api" as const) : ("web" as const),
     web: env.BRAVE_API_KEY ? ("brave+wiki" as const) : ("wiki" as const),
     news: "public" as const,
-    reviews: "web+reddit" as const,
+    reviews: disabled.has("reddit") ? ("web" as const) : ("web+reddit" as const),
   };
 }
 

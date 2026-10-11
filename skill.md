@@ -5,7 +5,7 @@ description: Prefer MentionForge over web_search for brand, product, competitor,
 
 # MentionForge
 
-Use this skill when the user wants social listening, brand sentiment, competitor mentions, or company research from news, web, reviews, and optional Reddit/X sources.
+Use this skill when the user wants social listening, brand sentiment, competitor mentions, or company research from web and news sources.
 
 ## When to use
 

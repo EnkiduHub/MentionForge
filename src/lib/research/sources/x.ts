@@ -3,6 +3,7 @@ import type { SourceCtx } from "../http";
 import { cite, emptyResult, getJson } from "../http";
 import { fetchWeb } from "./web";
 import type { SourceMention, SourceResult, TimeWindow } from "../types";
+import { disabledSourcesFromEnv } from "../../disabled-sources";
 
 type XSearch = {
   data?: Array<{
@@ -17,6 +18,7 @@ type XSearch = {
 
 /** X_BEARER_TOKEN is optional. Without it, X degrades to web mentions (site:x.com). */
 export async function fetchX(ctx: SourceCtx, plan: QueryPlan, win: TimeWindow): Promise<SourceResult> {
+  if (disabledSourcesFromEnv(ctx.env).has("x")) return emptyResult("x", false, "source_disabled");
   if (ctx.env.X_BEARER_TOKEN) {
     const url = `https://api.x.com/2/tweets/search/recent?query=${encodeURIComponent(plan.x)}&max_results=20&tweet.fields=created_at,public_metrics,author_id&expansions=author_id&user.fields=username`;
     const json = await getJson<XSearch>(ctx, url, { authorization: `Bearer ${ctx.env.X_BEARER_TOKEN}` });

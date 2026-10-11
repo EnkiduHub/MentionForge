@@ -88,7 +88,8 @@
         // Wrangler env blocks do not inherit top-level vars. Same MetaMask 0x as default (EVM address is chain-agnostic).
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
-        "SERVICE_VERSION": "1.2.2"
+        "SERVICE_VERSION": "1.2.2",
+        "DISABLED_SOURCES": "x,reddit"
       }
     },
     "production": {
@@ -118,7 +119,8 @@
         // Same MetaMask 0x. CDP_API_KEY_ID + CDP_API_KEY_SECRET are Worker secrets, not vars.
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
-        "SERVICE_VERSION": "1.2.2"
+        "SERVICE_VERSION": "1.2.2",
+        "DISABLED_SOURCES": "x,reddit"
       }
     }
   }
