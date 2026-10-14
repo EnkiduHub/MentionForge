@@ -24,16 +24,21 @@ export async function flushExecution(ctx: ExecutionContext): Promise<void> {
 type TrialRow = { used: number; updated_at: string };
 type IdemRow = { key: string; body_hash: string; status: string; response: string; billing: string; created_at: string };
 type StatsRow = { day: string; calls: number; paid: number; usdc_micros: number; errors: number; trial: number };
+type XIdRow = { day: string; ids: number };
 
 export function memoryD1() {
   const trial = new Map<string, TrialRow>();
   const idem = new Map<string, IdemRow>();
   const stats = new Map<string, StatsRow>();
+  const xIdUsage = new Map<string, XIdRow>();
+  const flags = { failUsage: false, failIdempotency: false };
 
   return {
     trial,
     idem,
     stats,
+    xIdUsage,
+    flags,
     prepare(sql: string) {
       const binds: unknown[] = [];
       const stmt = {
@@ -42,6 +47,15 @@ export function memoryD1() {
           return stmt;
         },
         async run() {
+          if (flags.failUsage && sql.includes("x_id_usage")) throw new Error("usage db down");
+          if (sql.includes("INSERT INTO x_id_usage")) {
+            const day = String(binds[0]);
+            const add = Number(binds[1]);
+            const cur = xIdUsage.get(day) ?? { day, ids: 0 };
+            cur.ids += add;
+            xIdUsage.set(day, cur);
+            return { meta: { changes: 1 } };
+          }
           if (sql.includes("INSERT INTO trial_wallets")) {
             const wallet = String(binds[0]);
             if (!trial.has(wallet)) trial.set(wallet, { used: 0, updated_at: String(binds[1]) });
@@ -88,6 +102,16 @@ export function memoryD1() {
           return { meta: { changes: 0 } };
         },
         async first<T>() {
+          if (flags.failIdempotency && sql.includes("FROM idempotency")) throw new Error("idempotency db down");
+          if (flags.failUsage && sql.includes("x_id_usage")) throw new Error("usage db down");
+          if (sql.includes("FROM x_id_usage") && sql.includes("SUM(ids)")) {
+            const minDay = String(binds[0] ?? "");
+            let n = 0;
+            for (const row of xIdUsage.values()) {
+              if (!minDay || row.day >= minDay) n += row.ids;
+            }
+            return { n } as T;
+          }
           if (sql.includes("FROM trial_wallets")) {
             const row = trial.get(String(binds[0]));
             return (row as T) ?? null;
@@ -202,7 +226,13 @@ export function stubCaches() {
 
 export type SourceFetchStub = { settleCount: number; settleBodies: string[] };
 
-export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boolean } = {}): SourceFetchStub {
+export function stubSourcesFetch(
+  opts: {
+    failSources?: boolean;
+    failVerify?: boolean;
+    redditPosts?: Array<{ id: string; title: string; selftext?: string }>;
+  } = {},
+): SourceFetchStub {
   const state: SourceFetchStub = { settleCount: 0, settleBodies: [] };
   const now = Math.floor(Date.now() / 1000);
   setGlobalFetch(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -236,22 +266,27 @@ export function stubSourcesFetch(opts: { failSources?: boolean; failVerify?: boo
       throw new Error("offline");
     }
     if (url.includes("reddit.com")) {
+      const posts = opts.redditPosts ?? [
+        {
+          id: "abc",
+          title: "ForgeCo API is great",
+          selftext: "latency dropped",
+        },
+      ];
       return jsonResponse({
         data: {
-          children: [
-            {
-              data: {
-                id: "abc",
-                author: "ops",
-                title: "ForgeCo API is great",
-                selftext: "latency dropped",
-                permalink: "/r/saas/comments/abc/forgeco/",
-                created_utc: now - 3600,
-                score: 12,
-                num_comments: 3,
-              },
+          children: posts.map((post) => ({
+            data: {
+              id: post.id,
+              author: "ops",
+              title: post.title,
+              selftext: post.selftext ?? "",
+              permalink: `/r/saas/comments/${post.id}/forgeco/`,
+              created_utc: now - 3600,
+              score: 12,
+              num_comments: 3,
             },
-          ],
+          })),
         },
       });
     }

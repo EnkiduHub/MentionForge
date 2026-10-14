@@ -1,7 +1,7 @@
 import { SAMPLE_QUERY, isWallet, MAX_BODY_BYTES } from "./constants";
 import { canonicalJson, sha256Hex } from "./crypto";
 import { parseResearchInput, type ResearchRequest, type ResearchResponse } from "../schemas/research";
-import { consumeTrial, sandboxOk } from "./trial";
+import { consumeTrial, sandboxOk, trialRemaining } from "./trial";
 import { lookupIdempotency, storeIdempotency } from "./idempotency";
 import { limitOrThrow } from "./rate-limit";
 import { overlayBilling, runResearch } from "./research/engine";
@@ -25,6 +25,7 @@ import { AgentError } from "../schemas/errors";
 import { bumpStats } from "./analytics";
 import { PAYMENT_EXPOSE_HEADERS } from "./cors";
 import { logRequest } from "./logger";
+import { assertQuotaAllows, incrementXIdUsage, quotaUnitsForResponse } from "./x-id-cap";
 
 type Waiter = { waitUntil(promise: Promise<unknown>): void };
 
@@ -81,11 +82,18 @@ export async function runResearchPipeline(
     });
   }
 
+  await assertTrialStillOpen(env, trialWallet, paymentHeader, sandbox, requestId, origin, surface);
+  let paymentPayload = await verifyBeforeGather(env, origin, paymentHeader, trialWallet, sandbox, requestId);
+
+  const { body: research, freshness } = await runResearch(env, req, requestId, executionCtx);
+  const preview = await shapePaidResponse(req, requestId, started, research, freshness, unpaidBilling());
+  // Cap before trial consumption and before settle. Lookup errors throw 503 here.
+  await assertQuotaAllows(env, quotaUnitsForResponse(preview), requestId);
+
   let billing: Billing;
-  let paymentPayload: unknown = null;
 
   if (sandbox) {
-    billing = { amount_usdc: "0", tx_hash: null, free_trial: true };
+    billing = unpaidBilling();
   } else {
     let trial = false;
     // Trial is only X-Wallet (or sandbox above). Never infer trial from PAYMENT-SIGNATURE `from`.
@@ -97,7 +105,7 @@ export async function runResearchPipeline(
       }
     }
     if (trial) {
-      billing = { amount_usdc: "0", tx_hash: null, free_trial: true };
+      billing = unpaidBilling();
     } else if (!paymentHeader) {
       if (!paymentsReady(env)) {
         throw new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
@@ -114,66 +122,99 @@ export async function runResearchPipeline(
       if (!paymentsReady(env)) {
         throw new AgentError("PAYMENT_UNAVAILABLE", "Payments are not configured.", { request_id: requestId });
       }
-      paymentPayload = await verifyPayment(env, origin, paymentHeader, requestId);
-      billing = { amount_usdc: paymentConfig(env).price, tx_hash: null, free_trial: false };
+      if (!paymentPayload) paymentPayload = await verifyPayment(env, origin, paymentHeader, requestId);
+      const settled = await settlePayment(env, origin, paymentPayload, requestId, surface);
+      billing = { amount_usdc: paymentConfig(env).price, tx_hash: settled.txHash, free_trial: false };
     }
   }
 
-  const { body: research, freshness } = await runResearch(env, req, requestId, executionCtx);
-
-  if (paymentPayload) {
-    const settled = await settlePayment(env, origin, paymentPayload, requestId, surface);
-    billing = { ...billing, tx_hash: settled.txHash };
-  }
-
+  const response = withBilling(preview, billing);
   try {
-    const response = await persistResearch(env, executionCtx, req, requestId, started, research, freshness, billing, idempKey, bodyHash);
-    return json(response, 200, {
-      ...receiptHeaders(billing, env),
-      "X-Request-Id": requestId,
-    });
+    await commitPaidResponse(env, executionCtx, req, response, billing, idempKey, bodyHash);
   } catch (err) {
     // Settlement already happened. Never convert that into a 5xx that looks like "try a new payment".
     logRequest({ msg: "persist_after_settle_fail", err: String(err), request_id: requestId });
-    const response = projectResearch(
-      overlayBilling(
-        research,
-        {
-          request_id: requestId,
-          latency_ms: Date.now() - started,
-          sources_used: research.meta.sources_used,
-          sources_disabled: research.meta.sources_disabled,
-          billing,
-          next_queries: nextQueries(req),
-          as_of: research.meta.as_of,
-          confidence: research.meta.confidence,
-          degraded: research.meta.degraded,
-        },
-        freshness,
-      ),
-      req,
-    );
-    return json(response, 200, {
-      ...receiptHeaders(billing, env),
-      "X-Request-Id": requestId,
-    });
   }
+  return json(response, 200, {
+    ...receiptHeaders(billing, env),
+    "X-Request-Id": requestId,
+  });
 }
 
-export async function persistResearch(
+type ResearchBody = Awaited<ReturnType<typeof runResearch>>["body"];
+type ProjectFn = (
+  full: ResearchResponse,
+) => ResearchResponse | Record<string, unknown> | Promise<ResearchResponse | Record<string, unknown>>;
+
+function unpaidBilling(): Billing {
+  return { amount_usdc: "0", tx_hash: null, free_trial: true };
+}
+
+/** Wallet-only callers with no trial left get 402 before gather. Does not consume a trial. */
+async function assertTrialStillOpen(
   env: Env,
-  executionCtx: Waiter,
+  trialWallet: string | undefined,
+  paymentHeader: string | null,
+  sandbox: boolean,
+  requestId: string,
+  origin: string,
+  surface?: BazaarSurface,
+): Promise<void> {
+  if (sandbox || paymentHeader || !isWallet(trialWallet)) return;
+  const remaining = await trialRemaining(env, trialWallet);
+  if (remaining === null) {
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Trial ledger unavailable; payment required.", {
+      request_id: requestId,
+    });
+  }
+  if (remaining > 0) return;
+  if (!paymentsReady(env)) {
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
+      request_id: requestId,
+    });
+  }
+  const doc = buildPaymentRequired(env, origin, "PAYMENT-SIGNATURE header is required", surface);
+  throw new AgentError("PAYMENT_REQUIRED", "Payment required for research.", {
+    request_id: requestId,
+    hint: paymentHint(env, origin),
+    details: { payment: doc },
+  });
+}
+
+/** Verify a payment that will be settled. Skip when a trial call is still available. Never settles. */
+async function verifyBeforeGather(
+  env: Env,
+  origin: string,
+  paymentHeader: string | null,
+  trialWallet: string | undefined,
+  sandbox: boolean,
+  requestId: string,
+): Promise<unknown | null> {
+  if (sandbox || !paymentHeader) return null;
+  if (isWallet(trialWallet)) {
+    const remaining = await trialRemaining(env, trialWallet);
+    if (remaining !== null && remaining > 0) return null;
+  }
+  if (!paymentsReady(env)) {
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Payments are not configured.", { request_id: requestId });
+  }
+  return verifyPayment(env, origin, paymentHeader, requestId);
+}
+
+function withBilling<T>(response: T, billing: Billing): T {
+  const rec = response as { meta?: Record<string, unknown> };
+  if (!rec.meta || typeof rec.meta !== "object") return response;
+  return { ...rec, meta: { ...rec.meta, billing } } as T;
+}
+
+export async function shapePaidResponse(
   req: ResearchRequest,
   requestId: string,
   started: number,
-  research: Awaited<ReturnType<typeof runResearch>>["body"],
+  research: ResearchBody,
   freshness: "live" | "cached",
   billing: Billing,
-  idempKey: string | null,
-  bodyHash: string,
-  project?: (
-    full: ResearchResponse,
-  ) => ResearchResponse | Record<string, unknown> | Promise<ResearchResponse | Record<string, unknown>>,
+  project?: ProjectFn,
 ): Promise<ResearchResponse | Record<string, unknown>> {
   const billed = overlayBilling(
     research,
@@ -191,8 +232,18 @@ export async function persistResearch(
     freshness,
   );
   const overlaid = projectResearch(billed, req);
-  const response = project ? await project(overlaid) : overlaid;
+  return project ? await project(overlaid) : overlaid;
+}
 
+async function commitPaidResponse(
+  env: Env,
+  executionCtx: Waiter,
+  req: ResearchRequest,
+  response: ResearchResponse | Record<string, unknown>,
+  billing: Billing,
+  idempKey: string | null,
+  bodyHash: string,
+): Promise<void> {
   await storeIdempotency(env, idempKey, bodyHash, response, billing);
   const queryHash = await sha256Hex(req.query.normalize("NFC").trim().toLowerCase());
   await bumpStats(env, executionCtx, {
@@ -202,6 +253,24 @@ export async function persistResearch(
     usdcMicros: billing.free_trial ? 0 : Number.parseInt(paymentConfig(env).amount, 10),
     queryHash,
   });
+  await incrementXIdUsage(env, quotaUnitsForResponse(response));
+}
+
+export async function persistResearch(
+  env: Env,
+  executionCtx: Waiter,
+  req: ResearchRequest,
+  requestId: string,
+  started: number,
+  research: ResearchBody,
+  freshness: "live" | "cached",
+  billing: Billing,
+  idempKey: string | null,
+  bodyHash: string,
+  project?: ProjectFn,
+): Promise<ResearchResponse | Record<string, unknown>> {
+  const response = await shapePaidResponse(req, requestId, started, research, freshness, billing, project);
+  await commitPaidResponse(env, executionCtx, req, response, billing, idempKey, bodyHash);
   return response;
 }
 
@@ -221,7 +290,11 @@ export async function executeUnpaidOrPreVerified(
   const existing = await lookupIdempotency(env, idempKey, bodyHash, requestId);
   if (existing?.response) return existing.response;
   const { body: research, freshness } = await runResearch(env, req, requestId, executionCtx);
-  return persistResearch(env, executionCtx, req, requestId, started, research, freshness, billing, idempKey, bodyHash, project);
+  const response = await shapePaidResponse(req, requestId, started, research, freshness, billing, project);
+  // MCP settle runs only after this returns success. Reject over-cap and ledger errors first.
+  await assertQuotaAllows(env, quotaUnitsForResponse(response), requestId);
+  await commitPaidResponse(env, executionCtx, req, response, billing, idempKey, bodyHash);
+  return response;
 }
 
 export function paymentRequiredHttp(
@@ -400,11 +473,38 @@ export async function runLensPipeline(
     });
   }
 
+  if (!sandbox && !paymentHeader && !isWallet(trialWallet)) {
+    if (!paymentsReady(env)) {
+      throw new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
+        request_id: requestId,
+      });
+    }
+    const doc = buildPaymentRequired(env, origin);
+    throw new AgentError("PAYMENT_REQUIRED", "Payment required for research.", {
+      request_id: requestId,
+      hint: paymentHint(env, origin),
+      details: { payment: doc },
+    });
+  }
+  await assertTrialStillOpen(env, trialWallet, paymentHeader, sandbox, requestId, origin);
+  let paymentPayload = await verifyBeforeGather(env, origin, paymentHeader, trialWallet, sandbox, requestId);
+
+  const { body: research, freshness } = await runResearch(env, parsed.research, requestId, executionCtx);
+  const preview = await shapePaidResponse(
+    parsed.research,
+    requestId,
+    started,
+    research,
+    freshness,
+    unpaidBilling(),
+    parsed.project,
+  );
+  await assertQuotaAllows(env, quotaUnitsForResponse(preview), requestId);
+
   let billing: Billing;
-  let paymentPayload: unknown = null;
 
   if (sandbox) {
-    billing = { amount_usdc: "0", tx_hash: null, free_trial: true };
+    billing = unpaidBilling();
   } else {
     let trial = false;
     if (isWallet(trialWallet)) {
@@ -415,7 +515,7 @@ export async function runLensPipeline(
       }
     }
     if (trial) {
-      billing = { amount_usdc: "0", tx_hash: null, free_trial: true };
+      billing = unpaidBilling();
     } else if (!paymentHeader) {
       if (!paymentsReady(env)) {
         throw new AgentError("PAYMENT_UNAVAILABLE", "Set RECIPIENT_WALLET to a real Base address before charging.", {
@@ -432,61 +532,20 @@ export async function runLensPipeline(
       if (!paymentsReady(env)) {
         throw new AgentError("PAYMENT_UNAVAILABLE", "Payments are not configured.", { request_id: requestId });
       }
-      paymentPayload = await verifyPayment(env, origin, paymentHeader, requestId);
-      billing = { amount_usdc: paymentConfig(env).price, tx_hash: null, free_trial: false };
+      if (!paymentPayload) paymentPayload = await verifyPayment(env, origin, paymentHeader, requestId);
+      const settled = await settlePayment(env, origin, paymentPayload, requestId);
+      billing = { amount_usdc: paymentConfig(env).price, tx_hash: settled.txHash, free_trial: false };
     }
   }
 
-  const { body: research, freshness } = await runResearch(env, parsed.research, requestId, executionCtx);
-
-  if (paymentPayload) {
-    const settled = await settlePayment(env, origin, paymentPayload, requestId);
-    billing = { ...billing, tx_hash: settled.txHash };
-  }
-
+  const response = withBilling(preview, billing);
   try {
-    const response = await persistResearch(
-      env,
-      executionCtx,
-      parsed.research,
-      requestId,
-      started,
-      research,
-      freshness,
-      billing,
-      idempKey,
-      bodyHash,
-      parsed.project,
-    );
-    return json(response, 200, {
-      ...receiptHeaders(billing, env),
-      "X-Request-Id": requestId,
-    });
+    await commitPaidResponse(env, executionCtx, parsed.research, response, billing, idempKey, bodyHash);
   } catch (err) {
     logRequest({ msg: "persist_after_settle_fail", err: String(err), request_id: requestId });
-    const response = await parsed.project(
-      projectResearch(
-        overlayBilling(
-          research,
-          {
-            request_id: requestId,
-            latency_ms: Date.now() - started,
-            sources_used: research.meta.sources_used,
-            sources_disabled: research.meta.sources_disabled,
-            billing,
-            next_queries: nextQueries(parsed.research),
-            as_of: research.meta.as_of,
-            confidence: research.meta.confidence,
-            degraded: research.meta.degraded,
-          },
-          freshness,
-        ),
-        parsed.research,
-      ),
-    );
-    return json(response, 200, {
-      ...receiptHeaders(billing, env),
-      "X-Request-Id": requestId,
-    });
   }
+  return json(response, 200, {
+    ...receiptHeaders(billing, env),
+    "X-Request-Id": requestId,
+  });
 }

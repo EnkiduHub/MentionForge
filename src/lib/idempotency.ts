@@ -53,7 +53,10 @@ export async function lookupIdempotency(
     };
   } catch (err) {
     if (err instanceof AgentError) throw err;
-    return null;
+    throw new AgentError("QUOTA_UNAVAILABLE", "Idempotency ledger unavailable. Request denied; nothing was charged.", {
+      request_id: requestId,
+      details: { reason: "idempotency_lookup_failed" },
+    });
   }
 }
 
