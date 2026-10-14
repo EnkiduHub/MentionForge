@@ -11,6 +11,8 @@ export const errorCodeSchema = z.enum([
   "RATE_LIMITED",
   "TRIAL_EXHAUSTED",
   "SOURCE_UNAVAILABLE",
+  "X_ID_CAP_REACHED",
+  "QUOTA_UNAVAILABLE",
   "IDEMPOTENCY_CONFLICT",
   "INTERNAL_ERROR",
 ]);
@@ -38,6 +40,8 @@ const RECOVERABLE: Record<ErrorCode, boolean> = {
   RATE_LIMITED: true,
   TRIAL_EXHAUSTED: true,
   SOURCE_UNAVAILABLE: true,
+  X_ID_CAP_REACHED: true,
+  QUOTA_UNAVAILABLE: true,
   IDEMPOTENCY_CONFLICT: true,
   INTERNAL_ERROR: false,
 };
@@ -52,6 +56,8 @@ const HTTP: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   TRIAL_EXHAUSTED: 402,
   SOURCE_UNAVAILABLE: 503,
+  X_ID_CAP_REACHED: 429,
+  QUOTA_UNAVAILABLE: 503,
   IDEMPOTENCY_CONFLICT: 409,
   INTERNAL_ERROR: 500,
 };
@@ -113,6 +119,10 @@ function defaultHint(code: ErrorCode): string {
       return "Free trial used. Pay $0.02 USDC via x402 PAYMENT-SIGNATURE and retry.";
     case "SOURCE_UNAVAILABLE":
       return "All upstream sources failed. Retry once after 15s with the same Idempotency-Key.";
+    case "X_ID_CAP_REACHED":
+      return "Rolling 30-day plan quota is exhausted for the IDs this call would return. Nothing was charged. Retry after retry_after_days.";
+    case "QUOTA_UNAVAILABLE":
+      return "Usage or idempotency ledger could not be read. Request denied; nothing was charged. Retry later with the same Idempotency-Key.";
     case "IDEMPOTENCY_CONFLICT":
       return "This Idempotency-Key was used with a different body. Generate a new UUID key.";
     default:

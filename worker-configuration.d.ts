@@ -36,6 +36,8 @@ interface Env {
   ALLOWED_ORIGINS: string;
   SERVICE_VERSION: string;
   DISABLED_SOURCES?: string;
+  /** Rolling 30-day cap on disclosed IDs. Default 1500000 when unset. */
+  X_ID_CAP?: string;
   SANDBOX_KEY?: string;
   OPERATOR_TOKEN?: string;
   BRAVE_API_KEY?: string;

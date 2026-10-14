@@ -315,9 +315,16 @@ export function wrapPaidTool<TOut>(
           };
         }
       } catch (err) {
-        if (err instanceof AgentError && err.code === "IDEMPOTENCY_CONFLICT") {
+        if (err instanceof AgentError) {
           return mcpToolError(err, requestId);
         }
+        return mcpToolError(
+          new AgentError("QUOTA_UNAVAILABLE", "Idempotency ledger unavailable. Request denied; nothing was charged.", {
+            request_id: requestId,
+            details: { reason: "idempotency_lookup_failed" },
+          }),
+          requestId,
+        );
       }
       const result = await wrapped(args as Record<string, unknown>, mcpPaymentExtraFromContext(toolCtx, request));
       if (isOpaqueIse(result as { isError?: boolean; content?: Array<{ type?: string; text?: string }> })) {
