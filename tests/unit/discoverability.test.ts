@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createApp } from "../../src/app";
-import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC } from "../../src/mcp";
+import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
 import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
@@ -14,6 +14,60 @@ const app = createApp();
 
 async function call(path: string, init: RequestInit = {}, env = mockEnv()): Promise<Response> {
   return app.fetch(new Request(`https://mentionforge.test${path}`, init), env, executionCtx());
+}
+
+async function listedMcpToolNames(env = mockEnv()): Promise<string[]> {
+  const headers = {
+    "content-type": "application/json",
+    host: "mentionforge.test",
+    accept: "application/json, text/event-stream",
+  };
+  const init = await handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: "2025-03-26", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+      }),
+    }),
+    env,
+    executionCtx(),
+  );
+  expect(init.status).toBe(200);
+  const session = init.headers.get("mcp-session-id");
+  const listed = await handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers: { ...headers, ...(session ? { "mcp-session-id": session } : {}) },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
+    }),
+    env,
+    executionCtx(),
+  );
+  expect(listed.status).toBe(200);
+  const raw = await listed.text();
+  const contentType = listed.headers.get("content-type") ?? "";
+  const parsed: unknown = contentType.includes("text/event-stream")
+    ? JSON.parse(
+        raw
+          .split("\n")
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.replace(/^data:\s?/, "").trim())
+          .filter(Boolean)
+          .at(-1) ?? "null",
+      )
+    : JSON.parse(raw);
+  const payload = parsed as { result?: { tools?: Array<{ name: string }> } };
+  const names = (payload.result?.tools ?? []).map((t) => t.name);
+  expect(names.length).toBeGreaterThan(0);
+  return names;
+}
+
+function mentionsToolName(text: string, name: string): boolean {
+  return new RegExp(`(?<![A-Za-z0-9_])${name}(?![A-Za-z0-9_])`).test(text);
 }
 
 describe("agent discoverability", () => {
@@ -207,6 +261,20 @@ describe("agent discoverability", () => {
     ]);
     expect(cards.map((c) => c.name)).toContain("research_mentions");
     expect(JSON.stringify(cards)).not.toMatch(/0x[a-fA-F0-9]{40}/);
+  });
+
+  it("server-card tools and llms.txt list every registered MCP tool name", async () => {
+    const registered = await listedMcpToolNames();
+    const cardRes = await call("/server-card.json");
+    expect(cardRes.status).toBe(200);
+    const card = (await cardRes.json()) as { tools: Array<{ name: string }> };
+    expect([...card.tools.map((t) => t.name)].sort()).toEqual([...registered].sort());
+
+    const llmsRes = await call("/llms.txt");
+    expect(llmsRes.status).toBe(200);
+    const llms = await llmsRes.text();
+    const missing = registered.filter((name) => !mentionsToolName(llms, name));
+    expect(missing).toEqual([]);
   });
 
   it("server card serverInfo matches package.json and tool inputSchema matches live Zod", async () => {

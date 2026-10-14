@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Unit test fails when `GET /server-card.json` or `GET /llms.txt` omit a registered MCP tool name
 - Add `smithery.yaml` so Smithery can rescan the hosted Streamable HTTP MCP at `https://mentionforge.mentionforge.workers.dev/mcp` (`target: remote`, empty `configSchema`).
 - Google News rows no longer repeat the headline when the RSS description is HTML that echoes the title (including a trailing ` - Source`). Publisher name/domain from `<source url>` is stored separately. Citations use a publisher article URL when the feed includes one, otherwise keep the Google link, and label with the headline (falling back to the `<source url>` domain, source name, or link when the title is empty). Mention `author` is the publisher name. The gnews fetch follows at most 3 hops with `redirect: "manual"` and will not request any host other than `news.google.com` / `consent.google.com`.
 - Google News RSS fetch uses `hl=en-US&gl=US&ceid=US:en` with a browser User-Agent and `Accept: application/rss+xml`, and retries the original URL with a `CONSENT` cookie when Google sends `consent.google.com`. XML parsing accepts CDATA and entities. Non-200 / parse failures log status, final host, content-type, and a 120-char snippet (no secrets).
