@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Added `examples/free-tour.sh`: zero-wallet tour of five free routes (MF-18).
+- Docs: README `Listed on` section linking Glama, Smithery, Official MCP Registry and CDP x402 Bazaar (MF-24).
 - Paid calls check the rolling plan quota before a trial is consumed and before x402 settle. A usage or idempotency ledger read error is HTTP 503 and does not settle. `POST /v1/risk` counts each returned negative id. Replays of the same Idempotency-Key return the stored body and are not charged or counted again.
 - Unit test fails when `GET /server-card.json` or `GET /llms.txt` omit a registered MCP tool name
 - Add `smithery.yaml` so Smithery can rescan the hosted Streamable HTTP MCP at `https://mentionforge.mentionforge.workers.dev/mcp` (`target: remote`, empty `configSchema`).
