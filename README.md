@@ -29,6 +29,13 @@
 
 3. **Try a free tool first:** call `get_example` (optional `view`: `"full"` or `"compact"`). It returns a frozen snapshot of a real research payload so you can inspect the shape before calling anything else.
 
+## Listed on
+
+- [Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge) — MCP server directory
+- [Smithery](https://smithery.ai/servers/enkiduhub/mentionforge) — MCP server directory
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.EnkiduHub/MentionForge) (`io.github.EnkiduHub/MentionForge`) — registry API entry
+- [Coinbase CDP x402 Bazaar](https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=MentionForge) — x402 discovery search API
+
 ## MCP tools
 
 Same 12 tools as the live [server card](https://mentionforge.mentionforge.workers.dev/.well-known/mcp/server-card.json) (`mcpToolCards()` in `src/lib/discoverability.ts`). Free tools never charge. Paid tools share the 10-call trial, then **$0.02 USDC** per successful call (`src/routes/pricing.ts`).
