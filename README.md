@@ -290,6 +290,23 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 | `skill.md` | Cursor skill served at `GET /skill.md` |
 | `tests/unit/` | Default CI (`npm test`) |
 
+## FAQ
+
+**Is there a free way to try it?**  
+Yes. Five MCP tools never charge: `get_health`, `get_pricing`, `get_example`, `suggest_tool`, and `get_entity_profile`. Matching REST routes are `GET /health`, `GET /v1/pricing`, `GET /v1/research/example`, `GET /v1/suggest`, and `GET /v1/entity`. Run them without a wallet via [`examples/free-tour.sh`](examples/free-tour.sh).
+
+**What does a paid call cost?**  
+**$0.02 USDC** per successful paid call on Base (`eip155:8453`, `20000` atomic units). Live `GET /v1/pricing` returns `price_usdc: "0.02"` and `free_trial_calls: 10`.
+
+**How does payment work?**  
+Paid REST and MCP tools settle with x402 on Base after a 10-call trial shared across paid tools (`X-Wallet` or `X-Sandbox-Key`). Always send `Idempotency-Key`. On HTTP 402, follow `error.hint` and retry with `PAYMENT-SIGNATURE`. Trial, sandbox, and idempotent replay are not charged.
+
+**Which sources does it search?**  
+Default research sources are web and news: Wikipedia/Wikidata, Brave web results, Google News RSS, GDELT, Hacker News, and Trustpilot/G2/Capterra review-site web results. Live `GET /health` reports `web` as `brave+wiki`, `news` as `public`, `reviews` as `web`, and both `reddit` and `x` backends as `disabled`.
+
+**How do I inspect a research payload before paying?**  
+Call free `get_example` (optional `view`: `"full"` or `"compact"`) or `GET /v1/research/example`. That route returns a frozen Cloudflare Workers snapshot (`meta.billing.amount_usdc` is `"0"`).
+
 ## Hosted product vs this repo
 
 The thing agents pay for is **this origin**: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`POST /v1/research`, POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply`, and `POST /mcp` paid tools). x402 still charges **$0.02 USDC on Base** there after the shared 10-call trial. REST `resource.url` stays `/v1/research`; MCP `resource.url` stays `/mcp`. A clone with someone else’s Cloudflare account is a **fork**, not free access to this Worker.
