@@ -265,6 +265,7 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 ## Docs
 
 - [Docs index](docs/README.md)
+- [Use cases](docs/use-cases.md)
 - [API](docs/api.md)
 - [MCP](docs/mcp.md)
 - [Payments](docs/payments.md)
