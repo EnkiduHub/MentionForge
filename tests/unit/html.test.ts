@@ -62,4 +62,33 @@ describe("html helpers", () => {
     expect(out).not.toContain("ForgeCo");
     expect(out).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
+
+  it("injects exactly one SoftwareApplication JSON-LD block without offers or ratings", () => {
+    const src = `<head>
+<meta name="description" content="Highest-quality, lowest-latency social listening for agents. Cited, multi-source intelligence for $0.02 USDC on Base."/>
+<meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/"/>
+<link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/"/>
+</head>
+<body>
+<span class="dot" data-ready></span>
+<span id="live-label"> Base · $0.02 USDC</span>
+<span class="chip" id="network-chip">Base</span>
+<ul class="backends" id="backends"><li>Loading from GET /health…</li></ul>
+<p class="stat" id="calls">—</p>
+<div id="fixture-root"><p class="muted">Loading snapshot…</p></div>
+</body>`;
+    const out = hydrateLandingHtml(src, mockEnv({ BRAVE_API_KEY: "brave" }), 0);
+    const blocks = [...out.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]![1]).not.toContain("<");
+    expect(blocks[0]![1]).not.toContain("</script>");
+    const parsed = JSON.parse(blocks[0]![1]!) as Record<string, unknown>;
+    expect(parsed["@type"]).toBe("SoftwareApplication");
+    expect(parsed.name).toBe("MentionForge");
+    expect(parsed.url).toBe("https://mentionforge.mentionforge.workers.dev/");
+    expect(parsed).not.toHaveProperty("offers");
+    expect(parsed).not.toHaveProperty("aggregateRating");
+    expect(parsed).not.toHaveProperty("review");
+    expect(JSON.stringify(parsed)).not.toMatch(/0x[a-fA-F0-9]{40}/);
+  });
 });
