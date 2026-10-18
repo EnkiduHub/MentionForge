@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Landing: one schema.org SoftwareApplication JSON-LD block in the public HTML (MF-23).
 - Docs: `docs/use-cases.md` — five MCP jobs mapped to one real tool or prompt each (MF-21).
 - Docs: README FAQ for free trial, x402 price, payment headers, and live source backends (MF-19).
 - Added `examples/free-tour.sh`: zero-wallet tour of five free routes (MF-18).

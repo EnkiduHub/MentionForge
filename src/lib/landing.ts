@@ -9,6 +9,28 @@ function barRow(label: string, pct: number): string {
   return `<div class="bar-row"><span>${escapeHtml(label)}</span><div class="bar" role="img" aria-label="${escapeHtml(label)} ${p} percent"><span style="width:${p}%"></span></div><span class="bar-n">${p.toFixed(0)}%</span></div>`;
 }
 
+const MIT_LICENSE_URL = "https://opensource.org/licenses/MIT";
+const CODE_REPOSITORY_URL = "https://github.com/EnkiduHub/MentionForge";
+
+/** One schema.org JSON-LD block for crawlers. Serialize with JSON.stringify and escape "<". */
+export function landingJsonLdScript(html: string): string {
+  const url = html.match(/<meta property="og:url" content="([^"]*)"/)?.[1] ?? "";
+  const description = html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
+  const json = JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    name: "MentionForge",
+    url,
+    description,
+    applicationCategory: "DeveloperApplication",
+    operatingSystem: "Any",
+    license: MIT_LICENSE_URL,
+    codeRepository: CODE_REPOSITORY_URL,
+    sameAs: CODE_REPOSITORY_URL,
+  }).replace(/</g, "\\u003c");
+  return `<script type="application/ld+json">${json}</script>`;
+}
+
 /** Fill the static landing with this deployment's live status so first paint is not a loading shell. */
 export function hydrateLandingHtml(html: string, env: Env, calls: number): string {
   const backends = sourceBackends(env);
@@ -47,7 +69,7 @@ export function hydrateLandingHtml(html: string, env: Env, calls: number): strin
     .join("");
   const fixture = `<article class="fixture-summary"><h3>${escapeHtml(ex.query)} · ${escapeHtml(String(ex.volume?.total ?? 0))} mentions</h3><p>${escapeHtml(ex.summary ?? "")}</p><p class="muted">as_of ${escapeHtml(String(ex.meta?.as_of ?? "—"))} · sources ${escapeHtml((ex.meta?.sources_used ?? []).join(", "))}</p><div class="bars" aria-label="Sentiment mix">${sentBars}</div>${sovBars ? `<div class="bars" aria-label="Share of voice">${sovBars}</div>` : ""}<ul class="themes">${themes}</ul>${mentions}</article>`;
 
-  return html
+  let out = html
     .replace('<span class="dot" data-ready></span>', `<span class="dot" data-ready="${ready ? "true" : "false"}"></span>`)
     .replace("> Base · $0.02 USDC</span>", `>${label}</span>`)
     .replace('<span class="chip" id="network-chip">Base</span>', `<span class="chip" id="network-chip">${escapeHtml(named)}</span>`)
@@ -55,4 +77,9 @@ export function hydrateLandingHtml(html: string, env: Env, calls: number): strin
     .replace('<p class="stat" id="calls">—</p>', `<p class="stat" id="calls">${Number.isFinite(calls) ? calls : 0}</p>`)
     .replace('<p class="muted">Loading snapshot…</p>', fixture)
     .replace('<div id="tool-gallery" class="tool-gallery"></div>', `<div id="tool-gallery" class="tool-gallery">${gallery}</div>`);
+  if (!out.includes('type="application/ld+json"')) {
+    const block = landingJsonLdScript(out);
+    out = out.includes("</head>") ? out.replace("</head>", `${block}\n</head>`) : `${out}\n${block}`;
+  }
+  return out;
 }
