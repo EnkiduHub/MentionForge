@@ -228,10 +228,14 @@ describe("agent discoverability", () => {
     expect(PUBLIC_SITEMAP_PATHS).toContain("/llms-full.txt");
     expect(PUBLIC_SITEMAP_PATHS).toContain("/skill.md");
     expect(PUBLIC_SITEMAP_PATHS).toContain("/openapi.json");
+    expect(PUBLIC_SITEMAP_PATHS).not.toContain("/v1/entity");
+    expect(PUBLIC_SITEMAP_PATHS).not.toContain("/v1/suggest");
     for (const path of PUBLIC_SITEMAP_PATHS) {
       const loc = path === "/" ? "https://mentionforge.test/" : `https://mentionforge.test${path}`;
       expect(xml).toContain(`<loc>${loc}</loc>`);
     }
+    expect(xml).not.toMatch(/<loc>[^<]*\/v1\/entity<\/loc>/);
+    expect(xml).not.toMatch(/<loc>[^<]*\/v1\/suggest<\/loc>/);
     for (const path of ["/llms.txt", "/llms-full.txt", "/skill.md", "/openapi.json", "/server-card.json"] as const) {
       const live = await call(path);
       expect(live.status, path).toBe(200);
