@@ -185,8 +185,6 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/stats",
   "/v1/pricing",
   "/v1/research/example",
-  "/v1/entity",
-  "/v1/suggest",
 ] as const;
 
 export function sitemapXml(origin: string): string {
