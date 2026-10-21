@@ -6,7 +6,8 @@ import { mcpToolCards } from "./discoverability";
 
 function barRow(label: string, pct: number): string {
   const p = Math.max(0, Math.min(100, Number.isFinite(pct) ? pct : 0));
-  return `<div class="bar-row"><span>${escapeHtml(label)}</span><div class="bar" role="img" aria-label="${escapeHtml(label)} ${p} percent"><span style="width:${p}%"></span></div><span class="bar-n">${p.toFixed(0)}%</span></div>`;
+  const bucket = Math.round(p / 5) * 5;
+  return `<div class="bar-row"><span>${escapeHtml(label)}</span><div class="bar" role="img" aria-label="${escapeHtml(label)} ${p} percent"><span data-pct="${p}" data-w="${bucket}"></span></div><span class="bar-n">${p.toFixed(0)}%</span></div>`;
 }
 
 const MIT_LICENSE_URL = "https://opensource.org/licenses/MIT";

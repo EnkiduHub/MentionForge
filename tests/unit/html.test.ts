@@ -61,6 +61,10 @@ describe("html helpers", () => {
     expect(out).not.toContain("Loading snapshot");
     expect(out).not.toContain("ForgeCo");
     expect(out).not.toMatch(/0x[a-fA-F0-9]{40}/);
+    expect(out).not.toMatch(/\sstyle\s*=/i);
+    expect(out).toContain('data-pct="90.9"');
+    expect(out).toContain('aria-label="neutral 90.9 percent"');
+    expect(out).toContain('class="bar-n">91%</span>');
   });
 
   it("injects exactly one SoftwareApplication JSON-LD block without offers or ratings", () => {
