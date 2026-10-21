@@ -6,7 +6,7 @@ Operator and protocol notes for the hosted Worker. Agent-facing copy lives on th
 | --- | --- |
 | [use-cases.md](use-cases.md) | Five MCP jobs (one tool or prompt each) |
 | [api.md](api.md) | REST paths, overlays, paid lenses, errors |
-| [mcp.md](mcp.md) | Streamable HTTP tools, resources, prompts, x402 wrapper |
+| [mcp.md](mcp.md) | Streamable HTTP tools, resources, [MCP prompts](mcp.md#mcp-prompts), x402 wrapper |
 | [payments.md](payments.md) | $0.02 USDC, trial, idempotency, Bazaar |
 | [architecture.md](architecture.md) | Engine, cache, sources, SSRF, budget |
 | [operations.md](operations.md) | Secrets, D1, health, deploy |

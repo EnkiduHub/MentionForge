@@ -164,7 +164,7 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 - `get_example` / `suggest_tool` / `get_entity_profile` — free
 - `research_mentions` / `compare_brands` / `get_digest` / `detect_risk` / `draft_reply` / `list_mentions` / `get_trends` — paid after the shared 10-call trial ($0.02 USDC on Base)
 - Resources: `mentionforge://pricing`, `mentionforge://openapi`, `mentionforge://example`, `mentionforge://skill`
-- Prompts: `competitor_brief`, `crisis_watch`, `review_digest`, `pain_mining`, `mention_export`, `trend_watch`
+- [MCP prompts](docs/mcp.md#mcp-prompts): `competitor_brief`, `crisis_watch`, `review_digest`, `pain_mining`, `mention_export`, `trend_watch`
 
 ### Discovery
 
@@ -269,7 +269,7 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - [Docs index](docs/README.md)
 - [Use cases](docs/use-cases.md)
 - [API](docs/api.md)
-- [MCP](docs/mcp.md)
+- [MCP](docs/mcp.md) (including [MCP prompts](docs/mcp.md#mcp-prompts))
 - [Payments](docs/payments.md)
 - [Architecture](docs/architecture.md)
 - [Operations](docs/operations.md)
