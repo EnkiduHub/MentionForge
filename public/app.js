@@ -129,6 +129,27 @@
     return node;
   }
 
+  function clampPct(pct) {
+    const n = Number(pct);
+    return Math.max(0, Math.min(100, Number.isFinite(n) ? n : 0));
+  }
+
+  function paintFill(fill, pct) {
+    const p = clampPct(pct);
+    fill.setAttribute("data-pct", String(p));
+    fill.setAttribute("data-w", String(Math.round(p / 5) * 5));
+    fill.style.width = `${p}%`;
+  }
+
+  function applyBarWidths(root) {
+    const scope = root || document;
+    scope.querySelectorAll("[data-pct]").forEach((node) => {
+      paintFill(node, node.getAttribute("data-pct"));
+    });
+  }
+
+  applyBarWidths();
+
   function link(href, text, className) {
     const a = document.createElement("a");
     if (className) a.className = className;
@@ -309,7 +330,7 @@
       bar.setAttribute("role", "img");
       bar.setAttribute("aria-label", `${label} ${Math.round(pct)} percent`);
       const fill = document.createElement("span");
-      fill.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+      paintFill(fill, pct);
       bar.append(fill);
       row.append(bar, el("span", "bar-n", `${Math.round(pct)}%`));
       box.append(row);
@@ -394,7 +415,7 @@
       bar.setAttribute("aria-label", `sentiment ${m.sentiment}`);
       const fill = document.createElement("span");
       const pct = Math.max(0, Math.min(100, Math.round(((Number(m.sentiment) || 0) + 1) * 50)));
-      fill.style.width = `${pct}%`;
+      paintFill(fill, pct);
       bar.append(fill);
       art.append(bar);
       root.append(art);
