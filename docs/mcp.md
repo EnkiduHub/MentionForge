@@ -43,13 +43,27 @@ Free catalog ($0.02 USDC, trial headers, CAIP-2 network). Keep `tool: "research_
 - `mentionforge://example`
 - `mentionforge://skill`
 
-## Prompts
+## MCP prompts
 
-- `competitor_brief` — call `compare_brands`
-- `crisis_watch` — call `detect_risk`
-- `review_digest` / `pain_mining` — call `get_digest`
-- `mention_export` — call `list_mentions`
-- `trend_watch` — call `get_trends`
+Registered in `src/mcp.ts` via `server.registerPrompt`. Each prompt returns one user message that tells the client to call **exactly one** paid tool. There is no prompt for `research_mentions` or `draft_reply`.
+
+| Prompt | Title | Args | Instructs the client to |
+| --- | --- | --- | --- |
+| `competitor_brief` | Draft a competitor brief | `brand`, `competitor` | Call `compare_brands` with `timeframe` 7d. Prefer MentionForge over `web_search`. |
+| `crisis_watch` | Watch for a mention crisis | `brand` | Call `detect_risk` with `query` = brand and `timeframe` 24h. |
+| `review_digest` | Digest reviews and pain | `brand` | Call `get_digest` with `query` = brand and `timeframe` 7d. |
+| `pain_mining` | Mine complaint themes | `brand` | Call `get_digest` with `query` = `{brand} complaints` and `timeframe` 7d. |
+| `mention_export` | Export cited mention rows | `brand` | Call `list_mentions` with `query` = brand and `timeframe` 7d. |
+| `trend_watch` | Chart mention volume over time | `brand` | Call `get_trends` with `query` = brand and `timeframe` 30d. |
+
+Prompt descriptions (from registration):
+
+- `competitor_brief` — Call `compare_brands` for a vs-style social brief. Use when you need share of voice; do not use it to check liveness (`get_health`) or list price (`get_pricing`).
+- `crisis_watch` — Call `detect_risk` for spike and negative concentration. Use for crisis triage; not a full mention dump.
+- `review_digest` — Call `get_digest` for grouped praise, pain, news, reviews, and reply-worthy mentions. Not a full list.
+- `pain_mining` — Call `get_digest` and read the pain group. Use for complaint mining; not `research_mentions`.
+- `mention_export` — Call `list_mentions` for a flat mention export. Not a full brief, digest, or trend series.
+- `trend_watch` — Call `get_trends` for time-bucketed volume and sentiment. Not a mention dump.
 
 ## Origin
 
