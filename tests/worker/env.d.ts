@@ -1,5 +1,9 @@
 /// <reference types="@cloudflare/workers-types" />
 
+declare module "cloudflare:workers" {
+  interface ProvidedEnv extends Env {}
+}
+
 declare module "cloudflare:test" {
   export const env: Env;
   export function createExecutionContext(): ExecutionContext;
