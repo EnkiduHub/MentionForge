@@ -83,6 +83,8 @@ describe("agent discoverability", () => {
     expect(html).toContain(`property="og:image:width" content="${String(BRAND_ASSETS.ogWidth)}"`);
     expect(html).toContain(`property="og:image:height" content="${String(BRAND_ASSETS.ogHeight)}"`);
     expect(html).toContain(`property="og:image:alt" content="${BRAND_ASSETS.ogAlt}"`);
+    expect(html).toContain(`property="og:site_name" content="MentionForge"`);
+    expect(html).toContain(`href="${BRAND_ASSETS.faviconIco}"`);
     expect(html).toContain(`href="${BRAND_ASSETS.favicon}"`);
     expect(html).toContain(`src="${BRAND_ASSETS.hero}"`);
     expect(html).toContain(`href="${BRAND_ASSETS.appleTouch}"`);
@@ -108,12 +110,19 @@ describe("agent discoverability", () => {
       const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
       return { w: view.getUint32(16), h: view.getUint32(20) };
     }
+    const ogBytes = readFileSync(new URL(`../../public${BRAND_ASSETS.og}`, import.meta.url));
+    expect(ogBytes.byteLength).toBeLessThan(150 * 1024);
     expect(ihdr(BRAND_ASSETS.og)).toEqual({ w: BRAND_ASSETS.ogWidth, h: BRAND_ASSETS.ogHeight });
     expect(ihdr(BRAND_ASSETS.ogNamed)).toEqual({ w: 1200, h: 630 });
     expect(ihdr(BRAND_ASSETS.hero)).toEqual({ w: 512, h: 512 });
     expect(ihdr(BRAND_ASSETS.chrome)).toEqual({ w: 256, h: 256 });
     expect(ihdr(BRAND_ASSETS.favicon)).toEqual({ w: 128, h: 128 });
     expect(ihdr("/logo-1024x1024.png")).toEqual({ w: 1024, h: 1024 });
+    expect(existsSync(new URL(`../../public${BRAND_ASSETS.faviconIco}`, import.meta.url))).toBe(true);
+    const ico = readFileSync(new URL(`../../public${BRAND_ASSETS.faviconIco}`, import.meta.url));
+    expect(ico.byteLength).toBeGreaterThan(16);
+    expect(ico.readUInt16LE(0)).toBe(0);
+    expect(ico.readUInt16LE(2)).toBe(1);
     expect(existsSync(new URL("../../public/logo.svg", import.meta.url))).toBe(false);
     expect(existsSync(new URL("../../public/favicon.svg", import.meta.url))).toBe(false);
     expect(existsSync(new URL("../../public/og.svg", import.meta.url))).toBe(false);
