@@ -121,8 +121,9 @@ describe("agent discoverability", () => {
     expect(existsSync(new URL(`../../public${BRAND_ASSETS.faviconIco}`, import.meta.url))).toBe(true);
     const ico = readFileSync(new URL(`../../public${BRAND_ASSETS.faviconIco}`, import.meta.url));
     expect(ico.byteLength).toBeGreaterThan(16);
-    expect(ico.readUInt16LE(0)).toBe(0);
-    expect(ico.readUInt16LE(2)).toBe(1);
+    const icoView = new DataView(ico.buffer, ico.byteOffset, ico.byteLength);
+    expect(icoView.getUint16(0, true)).toBe(0);
+    expect(icoView.getUint16(2, true)).toBe(1);
     expect(existsSync(new URL("../../public/logo.svg", import.meta.url))).toBe(false);
     expect(existsSync(new URL("../../public/favicon.svg", import.meta.url))).toBe(false);
     expect(existsSync(new URL("../../public/og.svg", import.meta.url))).toBe(false);
