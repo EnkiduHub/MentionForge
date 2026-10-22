@@ -39,15 +39,15 @@
     "secret-scan": "bash scripts/check-secrets.sh"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.24.0",
-    "@modelcontextprotocol/server": "2.0.0",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "@x402/core": "^2.23.0",
     "@x402/evm": "^2.23.0",
     "@x402/extensions": "^2.23.0",
     "@x402/hono": "^2.23.0",
     "@x402/mcp": "^2.23.0",
-    "agents": "^0.20.0",
-    "hono": "^4.9.0",
+    "agents": "^0.29.0",
+    "hono": "^4.13.13",
     "mcp-remote": "0.14.3",
     "viem": "^2.48.11",
     "zod": "^4.5.0"
@@ -58,7 +58,8 @@
     "@types/node": "^22.20.3",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
-    "vitest": "^3.2.0",
+    "vite": "^7.3.7",
+    "vitest": "^3.2.7",
     "wrangler": "^4.34.0"
   },
   "overrides": {
