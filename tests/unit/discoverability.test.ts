@@ -325,6 +325,8 @@ describe("agent discoverability", () => {
     const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
     expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg");
     expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/card.svg");
+    expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge");
+    expect(readme).not.toContain("https://glama.ai/mcp/servers/@EnkiduHub/MentionForge");
     expect(readme).toContain("MIT License");
     expect(readme).toContain("Copyright (c) 2026 MentionForge");
     expect(readme).toContain("SPDX-License-Identifier: MIT");
@@ -361,6 +363,10 @@ describe("agent discoverability", () => {
     const serviceVersion = /export const SERVICE_VERSION = "([^"]+)"/.exec(constants)?.[1];
     expect(official.version).toBe(pkgVersion.version);
     expect(official.version).toBe(serviceVersion);
+    const docsIndex = readFileSync(new URL("../../docs/README.md", import.meta.url), "utf8");
+    const listingsIndex = readFileSync(new URL("../../listings/README.md", import.meta.url), "utf8");
+    expect(docsIndex).toContain(`Version is \`${pkgVersion.version}\``);
+    expect(listingsIndex).toContain(`version \`${pkgVersion.version}\``);
     expect(official.remotes?.[0]).toEqual({
       type: "streamable-http",
       url: "https://mentionforge.mentionforge.workers.dev/mcp",
