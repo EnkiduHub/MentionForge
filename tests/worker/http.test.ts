@@ -16,6 +16,18 @@ describe("worker fetch", () => {
     await waitOnExecutionContext(ctx);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type") ?? "").toMatch(/html/);
+    const html = await res.text();
+    expect(html).toContain('property="og:site_name" content="MentionForge"');
+  });
+
+  it("GET /favicon.ico is a real icon", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(new Request("https://example.com/favicon.ico"), env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toMatch(/image\/(x-icon|vnd\.microsoft\.icon|png)/i);
+    const bytes = await res.arrayBuffer();
+    expect(bytes.byteLength).toBeGreaterThan(16);
   });
 
   it("example is unpaid 200", async () => {

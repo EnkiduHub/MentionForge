@@ -10,6 +10,7 @@ export const BRAND_ASSETS = {
   hero: "/logo-512x512.png",
   chrome: "/logo-256x256.png",
   favicon: "/logo-128x128.png",
+  faviconIco: "/favicon.ico",
   appleTouch: "/logo-256x256.png",
   openapi: "/logo-512x512.png",
 } as const;
