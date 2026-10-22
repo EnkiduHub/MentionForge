@@ -4,7 +4,7 @@ Paste these into third-party catalogs. Every URL must be the **hosted** origin `
 
 | File | Surface |
 | --- | --- |
-| [official-registry.md](official-registry.md) | Official MCP Registry (`server.json`, version `1.1.0`) |
+| [official-registry.md](official-registry.md) | Official MCP Registry (`server.json`, version `1.2.2`) |
 | [glama.md](glama.md) | Glama connector + GitHub listing image (stdio bridge) |
 | [smithery.md](smithery.md) | Smithery tools array (free + paid) |
 | [github.md](github.md) | GitHub About (research-led one-liner) |

@@ -12,4 +12,4 @@ Operator and protocol notes for the hosted Worker. Agent-facing copy lives on th
 | [operations.md](operations.md) | Secrets, D1, health, deploy |
 | [go-live.md](go-live.md) | Production checklist |
 
-Version is `1.1.0` ([CHANGELOG](../CHANGELOG.md)). Default CI is `npm test` (unit). Do not enable the Miniflare worker project in default CI.
+Version is `1.2.2` ([CHANGELOG](../CHANGELOG.md), same as `package.json`). Default CI is `npm test` (unit). Do not enable the Miniflare worker project in default CI.
