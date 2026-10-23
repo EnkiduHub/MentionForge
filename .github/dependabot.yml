@@ -10,6 +10,11 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: mcp-remote
+        update-types:
+          - version-update:semver-minor
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: /
     schedule:
