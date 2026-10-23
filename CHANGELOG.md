@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: README Official MCP Registry badge and Listed on links use the same `/v0.1/servers` search URL as `DIRECTORY_LINKS.official_registry` (MF-D1023).
 - Dev toolchain: vitest 4.1.x, `@cloudflare/vitest-plugin` (pool-workers successor), wrangler 4.152.x; weekly Dependabot for npm and GitHub Actions (MF-B07).
 - Docs: point `docs/README.md`, `listings/README.md`, and the README Glama listing URL at Worker version `1.2.2` (MF-D1022).
 - Landing: one schema.org SoftwareApplication JSON-LD block in the public HTML (MF-23).
