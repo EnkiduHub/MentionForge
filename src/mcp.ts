@@ -14,6 +14,7 @@ import { pricingPayload } from "./routes/pricing";
 import { openApiDocument } from "./lib/openapi";
 import { paymentHint, paymentsReady } from "./lib/x402";
 import { sandboxOk, trialRemaining } from "./lib/trial";
+import { presentedApiKey } from "./lib/api-key";
 import { sourceBackends } from "./lib/source-backends";
 import { limitOrThrow } from "./lib/rate-limit";
 import { EXAMPLE_RESPONSE, projectExample } from "./lib/example";
@@ -147,7 +148,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     corsOptions: {
       origin: env.ALLOWED_ORIGINS === "*" || !env.ALLOWED_ORIGINS ? "*" : env.ALLOWED_ORIGINS.split(",")[0]?.trim(),
       headers:
-        "content-type, PAYMENT-SIGNATURE, X-PAYMENT, Idempotency-Key, X-Sandbox-Key, X-Wallet, mcp-session-id",
+        "content-type, PAYMENT-SIGNATURE, X-PAYMENT, Idempotency-Key, X-Sandbox-Key, X-Wallet, Authorization, X-Api-Key, mcp-session-id",
       exposeHeaders: "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-Request-Id",
       maxAge: 86400,
     },
@@ -186,12 +187,25 @@ async function mcpHttpTool(
   const res = await run(inner, requestId);
   const payload = await res.json();
   if (!res.ok) {
-    if (res.status === 402) {
-      throw new AgentError("PAYMENT_REQUIRED", "Payment required for research.", {
+    const rec = payload && typeof payload === "object" ? (payload as { error?: { code?: string; message?: string } }) : {};
+    const code = rec.error?.code;
+    if (code === "PAYMENT_REQUIRED" || res.status === 402) {
+      throw new AgentError("PAYMENT_REQUIRED", rec.error?.message ?? "Payment required for research.", {
         request_id: requestId,
         hint: paymentHint(env, origin),
         details: { payment: payload },
       });
+    }
+    if (
+      code === "UNAUTHORIZED" ||
+      code === "PLAN_QUOTA_REACHED" ||
+      code === "X_ID_CAP_REACHED" ||
+      code === "QUOTA_UNAVAILABLE" ||
+      code === "TRIAL_EXHAUSTED" ||
+      code === "VALIDATION_ERROR" ||
+      code === "RATE_LIMITED"
+    ) {
+      throw new AgentError(code, rec.error?.message ?? "research failed", { request_id: requestId });
     }
     throw new AgentError("INTERNAL_ERROR", "research failed", { request_id: requestId });
   }
@@ -216,9 +230,10 @@ async function buildMcpServer(opts: {
   );
 
   const sandbox = sandboxOk(env, request.headers.get("X-Sandbox-Key"));
+  const keyPresented = Boolean(presentedApiKey(request));
   const wallet = request.headers.get("X-Wallet") ?? undefined;
-  const remaining = sandbox ? 99 : await trialRemaining(env, wallet);
-  const unwrapTrial = sandbox || (remaining !== null && remaining > 0);
+  const remaining = sandbox || keyPresented ? 99 : await trialRemaining(env, wallet);
+  const unwrapTrial = sandbox || keyPresented || (remaining !== null && remaining > 0);
   const paidSession = unwrapTrial ? null : await initPaidMcpSession(env, origin, requestId);
 
   server.registerTool(

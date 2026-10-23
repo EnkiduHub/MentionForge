@@ -38,6 +38,14 @@ interface Env {
   DISABLED_SOURCES?: string;
   /** Rolling 30-day cap on disclosed IDs. Default 1500000 when unset. */
   X_ID_CAP?: string;
+  /** Stripe Price id for the $29/mo Key plan (public). */
+  STRIPE_KEY_PRICE_ID?: string;
+  /** Monthly call quota for the Key plan. Default 1500. */
+  PLAN_KEY_MONTHLY_CALLS?: string;
+  /** Stripe secret key. Worker secret, never a wrangler var. */
+  STRIPE_SECRET_KEY?: string;
+  /** Stripe webhook signing secret. Worker secret, never a wrangler var. */
+  STRIPE_WEBHOOK_SECRET?: string;
   SANDBOX_KEY?: string;
   OPERATOR_TOKEN?: string;
   BRAVE_API_KEY?: string;

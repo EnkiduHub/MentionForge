@@ -26,7 +26,9 @@
     "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
     "ALLOWED_ORIGINS": "*",
     "SERVICE_VERSION": "1.2.2",
-    "DISABLED_SOURCES": "x,reddit"
+    "DISABLED_SOURCES": "x,reddit",
+    "STRIPE_KEY_PRICE_ID": "price_1UTrCWHRKyy2qPSgkzrHPr8p",
+    "PLAN_KEY_MONTHLY_CALLS": "1500"
   },
   "d1_databases": [
     {
@@ -90,7 +92,9 @@
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
         "SERVICE_VERSION": "1.2.2",
-        "DISABLED_SOURCES": "x,reddit"
+        "DISABLED_SOURCES": "x,reddit",
+        "STRIPE_KEY_PRICE_ID": "price_1UTrCWHRKyy2qPSgkzrHPr8p",
+        "PLAN_KEY_MONTHLY_CALLS": "1500"
       }
     },
     "production": {
@@ -121,7 +125,9 @@
         "RECIPIENT_WALLET": "0xBe578a4543904b4af3F27E3B0db73BC1B1e58F77",
         "ALLOWED_ORIGINS": "*",
         "SERVICE_VERSION": "1.2.2",
-        "DISABLED_SOURCES": "x,reddit"
+        "DISABLED_SOURCES": "x,reddit",
+        "STRIPE_KEY_PRICE_ID": "price_1UTrCWHRKyy2qPSgkzrHPr8p",
+        "PLAN_KEY_MONTHLY_CALLS": "1500"
       }
     }
   }

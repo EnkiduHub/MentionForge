@@ -8,6 +8,7 @@ export const PAYMENT_ALLOW_HEADERS = [
   "X-Sandbox-Key",
   "X-Wallet",
   "Authorization",
+  "X-Api-Key",
   "X-Request-Id",
 ];
 

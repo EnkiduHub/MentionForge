@@ -175,9 +175,10 @@ export const voiceSchema = z.object({
 });
 
 export const billingSchema = z.object({
-  amount_usdc: z.string().describe("USDC charged for this call (`0` on trial/sandbox/replay)"),
-  tx_hash: z.string().nullable().describe("Settlement transaction hash, or null until settle / on trial"),
+  amount_usdc: z.string().describe("USDC charged for this call (`0` on trial/sandbox/replay/key plan)"),
+  tx_hash: z.string().nullable().describe("Settlement transaction hash, or null until settle / on trial / key plan"),
   free_trial: z.boolean().describe("True when this call used trial or sandbox and was not settled"),
+  plan: z.literal("key").optional().describe("Present when billed against a Stripe API-key plan"),
 });
 
 export const metaSchema = z.object({

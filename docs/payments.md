@@ -26,6 +26,12 @@ Facilitators are network-specific:
 
 EIP-712 token name is `USDC` on Base Sepolia and `USD Coin` on Base mainnet (required for valid permits).
 
+## Stripe Key plan
+
+`$29/mo` Stripe Price `price_1UTrCWHRKyy2qPSgkzrHPr8p` (wrangler var `STRIPE_KEY_PRICE_ID`). Quota `PLAN_KEY_MONTHLY_CALLS` (default 1500) per `period_start` on the key. Call 1,501 in a period is HTTP 429 `PLAN_QUOTA_REACHED` and is not reserved, settled, or trialed. Present `Authorization: Bearer mfk_...` or `X-Api-Key`. Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Worker secrets, not vars). Webhook `POST /v1/stripe/webhook` (HMAC-SHA256, 300s). Claim once: `GET /v1/keys/claim?session_id={CHECKOUT_SESSION_ID}`.
+
+Key calls still consume the global X_ID cap. Reserve plan quota first; if `assertQuotaAllows` fails, the reservation is released. 1,500 calls × 50 IDs = 75,000 IDs per key-month ≈ 5% of 1,500,000.
+
 ## What is charged
 
 - Successful research, including cached and empty windows
