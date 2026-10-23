@@ -263,6 +263,8 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - Charge successful research including cached and empty windows
 - Never charge trial, sandbox, or idempotent replay
 - Trial: 10 D1 CAS increments per wallet (`X-Wallet`) or `X-Sandbox-Key`, **shared across all paid tools**
+- **Key plan ($29/mo, Stripe Price `price_1UTrCWHRKyy2qPSgkzrHPr8p`):** `Authorization: Bearer mfk_...` or `X-Api-Key`. **1,500 calls per Stripe billing period**, then HTTP 429 `PLAN_QUOTA_REACHED` (that denied call is not counted). Key calls skip x402 settle and the free trial (`billing.plan` is `"key"`, `amount_usdc` `"0"`, `free_trial` false).
+- Key calls are also checked against the global rolling 30-day X_ID cap (`src/lib/x-id-cap.ts`, 1,500,000 IDs). Order: reserve one plan call → run work → `assertQuotaAllows` → `incrementXIdUsage`. Either cap returns 429 with nothing charged; an X_ID denial **releases** the plan reservation. 1,500 calls × max 50 IDs is 75,000 IDs per key-month (5% of the global cap). Claim the plaintext key once at `GET /v1/keys/claim?session_id=cs_...`.
 
 ## Docs
 

@@ -10,6 +10,7 @@ import { discoveryRoutes } from "./routes/discovery";
 import { exampleRoutes } from "./routes/example";
 import { pricingRoutes } from "./routes/pricing";
 import { operatorRoutes } from "./routes/operator";
+import { stripeRoutes } from "./routes/stripe";
 import { bumpStats } from "./lib/analytics";
 import { limitOrThrow } from "./lib/rate-limit";
 import { logRequest } from "./lib/logger";
@@ -54,6 +55,7 @@ export function createApp() {
   app.route("/", exampleRoutes);
   app.route("/", pricingRoutes);
   app.route("/", operatorRoutes);
+  app.route("/", stripeRoutes);
   app.route("/", entityRoutes);
   app.route("/", lensRoutes);
   app.route("/", researchRoutes);

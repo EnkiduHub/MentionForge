@@ -25,19 +25,42 @@ type TrialRow = { used: number; updated_at: string };
 type IdemRow = { key: string; body_hash: string; status: string; response: string; billing: string; created_at: string };
 type StatsRow = { day: string; calls: number; paid: number; usdc_micros: number; errors: number; trial: number };
 type XIdRow = { day: string; ids: number };
+type ApiKeyRow = {
+  key_hash: string;
+  stripe_customer_id: string;
+  stripe_subscription_id: string;
+  status: string;
+  period_start: number;
+  period_end: number;
+  created_at: number;
+  checkout_session_id: string | null;
+  claimed: number;
+  pending_key: string | null;
+};
+type PlanUsageRow = { key_hash: string; period_start: number; calls: number };
 
 export function memoryD1() {
   const trial = new Map<string, TrialRow>();
   const idem = new Map<string, IdemRow>();
   const stats = new Map<string, StatsRow>();
   const xIdUsage = new Map<string, XIdRow>();
-  const flags = { failUsage: false, failIdempotency: false };
+  const apiKeys = new Map<string, ApiKeyRow>();
+  const apiKeysBySub = new Map<string, string>();
+  const apiKeysBySession = new Map<string, string>();
+  const planUsage = new Map<string, PlanUsageRow>();
+  const stripeEvents = new Set<string>();
+  const flags = { failUsage: false, failIdempotency: false, failPlanUsage: false };
 
   return {
     trial,
     idem,
     stats,
     xIdUsage,
+    apiKeys,
+    apiKeysBySub,
+    apiKeysBySession,
+    planUsage,
+    stripeEvents,
     flags,
     prepare(sql: string) {
       const binds: unknown[] = [];
@@ -48,6 +71,88 @@ export function memoryD1() {
         },
         async run() {
           if (flags.failUsage && sql.includes("x_id_usage")) throw new Error("usage db down");
+          if (flags.failPlanUsage && sql.includes("plan_usage")) throw new Error("plan usage db down");
+          if (sql.includes("INSERT INTO stripe_events")) {
+            const id = String(binds[0]);
+            if (stripeEvents.has(id)) return { meta: { changes: 0 } };
+            stripeEvents.add(id);
+            return { meta: { changes: 1 } };
+          }
+          if (sql.includes("INSERT INTO api_keys")) {
+            const row: ApiKeyRow = {
+              key_hash: String(binds[0]),
+              stripe_customer_id: String(binds[1]),
+              stripe_subscription_id: String(binds[2]),
+              status: String(binds[3]),
+              period_start: Number(binds[4]),
+              period_end: Number(binds[5]),
+              created_at: Number(binds[6]),
+              checkout_session_id: binds[7] == null ? null : String(binds[7]),
+              claimed: 0,
+              pending_key: binds[8] == null ? null : String(binds[8]),
+            };
+            apiKeys.set(row.key_hash, row);
+            apiKeysBySub.set(row.stripe_subscription_id, row.key_hash);
+            if (row.checkout_session_id) apiKeysBySession.set(row.checkout_session_id, row.key_hash);
+            return { meta: { changes: 1 } };
+          }
+          if (sql.includes("UPDATE api_keys SET claimed")) {
+            const hash = String(binds[0]);
+            const row = apiKeys.get(hash);
+            if (row && !row.claimed) {
+              row.claimed = 1;
+              row.pending_key = null;
+              return { meta: { changes: 1 } };
+            }
+            return { meta: { changes: 0 } };
+          }
+          if (sql.includes("UPDATE api_keys SET status = ? WHERE stripe_subscription_id")) {
+            const status = String(binds[0]);
+            const sub = String(binds[1]);
+            const hash = apiKeysBySub.get(sub);
+            const row = hash ? apiKeys.get(hash) : undefined;
+            if (row) {
+              row.status = status;
+              return { meta: { changes: 1 } };
+            }
+            return { meta: { changes: 0 } };
+          }
+          if (sql.includes("UPDATE api_keys SET status = ?")) {
+            const row = [...apiKeys.values()].find((k) => k.stripe_subscription_id === String(binds[4]));
+            if (row) {
+              row.status = String(binds[0]);
+              row.period_start = Number(binds[1]);
+              row.period_end = Number(binds[2]);
+              row.stripe_customer_id = String(binds[3]);
+              return { meta: { changes: 1 } };
+            }
+            return { meta: { changes: 0 } };
+          }
+          if (sql.includes("INSERT INTO plan_usage")) {
+            const keyHash = String(binds[0]);
+            const periodStart = Number(binds[1]);
+            const limit = Number(binds[2]);
+            const k = `${keyHash}:${periodStart}`;
+            const cur = planUsage.get(k);
+            if (!cur) {
+              planUsage.set(k, { key_hash: keyHash, period_start: periodStart, calls: 1 });
+              return { meta: { changes: 1 } };
+            }
+            if (cur.calls < limit) {
+              cur.calls += 1;
+              return { meta: { changes: 1 } };
+            }
+            return { meta: { changes: 0 } };
+          }
+          if (sql.includes("UPDATE plan_usage SET calls = MAX")) {
+            const k = `${String(binds[0])}:${Number(binds[1])}`;
+            const cur = planUsage.get(k);
+            if (cur) {
+              cur.calls = Math.max(0, cur.calls - 1);
+              return { meta: { changes: 1 } };
+            }
+            return { meta: { changes: 0 } };
+          }
           if (sql.includes("INSERT INTO x_id_usage")) {
             const day = String(binds[0]);
             const add = Number(binds[1]);
@@ -104,6 +209,23 @@ export function memoryD1() {
         async first<T>() {
           if (flags.failIdempotency && sql.includes("FROM idempotency")) throw new Error("idempotency db down");
           if (flags.failUsage && sql.includes("x_id_usage")) throw new Error("usage db down");
+          if (flags.failPlanUsage && sql.includes("plan_usage")) throw new Error("plan usage db down");
+          if (sql.includes("FROM api_keys WHERE key_hash")) {
+            return (apiKeys.get(String(binds[0])) as T) ?? null;
+          }
+          if (sql.includes("FROM api_keys WHERE checkout_session_id")) {
+            const hash = apiKeysBySession.get(String(binds[0]));
+            return (hash ? (apiKeys.get(hash) as T) : null) ?? null;
+          }
+          if (sql.includes("FROM api_keys WHERE stripe_subscription_id")) {
+            const hash = apiKeysBySub.get(String(binds[0]));
+            return (hash ? ({ key_hash: hash } as T) : null) ?? null;
+          }
+          if (sql.includes("FROM plan_usage")) {
+            const k = `${String(binds[0])}:${Number(binds[1])}`;
+            const row = planUsage.get(k);
+            return (row as T) ?? null;
+          }
           if (sql.includes("FROM x_id_usage") && sql.includes("SUM(ids)")) {
             const minDay = String(binds[0] ?? "");
             let n = 0;
@@ -156,6 +278,46 @@ export function seedStats(env: Env, row: StatsRow): void {
   db.stats.set(row.day, { ...row });
 }
 
+export async function seedApiKey(
+  env: Env,
+  plaintext: string,
+  over: Partial<{
+    status: string;
+    period_start: number;
+    period_end: number;
+    stripe_customer_id: string;
+    stripe_subscription_id: string;
+    checkout_session_id: string | null;
+    claimed: number;
+    pending_key: string | null;
+  }> = {},
+): Promise<string> {
+  const { sha256Hex } = await import("../../src/lib/crypto");
+  const hash = await sha256Hex(plaintext);
+  const now = Math.floor(Date.now() / 1000);
+  const db = env.DB as unknown as {
+    apiKeys: Map<string, Record<string, unknown>>;
+    apiKeysBySub: Map<string, string>;
+    apiKeysBySession: Map<string, string>;
+  };
+  const row = {
+    key_hash: hash,
+    stripe_customer_id: over.stripe_customer_id ?? "cus_test",
+    stripe_subscription_id: over.stripe_subscription_id ?? "sub_test",
+    status: over.status ?? "active",
+    period_start: over.period_start ?? now - 60,
+    period_end: over.period_end ?? now + 30 * 86400,
+    created_at: now,
+    checkout_session_id: over.checkout_session_id ?? null,
+    claimed: over.claimed ?? 0,
+    pending_key: over.pending_key ?? null,
+  };
+  db.apiKeys.set(hash, row);
+  db.apiKeysBySub.set(row.stripe_subscription_id, hash);
+  if (row.checkout_session_id) db.apiKeysBySession.set(row.checkout_session_id, hash);
+  return hash;
+}
+
 export function mockEnv(over: Partial<Env> = {}): Env {
   const limiter = { async limit() { return { success: true }; } };
   const db = memoryD1();
@@ -174,6 +336,10 @@ export function mockEnv(over: Partial<Env> = {}): Env {
     RECIPIENT_WALLET: "0x1111111111111111111111111111111111111111",
     ALLOWED_ORIGINS: "*",
     SERVICE_VERSION: "1.1.0",
+    STRIPE_KEY_PRICE_ID: "price_1UTrCWHRKyy2qPSgkzrHPr8p",
+    PLAN_KEY_MONTHLY_CALLS: "1500",
+    STRIPE_SECRET_KEY: "sk_test_mock",
+    STRIPE_WEBHOOK_SECRET: "whsec_test_mock",
     SANDBOX_KEY: "test-sandbox",
     OPERATOR_TOKEN: "test-operator",
     ...over,

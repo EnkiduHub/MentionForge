@@ -26,6 +26,7 @@ export type Billing = {
   amount_usdc: string;
   tx_hash: string | null;
   free_trial: boolean;
+  plan?: "key";
 };
 
 export type DiscoveryResource = {
