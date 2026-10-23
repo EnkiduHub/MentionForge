@@ -338,6 +338,8 @@ describe("agent discoverability", () => {
     expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/card.svg");
     expect(readme).toContain("https://glama.ai/mcp/servers/EnkiduHub/MentionForge");
     expect(readme).not.toContain("https://glama.ai/mcp/servers/@EnkiduHub/MentionForge");
+    expect(readme).toContain(DIRECTORY_LINKS.official_registry);
+    expect(readme).not.toContain("registry.modelcontextprotocol.io/v0/servers");
     expect(readme).toContain("MIT License");
     expect(readme).toContain("Copyright (c) 2026 MentionForge");
     expect(readme).toContain("SPDX-License-Identifier: MIT");
