@@ -314,7 +314,7 @@ Call free `get_example` (optional `view`: `"full"` or `"compact"`) or `GET /v1/r
 
 ## Hosted product vs this repo
 
-The thing agents pay for is **this origin**: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`POST /v1/research`, POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply`, and `POST /mcp` paid tools). x402 still charges **$0.02 USDC on Base** there after the shared 10-call trial. REST `resource.url` stays `/v1/research`; MCP `resource.url` stays `/mcp`. A clone with someone else’s Cloudflare account is a **fork**, not free access to this Worker.
+The thing agents pay for is **this origin**: [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`POST /v1/research`, POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` `/v1/mentions` `/v1/trends`, and `POST /mcp` paid tools). x402 still charges **$0.02 USDC on Base** there after the shared 10-call trial. REST `resource.url` stays `/v1/research`; MCP `resource.url` stays `/mcp`. A clone with someone else’s Cloudflare account is a **fork**, not free access to this Worker.
 
 The root `Dockerfile` is only a Glama stdio bridge (`WORKDIR /app`, `CMD ["node", "scripts/glama-stdio.mjs"]` → `mcp-remote` → that `/mcp` URL). `package.json` `bin`/`start` are the same bridge so Glama’s indexer does not infer `wrangler`. It does not run D1 or a second research engine.
 
