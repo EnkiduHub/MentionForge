@@ -347,7 +347,7 @@ describe("agent discoverability", () => {
     expect(readme).toContain("`get_health` — free liveness");
     expect(readme).toContain("`get_pricing` — free catalog");
     expect(readme).toContain("POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` `/v1/mentions` `/v1/trends`");
-    expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
+    expect(dockerfile).toMatch(/mcp-remote@0\.14\.5/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");
     expect(dockerfile).toMatch(/^WORKDIR \/app$/m);
     expect(dockerfile).toMatch(/^CMD \["node", "scripts\/glama-stdio\.mjs"\]$/m);
@@ -359,7 +359,7 @@ describe("agent discoverability", () => {
     expect(glamaStdio).toContain("http-only");
     expect(glamaStdio).not.toMatch(/process\.env\.RECIPIENT_WALLET/);
     expect(glamaStdio).not.toMatch(/wrangler|CDP_API_KEY|TEST_PAYER_PRIVATE_KEY/);
-    expect(listing).toContain('["npm install -g mcp-remote@0.14.3"]');
+    expect(listing).toContain('["npm install -g mcp-remote@0.14.5"]');
     expect(listing).toContain('["node", "scripts/glama-stdio.mjs"]');
     expect(listing).toContain('{"type":"object","properties":{},"required":[]}');
     expect(listing).toMatch(/Do \*\*not\*\* add `RECIPIENT_WALLET`/);
@@ -394,6 +394,6 @@ describe("agent discoverability", () => {
     expect(pkg.bin?.mentionforge).toBe("./scripts/glama-stdio.mjs");
     expect(pkg.scripts?.start).toBe("node scripts/glama-stdio.mjs");
     expect(pkg.scripts?.dev).toBe("wrangler dev");
-    expect(pkg.dependencies?.["mcp-remote"]).toBe("0.14.3");
+    expect(pkg.dependencies?.["mcp-remote"]).toBe("0.14.5");
   });
 });

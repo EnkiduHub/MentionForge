@@ -18,7 +18,7 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-RUN npm install -g mcp-remote@0.14.3
+RUN npm install -g mcp-remote@0.14.5
 
 COPY --chown=node:node scripts/glama-stdio.mjs /app/scripts/glama-stdio.mjs
 
