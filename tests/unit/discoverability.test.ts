@@ -346,6 +346,7 @@ describe("agent discoverability", () => {
     expect(readme).not.toMatch(/score MIT\/Apache as the friendly license grade/);
     expect(readme).toContain("`get_health` — free liveness");
     expect(readme).toContain("`get_pricing` — free catalog");
+    expect(readme).toContain("POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` `/v1/mentions` `/v1/trends`");
     expect(dockerfile).toMatch(/mcp-remote@0\.14\.3/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");
     expect(dockerfile).toMatch(/^WORKDIR \/app$/m);
