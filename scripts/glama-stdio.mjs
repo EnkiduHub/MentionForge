@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 
 const MCP_URL =
   process.env.MENTIONFORGE_MCP_URL ?? "https://mentionforge.mentionforge.workers.dev/mcp";
-const PIN = "mcp-remote@0.14.3";
+const PIN = "mcp-remote@0.14.5";
 const remoteArgs = [MCP_URL, "--transport", "http-only"];
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const localBin = join(root, "node_modules", ".bin", "mcp-remote");

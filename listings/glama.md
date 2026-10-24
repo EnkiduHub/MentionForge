@@ -50,7 +50,7 @@ After `glama.json` + `Dockerfile` + `scripts/glama-stdio.mjs` are on GitHub `mai
 
 | Field | Value |
 | --- | --- |
-| **Build steps** | `["npm ci --omit=dev"]` (1.2.2 release). Alternate: `["npm install -g mcp-remote@0.14.3"]` |
+| **Build steps** | `["npm ci --omit=dev"]` (1.2.2 release). Alternate: `["npm install -g mcp-remote@0.14.5"]` |
 | **CMD arguments** | `["node", "scripts/glama-stdio.mjs"]` |
 | Environment variables JSON schema | `{"type":"object","properties":{},"required":[]}` |
 | Placeholder parameters | `{}` |
