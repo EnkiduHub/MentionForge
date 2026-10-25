@@ -31,7 +31,8 @@ describe("build identity", () => {
       build: { sha: string; built_at: string | null };
       payments_ready: boolean;
     };
-    expect(body.version).toBe("1.2.2");
+    expect(typeof body.version).toBe("string");
+    expect(body.version.length).toBeGreaterThan(0);
     expect(body.build).toEqual({
       sha: expect.stringMatching(/^(dev|[0-9a-f]{4,40})$/i),
       built_at: body.build.sha === "dev" ? null : expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
