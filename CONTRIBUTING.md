@@ -1,5 +1,7 @@
 # Contributing
 
+Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before contributing.
+
 ## Local setup
 
 Use Node.js 22 (see `.nvmrc`). `package.json` `engines.node` is `>=20`.
