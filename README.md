@@ -152,7 +152,7 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 - `GET /v1/entity` — free Wikipedia + Wikidata card
 - `GET /v1/suggest` — free tool router
 - `GET /v1/pricing` — price, trial, network
-- `GET /health` — liveness (`?deep=1` needs operator bearer)
+- `GET /health` — liveness (`?deep=1` needs operator bearer). JSON includes `version` plus `build.sha` / `build.built_at` (git short SHA stamped by `wrangler` `build.command`; local/tests fall back to `"dev"` / `null`)
 - `GET /stats` — successful completions `{ calls, paid, trial }` (`calls` = paid + trial; no revenue)
 
 ### MCP

@@ -3,6 +3,9 @@
   "name": "mentionforge",
   "account_id": "914fb9d611bfc763fb3431e045652ded",
   "main": "src/index.ts",
+  "build": {
+    "command": "node scripts/write-build-info.mjs"
+  },
   "compatibility_date": "2026-09-17",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
