@@ -1,5 +1,6 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
+import { getBuildInfo } from "../lib/build-identity";
 import { SAMPLE_QUERY, SERVICE_NAME, SERVICE_VERSION } from "../lib/constants";
 import { paymentsReady, paymentConfig, buildPaymentRequired, bazaarExtension, bazaarHttpExtension, networkPublicName, facilitatorUsable, probeFacilitator, discoveryResource } from "../lib/x402";
 import { openApiDocument } from "../lib/openapi";
@@ -33,6 +34,7 @@ async function healthBody(env: Env, deep = false) {
   const body: Record<string, unknown> = {
     status: ready ? "ok" : "degraded",
     version: env.SERVICE_VERSION || SERVICE_VERSION,
+    build: getBuildInfo(),
     name: SERVICE_NAME,
     sources: ["reddit", "news", "web", "reviews", "x"],
     source_backends: sourceBackends(env),

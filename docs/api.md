@@ -53,7 +53,7 @@ GET `/v1/research` is supported via query string (`view` / `focus` / `include_ma
 | Path | Notes |
 | --- | --- |
 | `GET /` | Landing (static assets, worker-first) |
-| `GET/HEAD /health` | Liveness. `degraded` if `RECIPIENT_WALLET` / facilitator is missing. Public JSON `sources` stays the five platform ids (`reddit`, `news`, `web`, `reviews`, `x`) — GitHub/SO are not listed. `source_backends` (reddit `public`/`oauth`, x `web`/`api`). `?deep=1` is operator-only (D1 + live facilitator probe + `sources_configured`) |
+| `GET/HEAD /health` | Liveness. `degraded` if `RECIPIENT_WALLET` / facilitator is missing. Public JSON `sources` stays the five platform ids (`reddit`, `news`, `web`, `reviews`, `x`) — GitHub/SO are not listed. `source_backends` (reddit `public`/`oauth`, x `web`/`api`). `build` is `{ sha, built_at }` next to `version` (git short SHA at wrangler bundle time; `"dev"` / `null` locally). `?deep=1` is operator-only (D1 + live facilitator probe + `sources_configured`) |
 | `GET /v1/research/example` | Free snapshot of a real **Cloudflare Workers** sandbox call |
 | `GET /v1/entity` | Free Wikipedia + Wikidata identity card |
 | `GET /v1/suggest` | Free tool router |
