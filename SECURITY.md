@@ -1,6 +1,30 @@
-# Security
+# Security Policy
 
-Report vulnerabilities privately. Do not open a public issue that includes secrets, private keys, or Worker tokens.
+## Reporting a vulnerability
+
+Please report suspected vulnerabilities privately by email to **harbor-ops@mail.grokbot.com** with the subject `MentionForge security report`.
+
+Include:
+
+- Steps to reproduce
+- The affected URL or component
+- The impact (what an attacker could do)
+
+**Please do not open public issues for vulnerabilities**, and do not include secrets, private keys, or Worker tokens in any public issue, pull request, or discussion.
+
+## What to expect
+
+- We aim to acknowledge your report within 5 business days.
+- We will not pursue legal action against good-faith security research.
+- There is no bounty program.
+
+## Scope
+
+The MentionForge site and app in this repository.
+
+## For maintainers
+
+Enable GitHub private vulnerability reporting in the repo under **Settings → Code security → Private vulnerability reporting**. This needs repo-admin access and is a manual step; it is not done by the PR that added this policy.
 
 ## Never commit
 
