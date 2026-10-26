@@ -26,6 +26,7 @@ Anvil + ember crystal + dual signal rings. Dark premium API product — Linear/S
 |------|------|-----|
 | `logo-1024x1024.png` | 1024×1024 | Master square mark |
 | `logo-512x512.png` | 512×512 | Landing hero, OpenAPI `x-logo` |
+| `logo-440w.webp` | 440×440 | Landing hero `srcset` candidate (2x of the 220px display size), resized from `logo-512x512.png` |
 | `logo-256x256.png` | 256×256 | Discovery chrome, operator 96px mark, apple-touch |
 | `logo-128x128.png` | 128×128 | Favicon |
 | `logo-banner-1200x630.png` | 1200×630 | Named OG source |
