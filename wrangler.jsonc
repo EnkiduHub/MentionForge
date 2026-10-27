@@ -32,7 +32,7 @@
     "DISABLED_SOURCES": "x,reddit",
     "STRIPE_KEY_PRICE_ID": "price_1UTrCWHRKyy2qPSgkzrHPr8p",
     "PLAN_KEY_MONTHLY_CALLS": "1500",
-    "SUPPORT_EMAIL": ""
+    "SUPPORT_EMAIL": "harbor-ops@mail.grokbot.com"
   },
   "d1_databases": [
     {
@@ -99,7 +99,7 @@
         "DISABLED_SOURCES": "x,reddit",
         "STRIPE_KEY_PRICE_ID": "price_1UTrCWHRKyy2qPSgkzrHPr8p",
         "PLAN_KEY_MONTHLY_CALLS": "1500",
-        "SUPPORT_EMAIL": ""
+        "SUPPORT_EMAIL": "harbor-ops@mail.grokbot.com"
       }
     },
     "production": {
@@ -133,7 +133,7 @@
         "DISABLED_SOURCES": "x,reddit",
         "STRIPE_KEY_PRICE_ID": "price_1UTrCWHRKyy2qPSgkzrHPr8p",
         "PLAN_KEY_MONTHLY_CALLS": "1500",
-        "SUPPORT_EMAIL": ""
+        "SUPPORT_EMAIL": "harbor-ops@mail.grokbot.com"
       }
     }
   }

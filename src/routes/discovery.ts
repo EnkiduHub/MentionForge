@@ -321,8 +321,10 @@ discoveryRoutes.get("/sitemap.xml", (c) => {
 for (const slug of TRUST_PAGE_SLUGS) {
   discoveryRoutes.get(`/${slug}`, async (c) => {
     const url = new URL(c.req.url);
-    let html = trustPageHtml(slug);
-    if (c.env.ASSETS) {
+    const supportEmail = (c.env.SUPPORT_EMAIL ?? "").trim();
+    const injectMailto = Boolean(supportEmail) && (slug === "privacy" || slug === "terms");
+    let html = trustPageHtml(slug, c.env);
+    if (!injectMailto && c.env.ASSETS) {
       try {
         const asset = await c.env.ASSETS.fetch(new Request(new URL(`/${slug}.html`, url.origin), c.req.raw));
         if (asset.status === 200) {

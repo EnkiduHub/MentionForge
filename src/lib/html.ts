@@ -271,10 +271,29 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   },
 };
 
-export function trustPageHtml(slug: TrustPageSlug): string {
+function supportMailtoAnchor(email: string): string {
+  const safe = escapeHtml(email.trim());
+  return `<a href="mailto:${safe}">${safe}</a>`;
+}
+
+export function trustPageHtml(slug: TrustPageSlug, env?: Pick<Env, "SUPPORT_EMAIL">): string {
   const spec = TRUST_PAGES[slug];
   const path = `/${slug}`;
   const canonicalUrl = `https://mentionforge.mentionforge.workers.dev${path}`;
+  const email = (env?.SUPPORT_EMAIL ?? "").trim();
+  let sectionsHtml = spec.sectionsHtml;
+  if (email && slug === "privacy") {
+    sectionsHtml = sectionsHtml.replace(
+      "Data requests (access or deletion): <a href=\"/support\">/support</a> and the support email listed there.",
+      `Data requests (access or deletion): <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
+    );
+  }
+  if (email && slug === "terms") {
+    sectionsHtml = sectionsHtml.replace(
+      "Contact and issue tracking: <a href=\"https://github.com/EnkiduHub/MentionForge/issues\">https://github.com/EnkiduHub/MentionForge/issues</a> or <a href=\"/support\">/support</a>.",
+      `Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>, <a href="/support">/support</a>, or ${supportMailtoAnchor(email)}.`,
+    );
+  }
   const headerNav = (
     [
       ["/llms.txt", "llms.txt"],
@@ -338,7 +357,7 @@ export function trustPageHtml(slug: TrustPageSlug): string {
         </div>
       </header>
 
-${spec.sectionsHtml}
+${sectionsHtml}
     </main>
     <footer class="site-foot">
       <nav aria-label="Footer">
@@ -546,10 +565,10 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
     .join("\n        ");
 
   const emailContactHtml = email
-    ? `<p>Email: <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>\n        `
+    ? `<p>Email: ${supportMailtoAnchor(email)}</p>\n        `
     : "";
   const lostKeyContact = email
-    ? `email <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a> or open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`
+    ? `email ${supportMailtoAnchor(email)} or open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`
     : `open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`;
 
   return `<!doctype html>
