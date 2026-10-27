@@ -28,7 +28,9 @@ EIP-712 token name is `USDC` on Base Sepolia and `USD Coin` on Base mainnet (req
 
 ## Stripe Key plan
 
-`$29/mo` Stripe Price `price_1UTrCWHRKyy2qPSgkzrHPr8p` (wrangler var `STRIPE_KEY_PRICE_ID`). Quota `PLAN_KEY_MONTHLY_CALLS` (default 1500) per `period_start` on the key. Call 1,501 in a period is HTTP 429 `PLAN_QUOTA_REACHED` and is not reserved, settled, or trialed. Present `Authorization: Bearer mfk_...` or `X-Api-Key`. Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Worker secrets, not vars). Webhook `POST /v1/stripe/webhook` (HMAC-SHA256, 300s). Claim once: `GET /v1/keys/claim?session_id={CHECKOUT_SESSION_ID}`.
+`$29/mo` Stripe Price `price_1UTrCWHRKyy2qPSgkzrHPr8p` (wrangler var `STRIPE_KEY_PRICE_ID`). Quota `PLAN_KEY_MONTHLY_CALLS` (default 1500) per `period_start` on the key. Call 1,501 in a period is HTTP 429 `PLAN_QUOTA_REACHED` and is not reserved, settled, or trialed. Present `Authorization: Bearer mfk_...` or `X-Api-Key`. Secrets: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Worker secrets, not vars). Webhook `POST /v1/stripe/webhook` (HMAC-SHA256, 300s).
+
+Claim flow: `GET /v1/keys/claim?session_id={CHECKOUT_SESSION_ID}` validates the session (and self-heals from Stripe if the redirect arrives before `checkout.session.completed`) without burning the key, rendering a `Reveal my API key` form for browsers (`Accept: text/html`). `POST /v1/keys/claim` burns `pending_key` once and returns the plaintext `mfk_...` key (HTML page with Copy button and quickstart, or JSON `{ plan, key, prefix }`). Subsequent claims return `410 KEY_ALREADY_CLAIMED` directing the customer to `/support`. Self-service: `GET /v1/keys/me` returns usage and period bounds; `POST /v1/keys/portal` creates a Stripe Billing Portal session (`503 PORTAL_UNAVAILABLE` if unconfigured). `past_due` keys remain usable until `period_end` while Stripe retries the invoice.
 
 Key calls still consume the global X_ID cap. Reserve plan quota first; if `assertQuotaAllows` fails, the reservation is released. 1,500 calls × 50 IDs = 75,000 IDs per key-month ≈ 5% of 1,500,000.
 

@@ -2,7 +2,7 @@
 
 ## Secrets
 
-Worker secrets: `SANDBOX_KEY`, `OPERATOR_TOKEN`, optional `BRAVE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`. Production Base payments also need `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` (CDP Secret API key — not a wallet export). Stripe Key plan needs `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Public vars: `STRIPE_KEY_PRICE_ID`, `PLAN_KEY_MONTHLY_CALLS`.
+Worker secrets: `SANDBOX_KEY`, `OPERATOR_TOKEN`, optional `BRAVE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`. Production Base payments also need `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` (CDP Secret API key — not a wallet export). Stripe Key plan needs `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Public vars: `STRIPE_KEY_PRICE_ID`, `PLAN_KEY_MONTHLY_CALLS`, `SUPPORT_EMAIL` (empty string default; rendered as `mailto:` on `/support` when set).
 
 `.dev.vars` is **local only** (`wrangler dev`). Comments in that file are not deployed. Remote Workers need `npx wrangler secret put NAME --env production` (and staging). Never put `TEST_PAYER_PRIVATE_KEY` on the Worker.
 

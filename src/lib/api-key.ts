@@ -64,8 +64,41 @@ function nowSeconds(): number {
 }
 
 export function keyIsLive(row: ApiKeyRecord, now = nowSeconds()): boolean {
-  const live = row.status === "active" || row.status === "trialing";
+  const live = row.status === "active" || row.status === "trialing" || row.status === "past_due";
   return live && now < Number(row.period_end);
+}
+
+/** Require a valid registered API key regardless of subscription status (for /v1/keys/me and /v1/keys/portal). */
+export async function requireRegisteredApiKey(
+  env: Env,
+  request: Request,
+  requestId: string,
+): Promise<ApiKeyRecord> {
+  const presented = presentedApiKey(request);
+  if (!presented || !presented.startsWith(API_KEY_PREFIX) || presented.length < 12) {
+    throw new AgentError("UNAUTHORIZED", "Valid API key required.", {
+      request_id: requestId,
+      hint: "Send Authorization: Bearer mfk_<your_key>.",
+    });
+  }
+  let row: ApiKeyRecord | null;
+  try {
+    const hash = await hashApiKey(presented);
+    row = await lookupApiKey(env, hash);
+  } catch (err) {
+    if (err instanceof AgentError) throw err;
+    throw new AgentError("QUOTA_UNAVAILABLE", "Usage ledger unavailable. Request denied; nothing was charged.", {
+      request_id: requestId,
+      details: { reason: "api_key_lookup_failed" },
+    });
+  }
+  if (!row) {
+    throw new AgentError("UNAUTHORIZED", "Invalid API key.", {
+      request_id: requestId,
+      hint: "Send Authorization: Bearer mfk_<your_key>.",
+    });
+  }
+  return row;
 }
 
 /** Valid key → record. Presented but invalid/unknown → 401. Inactive/expired → 402. */
@@ -93,10 +126,26 @@ export async function authenticateApiKey(
   if (!row) {
     throw new AgentError("UNAUTHORIZED", "Invalid API key.", { request_id: requestId });
   }
-  if (!keyIsLive(row)) {
-    throw new AgentError("PAYMENT_REQUIRED", "API key is inactive or the billing period has ended.", {
+  const now = nowSeconds();
+  if (!keyIsLive(row, now)) {
+    const periodEnd = Number(row.period_end);
+    const retryDate = Number.isFinite(periodEnd) && periodEnd > 0 ? new Date(periodEnd * 1000).toISOString() : "";
+    const expired = now >= periodEnd;
+    const reason = expired
+      ? `Billing period ended at ${retryDate || periodEnd} (status: ${row.status}).`
+      : `Subscription status is ${row.status}.`;
+    throw new AgentError("PAYMENT_REQUIRED", `API key is inactive or the billing period has ended. ${reason}`, {
       request_id: requestId,
-      details: { status: row.status, period_end: row.period_end },
+      hint: `Renew or fix payment via POST /v1/keys/portal, check usage and status at GET /v1/keys/me, or see /support. Period end (retry date): ${row.period_end}${retryDate ? ` (${retryDate})` : ""}.`,
+      details: {
+        status: row.status,
+        period_start: row.period_start,
+        period_end: row.period_end,
+        retry_date: retryDate || row.period_end,
+        usage_url: "/v1/keys/me",
+        manage_url: "/v1/keys/portal",
+        support_url: "/support",
+      },
     });
   }
   return row;

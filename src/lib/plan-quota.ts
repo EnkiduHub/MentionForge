@@ -36,10 +36,27 @@ export async function reservePlanCall(env: Env, key: ApiKeyRecord, requestId: st
       .run();
     if ((res.meta?.changes ?? 0) === 0) {
       const used = await readPlanUsage(env, key.key_hash, key.period_start);
-      throw new AgentError("PLAN_QUOTA_REACHED", "Monthly plan quota reached. Nothing was charged.", {
-        request_id: requestId,
-        details: { used, limit, resets_at: key.period_end },
-      });
+      const periodEnd = Number(key.period_end);
+      const retryDate = Number.isFinite(periodEnd) && periodEnd > 0 ? new Date(periodEnd * 1000).toISOString() : "";
+      throw new AgentError(
+        "PLAN_QUOTA_REACHED",
+        `Monthly plan quota reached (${used}/${limit} calls used). Nothing was charged.`,
+        {
+          request_id: requestId,
+          hint: `All ${limit} calls for this billing period are used. Quota resets at period_end ${key.period_end}${retryDate ? ` (${retryDate})` : ""}. Check usage at GET /v1/keys/me or manage your subscription via POST /v1/keys/portal (or /support).`,
+          details: {
+            used,
+            limit,
+            period_start: key.period_start,
+            period_end: key.period_end,
+            resets_at: key.period_end,
+            retry_date: retryDate || key.period_end,
+            usage_url: "/v1/keys/me",
+            manage_url: "/v1/keys/portal",
+            support_url: "/support",
+          },
+        },
+      );
     }
     const used = await readPlanUsage(env, key.key_hash, key.period_start);
     return {

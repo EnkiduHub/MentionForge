@@ -187,13 +187,17 @@ async function mcpHttpTool(
   const res = await run(inner, requestId);
   const payload = await res.json();
   if (!res.ok) {
-    const rec = payload && typeof payload === "object" ? (payload as { error?: { code?: string; message?: string } }) : {};
+    const rec =
+      payload && typeof payload === "object"
+        ? (payload as { error?: { code?: string; message?: string; hint?: string; details?: Record<string, unknown> } })
+        : {};
     const code = rec.error?.code;
     if (code === "PAYMENT_REQUIRED" || res.status === 402) {
+      const hasKeyHint = Boolean(presentedApiKey(request)) && Boolean(rec.error?.hint);
       throw new AgentError("PAYMENT_REQUIRED", rec.error?.message ?? "Payment required for research.", {
         request_id: requestId,
-        hint: paymentHint(env, origin),
-        details: { payment: payload },
+        hint: hasKeyHint ? rec.error?.hint : paymentHint(env, origin),
+        details: hasKeyHint && rec.error?.details ? rec.error.details : { payment: payload },
       });
     }
     if (
@@ -205,7 +209,11 @@ async function mcpHttpTool(
       code === "VALIDATION_ERROR" ||
       code === "RATE_LIMITED"
     ) {
-      throw new AgentError(code, rec.error?.message ?? "research failed", { request_id: requestId });
+      throw new AgentError(code, rec.error?.message ?? "research failed", {
+        request_id: requestId,
+        ...(rec.error?.hint ? { hint: rec.error.hint } : {}),
+        ...(rec.error?.details ? { details: rec.error.details } : {}),
+      });
     }
     throw new AgentError("INTERNAL_ERROR", "research failed", { request_id: requestId });
   }

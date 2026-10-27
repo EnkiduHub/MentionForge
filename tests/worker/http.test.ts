@@ -38,6 +38,24 @@ describe("worker fetch", () => {
     }
   });
 
+  it("GET /support and /claim.js are served with <main> and security headers", async () => {
+    const ctx1 = createExecutionContext();
+    const supportRes = await worker.fetch(new Request("https://example.com/support"), env, ctx1);
+    await waitOnExecutionContext(ctx1);
+    expect(supportRes.status).toBe(200);
+    expect(supportRes.headers.get("content-type") ?? "").toMatch(/text\/html/);
+    const supportHtml = await supportRes.text();
+    expect(supportHtml).toContain('<main id="main">');
+    expect(supportHtml).toContain("/v1/keys/portal");
+    expect(supportHtml).toContain("https://github.com/EnkiduHub/MentionForge/issues");
+
+    const ctx2 = createExecutionContext();
+    const claimJs = await worker.fetch(new Request("https://example.com/claim.js"), env, ctx2);
+    await waitOnExecutionContext(ctx2);
+    expect(claimJs.status).toBe(200);
+    expect(await claimJs.text()).toContain("data-copy");
+  });
+
   it("GET /logo-440w.webp has immutable Cache-Control while /og.png does not", async () => {
     const ctx1 = createExecutionContext();
     const logoRes = await worker.fetch(new Request("https://example.com/logo-440w.webp"), env, ctx1);

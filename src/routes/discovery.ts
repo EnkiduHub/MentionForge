@@ -13,7 +13,7 @@ import { sourceBackends, sourcesConfigured } from "../lib/source-backends";
 import { AgentError } from "../schemas/errors";
 import { WWW_AUTHENTICATE, htmlSecurityHeaders } from "../lib/security-headers";
 import { sendPublic } from "../lib/http-json";
-import { absolutizePublicHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../lib/html";
+import { absolutizePublicHtml, supportPageHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../lib/html";
 import { SKILL_MARKDOWN } from "../lib/skill-text";
 import {
   claudeMcpAdd,
@@ -231,6 +231,7 @@ Pricing: ${origin}/v1/pricing
 Example (free snapshot of a real ${SAMPLE_QUERY} call): ${origin}/v1/research/example
 Entity: ${origin}/v1/entity
 Suggest: ${origin}/v1/suggest
+API key plan endpoints (Bearer mfk_...): GET ${origin}/v1/keys/me (usage), POST ${origin}/v1/keys/portal (billing portal)
 Skill: ${origin}/skill.md
 Full spec: ${origin}/llms-full.txt
 `;
@@ -260,6 +261,7 @@ POST ${origin}/v1/research_mentions uses that same JSON. Its x402 resource URL i
 
 Also POST-only: ${origin}/v1/compare | /v1/digest | /v1/risk | /v1/reply | /v1/mentions | /v1/trends (same $0.02 USDC x402 resource).
 Free GET: ${origin}/v1/entity?query=  and  ${origin}/v1/suggest?need=
+API key plan endpoints (Bearer mfk_...): GET ${origin}/v1/keys/me (usage and billing period) and POST ${origin}/v1/keys/portal (billing portal session).
 
 Headers: Content-Type: application/json
 Idempotency-Key: <uuid>
@@ -337,6 +339,27 @@ for (const slug of TRUST_PAGE_SLUGS) {
     });
   });
 }
+
+discoveryRoutes.get("/support", async (c) => {
+  const url = new URL(c.req.url);
+  const supportEmail = (c.env.SUPPORT_EMAIL ?? "").trim();
+  let html = supportPageHtml(c.env);
+  if (!supportEmail && c.env.ASSETS) {
+    try {
+      const asset = await c.env.ASSETS.fetch(new Request(new URL("/support.html", url.origin), c.req.raw));
+      if (asset.status === 200) {
+        html = await asset.text();
+      }
+    } catch {
+      /* fall back to built-in HTML when ASSETS is stubbed */
+    }
+  }
+  const page = absolutizePublicHtml(html, url.origin);
+  return c.html(page, 200, {
+    ...htmlSecurityHeaders(),
+    "Cache-Control": "public, max-age=300",
+  });
+});
 
 discoveryRoutes.get("/robots.txt", (c) => {
   const origin = new URL(c.req.url).origin;

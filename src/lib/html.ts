@@ -328,3 +328,285 @@ ${spec.sectionsHtml}
 </html>
 `;
 }
+
+export type ClaimPageView =
+  | { mode: "ready"; sessionId: string }
+  | { mode: "revealed"; key: string }
+  | { mode: "error"; code: string; message: string; hint: string };
+
+const CLAIM_CURL_EXAMPLE = `curl -X POST https://mentionforge.mentionforge.workers.dev/v1/research -H 'Authorization: Bearer YOUR_KEY' -H 'content-type: application/json' -d '{"query":"Cloudflare Workers"}'`;
+
+export function claimPageHtml(view: ClaimPageView): string {
+  const title =
+    view.mode === "ready"
+      ? "Claim your API key"
+      : view.mode === "revealed"
+        ? "Your API key"
+        : view.code === "KEY_ALREADY_CLAIMED"
+          ? "API key already claimed"
+          : "Unable to claim API key";
+
+  const lede =
+    view.mode === "ready"
+      ? "Your Key plan subscription is confirmed. Reveal your API key below when you are ready to copy and store it."
+      : view.mode === "revealed"
+        ? "Your Key plan API key has been generated and claimed."
+        : view.message;
+
+  let mainContent = "";
+  if (view.mode === "ready") {
+    mainContent = `      <section aria-labelledby="claim-ready-title">
+        <h2 id="claim-ready-title">One-time key reveal</h2>
+        <p><strong>Save this key now - it is shown once</strong> after you click the button below. Refreshing this page before clicking does not consume your key.</p>
+        <form method="post" action="/v1/keys/claim">
+          <input type="hidden" name="session_id" value="${escapeHtml(view.sessionId)}"/>
+          <div class="cta">
+            <button type="submit" class="btn">Reveal my API key</button>
+          </div>
+        </form>
+        <p class="muted">Quota: 1,500 calls per billing period · Need help? Visit <a href="/support">/support</a>.</p>
+      </section>`;
+  } else if (view.mode === "revealed") {
+    const mcpExample = JSON.stringify(
+      {
+        mcpServers: {
+          mentionforge: {
+            url: "https://mentionforge.mentionforge.workers.dev/mcp",
+            headers: {
+              Authorization: "Bearer YOUR_KEY",
+            },
+          },
+        },
+      },
+      null,
+      2,
+    );
+    mainContent = `      <section aria-labelledby="claim-key-title">
+        <div class="section-head">
+          <h2 id="claim-key-title">API key</h2>
+          <button type="button" class="copy" data-copy="api-key">Copy</button>
+        </div>
+        <p><strong>Save this key now - it is shown once</strong>. MentionForge stores only the SHA-256 hash after this page is served. If you lose it, see <a href="/support">/support</a> to have it reissued.</p>
+        <pre id="api-key">${escapeHtml(view.key)}</pre>
+      </section>
+
+      <section aria-labelledby="claim-howto-title">
+        <div class="section-head">
+          <h2 id="claim-howto-title">Quickstart (REST)</h2>
+          <button type="button" class="copy" data-copy="claim-curl">Copy</button>
+        </div>
+        <p>Send <code>Authorization: Bearer YOUR_KEY</code> (or <code>X-Api-Key</code>) on any paid endpoint (<code>/v1/research</code>, <code>/v1/compare</code>, <code>/v1/digest</code>, <code>/v1/risk</code>, <code>/v1/reply</code>, <code>/v1/mentions</code>, <code>/v1/trends</code>):</p>
+        <pre id="claim-curl">${CLAIM_CURL_EXAMPLE}</pre>
+      </section>
+
+      <section aria-labelledby="claim-mcp-title">
+        <div class="section-head">
+          <h2 id="claim-mcp-title">MCP header note</h2>
+          <button type="button" class="copy" data-copy="claim-mcp">Copy</button>
+        </div>
+        <p>For Streamable HTTP MCP (<code>/mcp</code>), pass your key in the <code>Authorization: Bearer YOUR_KEY</code> (or <code>X-Api-Key</code>) request header:</p>
+        <pre id="claim-mcp">${mcpExample}</pre>
+      </section>
+
+      <section aria-labelledby="claim-manage-title">
+        <h2 id="claim-manage-title">Quota, usage, billing portal, and support</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Quota</h3>
+            <p><strong>1,500 calls per billing period</strong> across paid research endpoints and MCP tools. Calls stop at 1,500 with HTTP 429 <code>PLAN_QUOTA_REACHED</code> and reset automatically when your next billing period renews.</p>
+          </article>
+          <article class="card">
+            <h3>Check usage (<code>/v1/keys/me</code>)</h3>
+            <p>Call <code>GET /v1/keys/me</code> with <code>Authorization: Bearer YOUR_KEY</code> to see <code>calls_used</code>, <code>calls_limit</code>, <code>calls_remaining</code>, <code>period_start</code>, and <code>period_end</code>.</p>
+          </article>
+          <article class="card">
+            <h3>Manage or cancel (<code>/v1/keys/portal</code>)</h3>
+            <p>Call <code>POST /v1/keys/portal</code> with <code>Authorization: Bearer YOUR_KEY</code> to receive a Stripe Billing Portal <code>{ url }</code> where you can update payment methods or cancel anytime.</p>
+          </article>
+          <article class="card">
+            <h3>Support (<code>/support</code>)</h3>
+            <p>Lost your key, need it reissued, or need billing help? Visit <a href="/support">/support</a>.</p>
+          </article>
+        </div>
+      </section>`;
+  } else {
+    mainContent = `      <section aria-labelledby="claim-error-title">
+        <h2 id="claim-error-title"><code>${escapeHtml(view.code)}</code></h2>
+        <p>${escapeHtml(view.hint)}</p>
+        <p>Need assistance or lost your key? See <a href="/support">/support</a> to have it reissued or manage your subscription.</p>
+      </section>`;
+  }
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>MENTION//FORGE — ${escapeHtml(title)}</title>
+  <link rel="icon" href="${BRAND_ASSETS.faviconIco}" sizes="any"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="${BRAND_ASSETS.appleTouch}"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/claim.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        <a href="/">Home</a>
+        <a href="/llms.txt">llms.txt</a>
+        <a href="/openapi.json">OpenAPI</a>
+        <a href="/support">support</a>
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>${escapeHtml(title)}</h1>
+          <p class="lede muted">${escapeHtml(lede)}</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+${mainContent}
+    </main>
+    <footer class="site-foot">
+      <p><a href="/">Home</a> · <a href="/support">Support</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+    </footer>
+  </div>
+</body>
+</html>
+`;
+}
+
+export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
+  const email = (env?.SUPPORT_EMAIL ?? "").trim();
+  const canonicalUrl = "https://mentionforge.mentionforge.workers.dev/support";
+  const description =
+    "Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact.";
+  const headerNav = (
+    [
+      ["/llms.txt", "llms.txt"],
+      ["/skill.md", "skill.md"],
+      ["/openapi.json", "OpenAPI"],
+      ["/.well-known/x402", "x402"],
+      ["/v1/pricing", "pricing"],
+      ["/v1/research/example", "example"],
+      ["/health", "health"],
+      ["https://github.com/EnkiduHub/MentionForge", "GitHub"],
+    ] satisfies Array<[string, string]>
+  )
+    .map(([href, label]) => `<a href="${href}">${escapeHtml(label)}</a>`)
+    .join("\n        ");
+  const footerNav = (
+    [
+      ["/", "Home"],
+      ["/about", "About"],
+      ["/privacy", "Privacy"],
+      ["/terms", "Terms"],
+      ["/support", "Support"],
+    ] satisfies Array<[string, string]>
+  )
+    .map(([href, label]) => {
+      const current = href === "/support" ? ' aria-current="page"' : "";
+      return `<a href="${href}"${current}>${escapeHtml(label)}</a>`;
+    })
+    .join("\n        ");
+
+  const emailContactHtml = email
+    ? `<p>Email: <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>\n        `
+    : "";
+  const lostKeyContact = email
+    ? `email <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a> or open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`
+    : `open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <title>MENTION//FORGE — Support</title>
+  <meta name="description" content="${escapeHtml(description)}"/>
+  <meta property="og:title" content="MENTION//FORGE — Support"/>
+  <meta property="og:description" content="${escapeHtml(description)}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="MentionForge"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta property="og:url" content="${canonicalUrl}"/>
+  <meta property="og:image" content="${BRAND_ASSETS.og}"/>
+  <link rel="canonical" href="${canonicalUrl}"/>
+  <link rel="icon" href="${BRAND_ASSETS.faviconIco}" sizes="any"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="${BRAND_ASSETS.appleTouch}"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        ${headerNav}
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>Support</h1>
+          <p class="lede muted">${escapeHtml(description)}</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+      <section aria-labelledby="support-lost-key">
+        <h2 id="support-lost-key">Lost API key</h2>
+        <p>Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. If you lost your key or need it rotated, ${lostKeyContact}. A replacement key is reissued after verifying the checkout email address or Stripe Checkout session ID (<code>cs_...</code>).</p>
+      </section>
+
+      <section aria-labelledby="support-manage">
+        <h2 id="support-manage">Check usage &amp; cancel anytime</h2>
+        <p>Check your current billing period and remaining quota at any time with <code>GET /v1/keys/me</code>:</p>
+        <pre>curl -sS https://mentionforge.mentionforge.workers.dev/v1/keys/me \\
+  -H 'Authorization: Bearer YOUR_KEY'</pre>
+        <p>Cancel anytime or update your payment method through the Stripe Billing Portal by calling <code>POST /v1/keys/portal</code> with your API key:</p>
+        <pre>curl -sS -X POST https://mentionforge.mentionforge.workers.dev/v1/keys/portal \\
+  -H 'Authorization: Bearer YOUR_KEY'</pre>
+        <p>Open the returned <code>url</code> in your browser to manage or cancel your subscription. If you no longer have your API key or cannot access the billing portal, contact support below with your checkout email and we will cancel it for you.</p>
+      </section>
+
+      <section aria-labelledby="support-refunds">
+        <h2 id="support-refunds">Cancellations &amp; refunds</h2>
+        <p>Cancelled subscriptions stop renewing and remain active until the end of the current billing period (<code>period_end</code>). Refund requests are handled case by case via support.</p>
+      </section>
+
+      <section aria-labelledby="support-contact">
+        <h2 id="support-contact">Contact</h2>
+        ${emailContactHtml}<p>GitHub Issues: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>
+      </section>
+    </main>
+    <footer class="site-foot">
+      <nav aria-label="Footer">
+        ${footerNav}
+      </nav>
+      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+    </footer>
+  </div>
+</body>
+</html>
+`;
+}

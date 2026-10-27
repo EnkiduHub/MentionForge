@@ -6,7 +6,7 @@ import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
 import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
-import { TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
+import { supportPageHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
 import { healthInputSchema } from "../../src/schemas/lenses";
 import { researchRequestSchema } from "../../src/schemas/research";
@@ -308,6 +308,41 @@ describe("agent discoverability", () => {
     const about = await (await call("/about")).text();
     expect(about).toContain("MIT License");
     expect(about).toContain("https://github.com/EnkiduHub/MentionForge");
+  });
+
+  it("GET /support matches public/support.html, renders SUPPORT_EMAIL mailto when set, and openapi/llms.txt list API key plan endpoints without marketing the purchase", async () => {
+    const onDisk = readFileSync(new URL("../../public/support.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+    expect(supportPageHtml()).toBe(onDisk);
+
+    const res = await call("/support");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toMatch(/text\/html/);
+    expect(res.headers.get("content-security-policy") ?? "").toMatch(/script-src 'self'/);
+    const html = await res.text();
+    expect(html).toContain('<main id="main">');
+    expect([...html.matchAll(/<main\b[^>]*>/gi)]).toHaveLength(1);
+    expect(html).toContain("/v1/keys/portal");
+    expect(html).toContain("/v1/keys/me");
+    expect(html).toContain("https://github.com/EnkiduHub/MentionForge/issues");
+    expect(html).toContain("case by case");
+    expect(html).not.toContain("mailto:");
+
+    const withEmail = await call("/support", {}, mockEnv({ SUPPORT_EMAIL: "support@mentionforge.example" }));
+    expect(withEmail.status).toBe(200);
+    const emailHtml = await withEmail.text();
+    expect(emailHtml).toContain('href="mailto:support@mentionforge.example"');
+
+    expect(PUBLIC_SITEMAP_PATHS).not.toContain("/support");
+
+    const llms = await (await call("/llms.txt")).text();
+    expect(llms).toContain("API key plan endpoints");
+    expect(llms).toContain("/v1/keys/me");
+    expect(llms).toContain("/v1/keys/portal");
+    expect(llms).not.toMatch(/\$29|buy\.stripe\.com/i);
+
+    const openapi = (await (await call("/openapi.json")).json()) as { paths: Record<string, unknown> };
+    expect(openapi.paths["/v1/keys/me"]).toBeTruthy();
+    expect(openapi.paths["/v1/keys/portal"]).toBeTruthy();
   });
 
   it("operator HTML uses the 96px chrome mark and PNG favicon", async () => {

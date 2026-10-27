@@ -14,7 +14,7 @@ const HTML_CSP = [
   "connect-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
-  "form-action 'none'",
+  "form-action 'self'",
   "object-src 'none'",
 ].join("; ");
 
