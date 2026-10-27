@@ -338,7 +338,7 @@ export function mockEnv(over: Partial<Env> = {}): Env {
     SERVICE_VERSION: "1.1.0",
     STRIPE_KEY_PRICE_ID: "price_1UTrCWHRKyy2qPSgkzrHPr8p",
     PLAN_KEY_MONTHLY_CALLS: "1500",
-    SUPPORT_EMAIL: "",
+    SUPPORT_EMAIL: "harbor-ops@mail.grokbot.com",
     STRIPE_SECRET_KEY: "sk_test_mock",
     STRIPE_WEBHOOK_SECRET: "whsec_test_mock",
     SANDBOX_KEY: "test-sandbox",
