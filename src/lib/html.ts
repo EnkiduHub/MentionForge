@@ -214,7 +214,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   terms: {
     title: "Terms",
     description:
-      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC on-chain x402 settlement, 10-call wallet trial, and GitHub issue contact.",
+      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC on-chain x402 settlement, 10-call wallet trial, API key subscription, and GitHub issue contact.",
     sectionsHtml: `      <section aria-labelledby="terms-as-is">
         <h2 id="terms-as-is">Service provided as-is</h2>
         <p>MentionForge is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; without warranties of any kind, express or implied, including accuracy, completeness, availability, or fitness for a particular purpose.</p>
@@ -234,10 +234,17 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
         <p>Requests are subject to per-minute rate limits (<code>HTTP 429</code> with <code>Retry-After</code>) and a rolling 30-day disclosed-ID quota. Do not flood endpoints or attempt to bypass rate limits or payment verification.</p>
       </section>
 
+      <section aria-labelledby="terms-key-subscription">
+        <h2 id="terms-key-subscription">API key subscription</h2>
+        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls.</p>
+        <p>Cancel anytime via the Stripe billing portal (<code>POST /v1/keys/portal</code>) or <a href="/support">/support</a>. Cancellation takes effect at the end of the current billing period; you keep access until then. There are no pro-rated refunds by default. Refund requests are reviewed case by case via <a href="/support">/support</a>.</p>
+        <p>Your API key is shown once. Keep it safe. When the quota is reached, further requests are denied until the next billing period and are not charged. Keys may be revoked for abuse. The service is provided as-is.</p>
+      </section>
+
       <section aria-labelledby="terms-license">
         <h2 id="terms-license">Open-source license and contact</h2>
         <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
-        <p class="muted">Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+        <p class="muted">Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a> or <a href="/support">/support</a>.</p>
       </section>`,
   },
   about: {
