@@ -36,21 +36,44 @@ export async function verifyStripeSignature(
   return v1.some((sig) => sig.length === hex.length && timingSafeEqualString(sig, hex));
 }
 
-export async function stripeGet(env: Env, path: string): Promise<unknown> {
+const STRIPE_UNAVAILABLE_HINT = "Stripe is temporarily unavailable. Retry in 30s with the same session_id.";
+
+export async function stripeGet(env: Env, path: string, requestId = "stripe"): Promise<unknown> {
   const secret = env.STRIPE_SECRET_KEY ?? "";
   if (!secret) {
-    throw new AgentError("PAYMENT_UNAVAILABLE", "Stripe is not configured.", { request_id: "stripe" });
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Stripe is not configured.", {
+      request_id: requestId,
+      hint: STRIPE_UNAVAILABLE_HINT,
+    });
   }
-  const res = await fetch(`https://api.stripe.com${path}`, {
-    headers: { Authorization: `Bearer ${secret}` },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`https://api.stripe.com${path}`, {
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+  } catch {
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Stripe API request failed.", {
+      request_id: requestId,
+      hint: STRIPE_UNAVAILABLE_HINT,
+      details: { status: 0 },
+    });
+  }
   if (!res.ok) {
     throw new AgentError("PAYMENT_UNAVAILABLE", "Stripe API request failed.", {
-      request_id: "stripe",
+      request_id: requestId,
+      hint: STRIPE_UNAVAILABLE_HINT,
       details: { status: res.status },
     });
   }
   return res.json();
+}
+
+function isStripeResourceMissing(err: unknown): boolean {
+  return (
+    err instanceof AgentError &&
+    err.code === "PAYMENT_UNAVAILABLE" &&
+    err.details.status === 404
+  );
 }
 
 function asRecord(v: unknown): Record<string, unknown> {
@@ -250,7 +273,15 @@ export async function claimKey(env: Env, sessionId: string, requestId: string): 
   if (!sessionId.startsWith("cs_")) {
     throw new AgentError("VALIDATION_ERROR", "session_id must be a Stripe Checkout session id.", { request_id: requestId });
   }
-  const session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${sessionId}`));
+  let session: Record<string, unknown>;
+  try {
+    session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${sessionId}`, requestId));
+  } catch (err) {
+    if (isStripeResourceMissing(err)) {
+      throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", { request_id: requestId });
+    }
+    throw err;
+  }
   const paid = session.payment_status === "paid" || session.status === "complete";
   if (!paid || session.status !== "complete") {
     throw new AgentError("PAYMENT_REQUIRED", "Checkout session is not paid and complete.", { request_id: requestId });

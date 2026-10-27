@@ -14,6 +14,7 @@ export const errorCodeSchema = z.enum([
   "X_ID_CAP_REACHED",
   "PLAN_QUOTA_REACHED",
   "KEY_ALREADY_CLAIMED",
+  "KEY_SESSION_NOT_FOUND",
   "QUOTA_UNAVAILABLE",
   "IDEMPOTENCY_CONFLICT",
   "INTERNAL_ERROR",
@@ -45,6 +46,7 @@ const RECOVERABLE: Record<ErrorCode, boolean> = {
   X_ID_CAP_REACHED: true,
   PLAN_QUOTA_REACHED: true,
   KEY_ALREADY_CLAIMED: false,
+  KEY_SESSION_NOT_FOUND: false,
   QUOTA_UNAVAILABLE: true,
   IDEMPOTENCY_CONFLICT: true,
   INTERNAL_ERROR: false,
@@ -63,6 +65,7 @@ const HTTP: Record<ErrorCode, number> = {
   X_ID_CAP_REACHED: 429,
   PLAN_QUOTA_REACHED: 429,
   KEY_ALREADY_CLAIMED: 410,
+  KEY_SESSION_NOT_FOUND: 404,
   QUOTA_UNAVAILABLE: 503,
   IDEMPOTENCY_CONFLICT: 409,
   INTERNAL_ERROR: 500,
@@ -131,6 +134,8 @@ function defaultHint(code: ErrorCode): string {
       return "This key has used its 1,500 calls for the Stripe billing period. Nothing was charged. Retry after resets_at.";
     case "KEY_ALREADY_CLAIMED":
       return "The plaintext key was shown once. Store it from the first claim response.";
+    case "KEY_SESSION_NOT_FOUND":
+      return "Check the session_id from the Stripe Checkout success URL (cs_...). It must be a session created by this service.";
     case "QUOTA_UNAVAILABLE":
       return "Usage or idempotency ledger could not be read. Request denied; nothing was charged. Retry later with the same Idempotency-Key.";
     case "IDEMPOTENCY_CONFLICT":

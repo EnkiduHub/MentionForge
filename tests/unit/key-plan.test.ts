@@ -260,6 +260,89 @@ describe("Stripe Key plan", () => {
     setGlobalFetch(prev);
   });
 
+  it("returns 404 KEY_SESSION_NOT_FOUND when Stripe does not know the session", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/checkout/sessions/cs_test_fake123")) {
+        return new Response(
+          JSON.stringify({ error: { type: "invalid_request_error", code: "resource_missing" } }),
+          { status: 404, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const res = await call("/v1/keys/claim?session_id=cs_test_fake123", { method: "GET" }, env);
+    setGlobalFetch(prev);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string; message: string; hint: string; recoverable: boolean } };
+    expect(body.error.code).toBe("KEY_SESSION_NOT_FOUND");
+    expect(body.error.message).toBe("No checkout session found for this id.");
+    expect(body.error.hint).not.toMatch(/facilitator|retry in 30s/i);
+    expect(body.error.recoverable).toBe(false);
+  });
+
+  it("maps a Stripe 500 on claim to 503 PAYMENT_UNAVAILABLE without facilitator wording", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/checkout/sessions/cs_claim_500")) {
+        return new Response(JSON.stringify({ error: { type: "api_error" } }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return prev(input as never, init);
+    });
+    const res = await call("/v1/keys/claim?session_id=cs_claim_500", { method: "GET" }, env);
+    setGlobalFetch(prev);
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: { code: string; hint: string; details: { status: number } } };
+    expect(body.error.code).toBe("PAYMENT_UNAVAILABLE");
+    expect(body.error.details.status).toBe(500);
+    expect(body.error.hint).not.toMatch(/facilitator/i);
+  });
+
+  it("maps a Stripe network failure on claim to 503 PAYMENT_UNAVAILABLE", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/checkout/sessions/cs_claim_net")) {
+        throw new TypeError("fetch failed");
+      }
+      return prev(input as never, init);
+    });
+    const res = await call("/v1/keys/claim?session_id=cs_claim_net", { method: "GET" }, env);
+    setGlobalFetch(prev);
+    expect(res.status).toBe(503);
+    const body = (await res.json()) as { error: { code: string; hint: string } };
+    expect(body.error.code).toBe("PAYMENT_UNAVAILABLE");
+    expect(body.error.hint).not.toMatch(/facilitator/i);
+  });
+
+  it("keeps unpaid sessions as 402 PAYMENT_REQUIRED on claim", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/checkout/sessions/cs_claim_open")) {
+        return new Response(
+          JSON.stringify({ id: "cs_claim_open", payment_status: "unpaid", status: "open", subscription: null }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const res = await call("/v1/keys/claim?session_id=cs_claim_open", { method: "GET" }, env);
+    setGlobalFetch(prev);
+    expect(res.status).toBe(402);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("PAYMENT_REQUIRED");
+  });
+
   it("rejects canceled and expired keys", async () => {
     const env = mockEnv();
     const now = Math.floor(Date.now() / 1000);
