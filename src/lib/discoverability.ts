@@ -174,6 +174,9 @@ export function discoveryDocs(origin: string) {
 /** Public GET surfaces for /sitemap.xml: landing, agent docs, and existing discovery routes. */
 export const PUBLIC_SITEMAP_PATHS = [
   "/",
+  "/about",
+  "/privacy",
+  "/terms",
   "/llms.txt",
   "/llms-full.txt",
   "/skill.md",

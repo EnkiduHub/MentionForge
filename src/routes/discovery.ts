@@ -11,8 +11,9 @@ import { operatorOk } from "../lib/trial";
 import { circuitStatus } from "../lib/research/circuit";
 import { sourceBackends, sourcesConfigured } from "../lib/source-backends";
 import { AgentError } from "../schemas/errors";
-import { WWW_AUTHENTICATE } from "../lib/security-headers";
+import { WWW_AUTHENTICATE, htmlSecurityHeaders } from "../lib/security-headers";
 import { sendPublic } from "../lib/http-json";
+import { absolutizePublicHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../lib/html";
 import { SKILL_MARKDOWN } from "../lib/skill-text";
 import {
   claudeMcpAdd,
@@ -315,10 +316,35 @@ discoveryRoutes.get("/sitemap.xml", (c) => {
   });
 });
 
+for (const slug of TRUST_PAGE_SLUGS) {
+  discoveryRoutes.get(`/${slug}`, async (c) => {
+    const url = new URL(c.req.url);
+    let html = trustPageHtml(slug);
+    if (c.env.ASSETS) {
+      try {
+        const asset = await c.env.ASSETS.fetch(new Request(new URL(`/${slug}.html`, url.origin), c.req.raw));
+        if (asset.status === 200) {
+          html = await asset.text();
+        }
+      } catch {
+        /* fall back to built-in HTML when ASSETS is stubbed */
+      }
+    }
+    const page = absolutizePublicHtml(html, url.origin);
+    return c.html(page, 200, {
+      ...htmlSecurityHeaders(),
+      "Cache-Control": "public, max-age=300",
+    });
+  });
+}
+
 discoveryRoutes.get("/robots.txt", (c) => {
   const origin = new URL(c.req.url).origin;
   const txt = `User-agent: *
 Allow: /
+Allow: /about
+Allow: /privacy
+Allow: /terms
 Allow: /.well-known/
 Allow: /openapi.json
 Allow: /llms.txt

@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <title>MENTION//FORGE — Privacy</title>
+  <meta name="description" content="Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API, and how on-chain x402 payments work."/>
+  <meta property="og:title" content="MENTION//FORGE — Privacy"/>
+  <meta property="og:description" content="Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API, and how on-chain x402 payments work."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="MentionForge"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/privacy"/>
+  <meta property="og:image" content="/og.png"/>
+  <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/privacy"/>
+  <link rel="icon" href="/favicon.ico" sizes="any"/>
+  <link rel="icon" href="/logo-128x128.png" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="/logo-256x256.png"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        <a href="/llms.txt">llms.txt</a>
+        <a href="/skill.md">skill.md</a>
+        <a href="/openapi.json">OpenAPI</a>
+        <a href="/.well-known/x402">x402</a>
+        <a href="/v1/pricing">pricing</a>
+        <a href="/v1/research/example">example</a>
+        <a href="/health">health</a>
+        <a href="https://github.com/EnkiduHub/MentionForge">GitHub</a>
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>Privacy</h1>
+          <p class="lede muted">Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API, and how on-chain x402 payments work.</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="/logo-256x256.png" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+      <section aria-labelledby="privacy-accounts">
+        <h2 id="privacy-accounts">No accounts or emails</h2>
+        <p>MentionForge does not use user accounts, sign-ups, passwords, or tracking cookies. It does not collect names or email addresses.</p>
+      </section>
+
+      <section aria-labelledby="privacy-d1">
+        <h2 id="privacy-d1">What is stored in Cloudflare D1</h2>
+        <div class="grid">
+          <article class="card">
+            <h3><code>trial_wallets</code></h3>
+            <p>When a caller sends the <code>X-Wallet</code> header to use the 10-call free trial, the Worker stores the lowercased wallet address (<code>wallet</code>), the number of trial calls used (<code>used</code>, up to 10), and the last update timestamp (<code>updated_at</code>).</p>
+          </article>
+          <article class="card">
+            <h3><code>idempotency</code></h3>
+            <p>When a paid or trial call includes an <code>Idempotency-Key</code> header, the Worker stores the key, a SHA-256 hash of the canonical request body (<code>body_hash</code>), status, the JSON response, billing metadata (<code>amount_usdc</code>, <code>tx_hash</code>, <code>free_trial</code>), and <code>created_at</code>. Entries expire after 24 hours and are deleted on lookup after expiry.</p>
+          </article>
+          <article class="card">
+            <h3><code>stats_daily</code></h3>
+            <p>The Worker records daily aggregate totals (<code>day</code>, <code>calls</code>, <code>paid</code>, <code>usdc_micros</code>, <code>errors</code>, <code>trial</code>). No wallet addresses, IP addresses, or raw query strings are stored in this table.</p>
+          </article>
+          <article class="card">
+            <h3><code>x_id_usage</code></h3>
+            <p>The Worker records daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window to enforce the global 30-day quota.</p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="privacy-metrics">
+        <h2 id="privacy-metrics">Metrics, caching, and rate limits</h2>
+        <p><strong>Analytics Engine (<code>METRICS</code>):</strong> On completed or errored research calls, the Worker writes an event kind (<code>paid</code>, <code>trial</code>, or <code>error</code>), the UTC date, a SHA-256 hash of the normalized query string (not the raw query text), a count of <code>1</code>, and <code>usdc_micros</code>.</p>
+        <p><strong>Cloudflare Cache API:</strong> Research responses (excluding billing metadata, <code>request_id</code>, and latency) are cached by a SHA-256 hash of the query parameters for 10 minutes (<code>24h</code> timeframe), 30 minutes (<code>7d</code> timeframe), or 2 hours (<code>30d</code> or custom timeframe).</p>
+        <p><strong>Rate limiting and logs:</strong> Cloudflare rate limiters key on wallet address (for paid and trial requests) or client IP address (<code>cf-connecting-ip</code> for unpaid and discovery requests) over 60-second windows. Structured operational logs record <code>request_id</code> and status codes and never log payment signatures or secrets.</p>
+      </section>
+
+      <section aria-labelledby="privacy-onchain">
+        <h2 id="privacy-onchain">On-chain payments are public</h2>
+        <p>Paid calls settle $0.02 USDC per call on Base (or Base Sepolia on staging) via the configured x402 facilitator. Blockchain transactions, wallet addresses, and transaction hashes (<code>tx_hash</code>) are permanently public on the Base blockchain.</p>
+        <p class="muted">Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+      </section>
+    </main>
+    <footer class="site-foot">
+      <nav aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/privacy" aria-current="page">Privacy</a>
+        <a href="/terms">Terms</a>
+      </nav>
+      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+    </footer>
+  </div>
+</body>
+</html>

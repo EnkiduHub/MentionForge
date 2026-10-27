@@ -34,10 +34,25 @@ export function cleanSnippet(s: string): string {
 /** Resolve relative Open Graph tags so crawlers hit this deployment's origin. */
 export function absolutizePublicHtml(html: string, origin: string): string {
   const base = origin.replace(/\/$/, "");
+  const rewriteUrl = (raw: string): string => {
+    if (!raw) return `${base}/`;
+    try {
+      const pathname = new URL(raw, `${base}/`).pathname || "/";
+      return `${base}${pathname}`;
+    } catch {
+      return `${base}/`;
+    }
+  };
   return html
     .replaceAll(`content="${BRAND_ASSETS.og}"`, `content="${base}${BRAND_ASSETS.og}"`)
-    .replace(/<meta property="og:url" content="[^"]*"\s*\/?>/, `<meta property="og:url" content="${base}/"/>`)
-    .replace(/<link rel="canonical" href="[^"]*"\s*\/?>/, `<link rel="canonical" href="${base}/"/>`);
+    .replace(
+      /<meta property="og:url" content="([^"]*)"\s*\/?>/,
+      (_, u: string) => `<meta property="og:url" content="${rewriteUrl(u)}"/>`,
+    )
+    .replace(
+      /<link rel="canonical" href="([^"]*)"\s*\/?>/,
+      (_, u: string) => `<link rel="canonical" href="${rewriteUrl(u)}"/>`,
+    );
 }
 
 const DISCOVERY_NAV: Array<[string, string]> = [
@@ -50,6 +65,16 @@ const DISCOVERY_NAV: Array<[string, string]> = [
   ["/v1/entity", "entity"],
   ["/v1/suggest", "suggest"],
   ["/health", "health"],
+];
+
+export const TRUST_PAGE_SLUGS = ["privacy", "terms", "about"] as const;
+export type TrustPageSlug = (typeof TRUST_PAGE_SLUGS)[number];
+
+const TRUST_NAV: Array<[string, string]> = [
+  ["/", "Home"],
+  ["/about", "About"],
+  ["/privacy", "Privacy"],
+  ["/terms", "Terms"],
 ];
 
 /** Same chrome as the landing so header links open real pages, not a raw dump. */
@@ -88,30 +113,218 @@ export function discoveryDocumentHtml(opts: {
         ${nav}
       </nav>
     </header>
-    <header class="hero hero-compact">
-      <div>
-        <h1 id="main">${escapeHtml(opts.title)}</h1>
-        <p class="lede muted">${escapeHtml(opts.hint)}</p>
-        <ul class="facts" id="facts" hidden></ul>
-      </div>
-      <div class="mark-wrap">
-        <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
-      </div>
-    </header>
-    <section aria-labelledby="payload-title">
-      <div class="section-head">
-        <h2 id="payload-title"><code>${escapeHtml(pathOnly)}</code></h2>
-        <div class="section-actions">
-          <a class="copy raw-link" href="${escapeHtml(rawHref)}">Raw</a>
-          <button type="button" class="copy" data-copy="payload">Copy</button>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>${escapeHtml(opts.title)}</h1>
+          <p class="lede muted">${escapeHtml(opts.hint)}</p>
+          <ul class="facts" id="facts" hidden></ul>
         </div>
-      </div>
-      <pre id="payload">${escapeHtml(opts.body)}</pre>
-    </section>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+        </div>
+      </header>
+      <section aria-labelledby="payload-title">
+        <div class="section-head">
+          <h2 id="payload-title"><code>${escapeHtml(pathOnly)}</code></h2>
+          <div class="section-actions">
+            <a class="copy raw-link" href="${escapeHtml(rawHref)}">Raw</a>
+            <button type="button" class="copy" data-copy="payload">Copy</button>
+          </div>
+        </div>
+        <pre id="payload">${escapeHtml(opts.body)}</pre>
+      </section>
+    </main>
     <footer class="site-foot">
-      <p><a href="/">Public landing</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p><a href="/">Public landing</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
     </footer>
   </div>
 </body>
 </html>`;
+}
+
+type TrustPageSpec = {
+  title: string;
+  description: string;
+  sectionsHtml: string;
+};
+
+const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
+  privacy: {
+    title: "Privacy",
+    description:
+      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API, and how on-chain x402 payments work.",
+    sectionsHtml: `      <section aria-labelledby="privacy-accounts">
+        <h2 id="privacy-accounts">No accounts or emails</h2>
+        <p>MentionForge does not use user accounts, sign-ups, passwords, or tracking cookies. It does not collect names or email addresses.</p>
+      </section>
+
+      <section aria-labelledby="privacy-d1">
+        <h2 id="privacy-d1">What is stored in Cloudflare D1</h2>
+        <div class="grid">
+          <article class="card">
+            <h3><code>trial_wallets</code></h3>
+            <p>When a caller sends the <code>X-Wallet</code> header to use the 10-call free trial, the Worker stores the lowercased wallet address (<code>wallet</code>), the number of trial calls used (<code>used</code>, up to 10), and the last update timestamp (<code>updated_at</code>).</p>
+          </article>
+          <article class="card">
+            <h3><code>idempotency</code></h3>
+            <p>When a paid or trial call includes an <code>Idempotency-Key</code> header, the Worker stores the key, a SHA-256 hash of the canonical request body (<code>body_hash</code>), status, the JSON response, billing metadata (<code>amount_usdc</code>, <code>tx_hash</code>, <code>free_trial</code>), and <code>created_at</code>. Entries expire after 24 hours and are deleted on lookup after expiry.</p>
+          </article>
+          <article class="card">
+            <h3><code>stats_daily</code></h3>
+            <p>The Worker records daily aggregate totals (<code>day</code>, <code>calls</code>, <code>paid</code>, <code>usdc_micros</code>, <code>errors</code>, <code>trial</code>). No wallet addresses, IP addresses, or raw query strings are stored in this table.</p>
+          </article>
+          <article class="card">
+            <h3><code>x_id_usage</code></h3>
+            <p>The Worker records daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window to enforce the global 30-day quota.</p>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="privacy-metrics">
+        <h2 id="privacy-metrics">Metrics, caching, and rate limits</h2>
+        <p><strong>Analytics Engine (<code>METRICS</code>):</strong> On completed or errored research calls, the Worker writes an event kind (<code>paid</code>, <code>trial</code>, or <code>error</code>), the UTC date, a SHA-256 hash of the normalized query string (not the raw query text), a count of <code>1</code>, and <code>usdc_micros</code>.</p>
+        <p><strong>Cloudflare Cache API:</strong> Research responses (excluding billing metadata, <code>request_id</code>, and latency) are cached by a SHA-256 hash of the query parameters for 10 minutes (<code>24h</code> timeframe), 30 minutes (<code>7d</code> timeframe), or 2 hours (<code>30d</code> or custom timeframe).</p>
+        <p><strong>Rate limiting and logs:</strong> Cloudflare rate limiters key on wallet address (for paid and trial requests) or client IP address (<code>cf-connecting-ip</code> for unpaid and discovery requests) over 60-second windows. Structured operational logs record <code>request_id</code> and status codes and never log payment signatures or secrets.</p>
+      </section>
+
+      <section aria-labelledby="privacy-onchain">
+        <h2 id="privacy-onchain">On-chain payments are public</h2>
+        <p>Paid calls settle $0.02 USDC per call on Base (or Base Sepolia on staging) via the configured x402 facilitator. Blockchain transactions, wallet addresses, and transaction hashes (<code>tx_hash</code>) are permanently public on the Base blockchain.</p>
+        <p class="muted">Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+      </section>`,
+  },
+  terms: {
+    title: "Terms",
+    description:
+      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC on-chain x402 settlement, 10-call wallet trial, and GitHub issue contact.",
+    sectionsHtml: `      <section aria-labelledby="terms-as-is">
+        <h2 id="terms-as-is">Service provided as-is</h2>
+        <p>MentionForge is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; without warranties of any kind, express or implied, including accuracy, completeness, availability, or fitness for a particular purpose.</p>
+        <p>Responses aggregate snippets and links from public sources such as news (Google News RSS, GDELT, Hacker News), web sources (Wikipedia, Wikidata, and Brave Search when configured), and review sites. Do not use MentionForge for live trading execution or automated high-stakes decisions without human review.</p>
+      </section>
+
+      <section aria-labelledby="terms-payments">
+        <h2 id="terms-payments">Pricing, free trial, and on-chain finality</h2>
+        <p>Free discovery and grounding endpoints (<code>GET /health</code>, <code>GET /v1/pricing</code>, <code>GET /v1/research/example</code>, <code>GET /v1/entity</code>, <code>GET /v1/suggest</code>) cost $0.</p>
+        <p>Each wallet address receives 10 free trial calls shared across paid research endpoints and MCP tools by sending the <code>X-Wallet</code> header.</p>
+        <p>Paid calls cost $0.02 USDC per call on Base (or Base Sepolia on staging) via the x402 payment protocol (<code>PAYMENT-SIGNATURE</code> header) and settle on-chain through the configured facilitator. Once an on-chain payment settles, the blockchain transaction is final and irreversible.</p>
+        <p>Nothing is charged when a request is denied before settlement (for example validation errors, rate limits, upstream source failures, or rolling quota limits). Replaying the same request body with the same <code>Idempotency-Key</code> within 24 hours returns the stored response without charging again.</p>
+      </section>
+
+      <section aria-labelledby="terms-use">
+        <h2 id="terms-use">Rate limits and acceptable use</h2>
+        <p>Requests are subject to per-minute rate limits (<code>HTTP 429</code> with <code>Retry-After</code>) and a rolling 30-day disclosed-ID quota. Do not flood endpoints or attempt to bypass rate limits or payment verification.</p>
+      </section>
+
+      <section aria-labelledby="terms-license">
+        <h2 id="terms-license">Open-source license and contact</h2>
+        <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
+        <p class="muted">Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+      </section>`,
+  },
+  about: {
+    title: "About",
+    description:
+      "About MentionForge: MIT-licensed agent social listening and brand research over REST and MCP, citing public news, web, and review sources.",
+    sectionsHtml: `      <section aria-labelledby="about-what">
+        <h2 id="about-what">What MentionForge is</h2>
+        <p>MentionForge is a social listening and company/product research service for software agents and developers. It runs on Cloudflare Workers and exposes both a REST API (<code>POST /v1/research</code> and specialized lenses) and a Streamable HTTP Model Context Protocol server (<code>/mcp</code>, primary tool <code>research_mentions</code>).</p>
+        <p>For a brand, product, competitor, or topic query, MentionForge searches public sources &mdash; news (Google News RSS, GDELT, Hacker News), web (Wikipedia, Wikidata, and Brave Search when configured; plus GitHub Issues and Stack Overflow for developer queries), and review sites (via web search targeting Trustpilot, G2, and Capterra) &mdash; and returns structured volume, sentiment breakdown, themes, cited mentions, and an extractive summary.</p>
+        <p>Official Reddit and X API adapters are optional upgrades and are disabled by default (<code>DISABLED_SOURCES=x,reddit</code>). Live adapter status is published at <a href="/health">GET /health</a>.</p>
+      </section>
+
+      <section aria-labelledby="about-pricing">
+        <h2 id="about-pricing">How pricing and trials work</h2>
+        <p>Discovery and grounding endpoints are free. Paid research calls cost $0.02 USDC per completed call on Base via the x402 payment standard, with 10 free trial calls per wallet via the <code>X-Wallet</code> header. Denied requests (such as rate-limit or quota errors) do not settle and are not charged.</p>
+      </section>
+
+      <section aria-labelledby="about-open-source">
+        <h2 id="about-open-source">Open source &amp; MIT license</h2>
+        <p>MentionForge source code is released under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+        <p>Repository: <a href="https://github.com/EnkiduHub/MentionForge">https://github.com/EnkiduHub/MentionForge</a> · Issues: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+      </section>`,
+  },
+};
+
+export function trustPageHtml(slug: TrustPageSlug): string {
+  const spec = TRUST_PAGES[slug];
+  const path = `/${slug}`;
+  const canonicalUrl = `https://mentionforge.mentionforge.workers.dev${path}`;
+  const headerNav = (
+    [
+      ["/llms.txt", "llms.txt"],
+      ["/skill.md", "skill.md"],
+      ["/openapi.json", "OpenAPI"],
+      ["/.well-known/x402", "x402"],
+      ["/v1/pricing", "pricing"],
+      ["/v1/research/example", "example"],
+      ["/health", "health"],
+      ["https://github.com/EnkiduHub/MentionForge", "GitHub"],
+    ] satisfies Array<[string, string]>
+  )
+    .map(([href, label]) => `<a href="${href}">${escapeHtml(label)}</a>`)
+    .join("\n        ");
+  const footerNav = TRUST_NAV.map(([href, label]) => {
+    const current = href === path ? ' aria-current="page"' : "";
+    return `<a href="${href}"${current}>${escapeHtml(label)}</a>`;
+  }).join("\n        ");
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <title>MENTION//FORGE — ${escapeHtml(spec.title)}</title>
+  <meta name="description" content="${escapeHtml(spec.description)}"/>
+  <meta property="og:title" content="MENTION//FORGE — ${escapeHtml(spec.title)}"/>
+  <meta property="og:description" content="${escapeHtml(spec.description)}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="MentionForge"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta property="og:url" content="${canonicalUrl}"/>
+  <meta property="og:image" content="${BRAND_ASSETS.og}"/>
+  <link rel="canonical" href="${canonicalUrl}"/>
+  <link rel="icon" href="${BRAND_ASSETS.faviconIco}" sizes="any"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="${BRAND_ASSETS.appleTouch}"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        ${headerNav}
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>${escapeHtml(spec.title)}</h1>
+          <p class="lede muted">${escapeHtml(spec.description)}</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+${spec.sectionsHtml}
+    </main>
+    <footer class="site-foot">
+      <nav aria-label="Footer">
+        ${footerNav}
+      </nav>
+      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+    </footer>
+  </div>
+</body>
+</html>
+`;
 }

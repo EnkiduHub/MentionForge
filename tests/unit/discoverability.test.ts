@@ -6,6 +6,7 @@ import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
 import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
+import { TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
 import { healthInputSchema } from "../../src/schemas/lenses";
 import { researchRequestSchema } from "../../src/schemas/research";
@@ -88,7 +89,23 @@ describe("agent discoverability", () => {
     expect(html).toContain(`href="${BRAND_ASSETS.faviconIco}"`);
     expect(html).toContain(`href="${BRAND_ASSETS.favicon}"`);
     expect(html).toContain(`src="${BRAND_ASSETS.hero}"`);
+    expect(html).toContain('width="220" height="220" alt="MentionForge mark"');
     expect(html).toContain(`href="${BRAND_ASSETS.appleTouch}"`);
+    expect(html).toContain('<main id="main">');
+    expect([...html.matchAll(/<main\b[^>]*>/gi)]).toHaveLength(1);
+    expect([...html.matchAll(/\bid="main"/gi)]).toHaveLength(1);
+    expect(html).toContain("<h3>Calls</h3>");
+    expect(html).toContain("<h3>Price</h3>");
+    expect(html).toContain("<h3>Trial</h3>");
+    expect(html).not.toContain("<h2>Calls</h2>");
+    expect(html).not.toContain("<h2>Price</h2>");
+    expect(html).not.toContain("<h2>Trial</h2>");
+    expect(html).toContain("How it works");
+    expect(html).toContain("100 calls = $2.00");
+    expect(html).toContain('href="/privacy"');
+    expect(html).toContain('href="/terms"');
+    expect(html).toContain('href="/about"');
+    expect(html).not.toMatch(/\bstripe\b|\bkey plan\b|\$29\b/i);
     expect(html).toMatch(/class="prefer"/);
     expect(html).toMatch(/web_search/);
     expect(html).toContain(DIRECTORY_LINKS.github);
@@ -115,7 +132,21 @@ describe("agent discoverability", () => {
     expect(ogBytes.byteLength).toBeLessThan(150 * 1024);
     expect(ihdr(BRAND_ASSETS.og)).toEqual({ w: BRAND_ASSETS.ogWidth, h: BRAND_ASSETS.ogHeight });
     expect(ihdr(BRAND_ASSETS.ogNamed)).toEqual({ w: 1200, h: 630 });
-    expect(ihdr(BRAND_ASSETS.hero)).toEqual({ w: 512, h: 512 });
+    expect(ihdr(BRAND_ASSETS.openapi)).toEqual({ w: 512, h: 512 });
+    const heroWebp = readFileSync(new URL(`../../public${BRAND_ASSETS.hero}`, import.meta.url));
+    expect(heroWebp.byteLength).toBeLessThan(30 * 1024);
+    expect(heroWebp.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    expect(heroWebp.subarray(8, 12).toString("ascii")).toBe("WEBP");
+    expect({ w: heroWebp.readUInt16LE(26) & 0x3fff, h: heroWebp.readUInt16LE(28) & 0x3fff }).toEqual({
+      w: 440,
+      h: 440,
+    });
+    const headersFile = readFileSync(new URL("../../public/_headers", import.meta.url), "utf8");
+    expect(headersFile).toContain("/*.webp");
+    expect(headersFile).toContain("/*.png");
+    expect(headersFile).toContain("/*.svg");
+    expect(headersFile).toContain("Cache-Control: public, max-age=31536000, immutable");
+    expect(headersFile).toContain("/og.png");
     expect(ihdr(BRAND_ASSETS.chrome)).toEqual({ w: 256, h: 256 });
     expect(ihdr(BRAND_ASSETS.favicon)).toEqual({ w: 128, h: 128 });
     expect(ihdr("/logo-1024x1024.png")).toEqual({ w: 1024, h: 1024 });
@@ -235,6 +266,9 @@ describe("agent discoverability", () => {
     const xml = await res.text();
     expect(xml).toContain("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
     expect(PUBLIC_SITEMAP_PATHS).toContain("/");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/about");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/privacy");
+    expect(PUBLIC_SITEMAP_PATHS).toContain("/terms");
     expect(PUBLIC_SITEMAP_PATHS).toContain("/llms.txt");
     expect(PUBLIC_SITEMAP_PATHS).toContain("/llms-full.txt");
     expect(PUBLIC_SITEMAP_PATHS).toContain("/skill.md");
@@ -247,10 +281,44 @@ describe("agent discoverability", () => {
     }
     expect(xml).not.toMatch(/<loc>[^<]*\/v1\/entity<\/loc>/);
     expect(xml).not.toMatch(/<loc>[^<]*\/v1\/suggest<\/loc>/);
-    for (const path of ["/llms.txt", "/llms-full.txt", "/skill.md", "/openapi.json", "/server-card.json"] as const) {
+    for (const path of ["/about", "/privacy", "/terms", "/llms.txt", "/llms-full.txt", "/skill.md", "/openapi.json", "/server-card.json"] as const) {
       const live = await call(path);
       expect(live.status, path).toBe(200);
     }
+  });
+
+  it("trust pages (/privacy, /terms, /about) return 200 text/html with <main>, match public/*.html twins, and omit Key plan or Stripe", async () => {
+    for (const slug of TRUST_PAGE_SLUGS) {
+      const onDisk = readFileSync(new URL(`../../public/${slug}.html`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
+      expect(trustPageHtml(slug)).toBe(onDisk);
+
+      const res = await call(`/${slug}`);
+      expect(res.status, slug).toBe(200);
+      expect(res.headers.get("content-type") ?? "", slug).toMatch(/text\/html/);
+      expect(res.headers.get("content-security-policy") ?? "", slug).toMatch(/script-src 'self'/);
+      const html = await res.text();
+      expect(html).toContain('<main id="main">');
+      expect([...html.matchAll(/<main\b[^>]*>/gi)]).toHaveLength(1);
+      expect([...html.matchAll(/\bid="main"/gi)]).toHaveLength(1);
+      expect(html).toContain('<a class="skip" href="#main">Skip to content</a>');
+      expect(html).toContain('href="/styles.css"');
+      expect(html).toContain('href="/about"');
+      expect(html).toContain('href="/privacy"');
+      expect(html).toContain('href="/terms"');
+      expect(html).toContain(`<link rel="canonical" href="https://mentionforge.test/${slug}"/>`);
+      expect(html).not.toMatch(/\bstripe\b|\bkey plan\b|\$29\b|\bapi_keys\b|\bplan_usage\b/i);
+    }
+    const privacy = await (await call("/privacy")).text();
+    expect(privacy).toContain("trial_wallets");
+    expect(privacy).toContain("idempotency");
+    expect(privacy).toContain("stats_daily");
+    expect(privacy).toContain("x_id_usage");
+    const terms = await (await call("/terms")).text();
+    expect(terms).toContain("https://github.com/EnkiduHub/MentionForge/issues");
+    expect(terms).not.toMatch(/GDPR|SOC\s*2/i);
+    const about = await (await call("/about")).text();
+    expect(about).toContain("MIT License");
+    expect(about).toContain("https://github.com/EnkiduHub/MentionForge");
   });
 
   it("operator HTML uses the 96px chrome mark and PNG favicon", async () => {

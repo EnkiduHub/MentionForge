@@ -34,6 +34,9 @@ export function createApp() {
     const path = new URL(c.req.url).pathname;
     const discovery =
       path === "/health" ||
+      path === "/about" ||
+      path === "/privacy" ||
+      path === "/terms" ||
       path.startsWith("/.well-known") ||
       path === "/openapi.json" ||
       path.startsWith("/llms") ||
