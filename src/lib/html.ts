@@ -211,7 +211,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
       <section aria-labelledby="privacy-retention">
         <h2 id="privacy-retention">Retention and data requests</h2>
         <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">/support</a>. MentionForge does not automatically delete those rows when a subscription ends. Stripe keeps its own payment records under its policy; deleting our rows does not delete Stripe&rsquo;s.</p>
-        <p>Private requests (access or deletion): use the contact shown on this page when served by the Worker.</p>
+        <p>Private requests (access or deletion): email harbor-ops@mail.grokbot.com.</p>
         <p>Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
@@ -251,7 +251,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
       <section aria-labelledby="terms-license">
         <h2 id="terms-license">Open-source license and contact</h2>
         <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
-        <p class="muted">Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p class="muted">Private requests: email harbor-ops@mail.grokbot.com.</p>
         <p class="muted">GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
@@ -292,13 +292,13 @@ export function trustPageHtml(slug: TrustPageSlug, env?: Pick<Env, "SUPPORT_EMAI
   let sectionsHtml = spec.sectionsHtml;
   if (email && slug === "privacy") {
     sectionsHtml = sectionsHtml.replace(
-      "Private requests (access or deletion): use the contact shown on this page when served by the Worker.",
+      "Private requests (access or deletion): email harbor-ops@mail.grokbot.com.",
       `Data requests (access or deletion): <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
     );
   }
   if (email && slug === "terms") {
     sectionsHtml = sectionsHtml.replace(
-      "Private requests: use the contact shown on this page when served by the Worker.",
+      "Private requests: email harbor-ops@mail.grokbot.com.",
       `Private requests: <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
     );
   }
@@ -574,11 +574,11 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
 
   const lostKeyParagraph = email
     ? `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Email ${supportMailtoAnchor(email)} from your checkout email address (do not post your email address, Stripe session ID or API key in a public GitHub issue). We reissue a replacement key after verifying your checkout email or session ID.`
-    : `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Private requests: use the contact shown on this page when served by the Worker.`;
+    : `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Private requests: email harbor-ops@mail.grokbot.com.`;
   const contactHtml = email
     ? `<p>Email: ${supportMailtoAnchor(email)}</p>
         <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>`
-    : `<p>Private requests: use the contact shown on this page when served by the Worker.</p>
+    : `<p>Private requests: email harbor-ops@mail.grokbot.com.</p>
         <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>`;
 
   return `<!doctype html>
@@ -588,6 +588,7 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="dark"/>
   <meta name="theme-color" content="#0B0C0F"/>
+  <meta name="robots" content="noindex, nofollow"/>
   <title>MENTION//FORGE — Support</title>
   <meta name="description" content="${escapeHtml(description)}"/>
   <meta property="og:title" content="MENTION//FORGE — Support"/>
