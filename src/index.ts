@@ -68,13 +68,9 @@ export default {
           headers.set("Cache-Control", "public, max-age=60, must-revalidate");
           return applySecurityHeaders(new Response(asset.body, { status: asset.status, headers }), kind);
         }
-        if (/\.(?:webp|png|svg)$/i.test(url.pathname)) {
+        if (url.pathname.toLowerCase() === "/logo-440w.webp") {
           const headers = new Headers(asset.headers);
-          if (url.pathname.toLowerCase() === "/og.png") {
-            headers.delete("Cache-Control");
-          } else {
-            headers.set("Cache-Control", "public, max-age=31536000, immutable");
-          }
+          headers.set("Cache-Control", "public, max-age=31536000, immutable");
           return applySecurityHeaders(new Response(asset.body, { status: asset.status, headers }), kind);
         }
         return applySecurityHeaders(asset, kind);

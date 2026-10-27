@@ -1,11 +1,2 @@
-/*.webp
+/logo-440w.webp
   Cache-Control: public, max-age=31536000, immutable
-
-/*.png
-  Cache-Control: public, max-age=31536000, immutable
-
-/*.svg
-  Cache-Control: public, max-age=31536000, immutable
-
-/og.png
-  ! Cache-Control

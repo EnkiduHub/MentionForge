@@ -7,7 +7,7 @@ export const BRAND_ASSETS = {
   ogHeight: 630,
   ogType: "image/png",
   ogAlt: "MENTION//FORGE — social listening for agents",
-  hero: "/logo-440.webp",
+  hero: "/logo-512x512.png",
   chrome: "/logo-256x256.png",
   favicon: "/logo-128x128.png",
   faviconIco: "/favicon.ico",

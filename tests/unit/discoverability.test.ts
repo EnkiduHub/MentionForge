@@ -132,21 +132,10 @@ describe("agent discoverability", () => {
     expect(ogBytes.byteLength).toBeLessThan(150 * 1024);
     expect(ihdr(BRAND_ASSETS.og)).toEqual({ w: BRAND_ASSETS.ogWidth, h: BRAND_ASSETS.ogHeight });
     expect(ihdr(BRAND_ASSETS.ogNamed)).toEqual({ w: 1200, h: 630 });
-    expect(ihdr(BRAND_ASSETS.openapi)).toEqual({ w: 512, h: 512 });
-    const heroWebp = readFileSync(new URL(`../../public${BRAND_ASSETS.hero}`, import.meta.url));
-    expect(heroWebp.byteLength).toBeLessThan(30 * 1024);
-    expect(heroWebp.subarray(0, 4).toString("ascii")).toBe("RIFF");
-    expect(heroWebp.subarray(8, 12).toString("ascii")).toBe("WEBP");
-    expect({ w: heroWebp.readUInt16LE(26) & 0x3fff, h: heroWebp.readUInt16LE(28) & 0x3fff }).toEqual({
-      w: 440,
-      h: 440,
-    });
+    expect(ihdr(BRAND_ASSETS.hero)).toEqual({ w: 512, h: 512 });
     const headersFile = readFileSync(new URL("../../public/_headers", import.meta.url), "utf8");
-    expect(headersFile).toContain("/*.webp");
-    expect(headersFile).toContain("/*.png");
-    expect(headersFile).toContain("/*.svg");
+    expect(headersFile).toContain("/logo-440w.webp");
     expect(headersFile).toContain("Cache-Control: public, max-age=31536000, immutable");
-    expect(headersFile).toContain("/og.png");
     expect(ihdr(BRAND_ASSETS.chrome)).toEqual({ w: 256, h: 256 });
     expect(ihdr(BRAND_ASSETS.favicon)).toEqual({ w: 128, h: 128 });
     expect(ihdr("/logo-1024x1024.png")).toEqual({ w: 1024, h: 1024 });

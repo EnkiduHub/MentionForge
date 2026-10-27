@@ -38,9 +38,9 @@ describe("worker fetch", () => {
     }
   });
 
-  it("GET /logo-440.webp has immutable Cache-Control while /og.png does not", async () => {
+  it("GET /logo-440w.webp has immutable Cache-Control while /og.png does not", async () => {
     const ctx1 = createExecutionContext();
-    const logoRes = await worker.fetch(new Request("https://example.com/logo-440.webp"), env, ctx1);
+    const logoRes = await worker.fetch(new Request("https://example.com/logo-440w.webp"), env, ctx1);
     await waitOnExecutionContext(ctx1);
     expect(logoRes.status).toBe(200);
     expect(logoRes.headers.get("cache-control")).toBe("public, max-age=31536000, immutable");
