@@ -70,15 +70,19 @@
 
       <section aria-labelledby="terms-key-subscription">
         <h2 id="terms-key-subscription">API key subscription</h2>
-        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls.</p>
+        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls. The price and billing interval are shown at Stripe Checkout before you pay.</p>
         <p>Cancel anytime via the Stripe billing portal (<code>POST /v1/keys/portal</code>) or <a href="/support">/support</a>. Cancellation takes effect at the end of the current billing period; you keep access until then. There are no pro-rated refunds by default. Refund requests are reviewed case by case via <a href="/support">/support</a>.</p>
-        <p>Your API key is shown once. Keep it safe. When the quota is reached, further requests are denied until the next billing period and are not charged. Keys may be revoked for abuse. The service is provided as-is.</p>
+        <p>If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.</p>
+        <p>Your API key is shown once. Keep it safe.</p>
+        <p>When your 1,500 calls for the billing period are used up, further key requests are denied until the next billing period, and nothing is charged. The service&rsquo;s global rate limits and rolling 30-day ID quota also apply to key plans.</p>
+        <p>Keys may be revoked for abuse. The service is provided as-is.</p>
       </section>
 
       <section aria-labelledby="terms-license">
         <h2 id="terms-license">Open-source license and contact</h2>
         <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
-        <p class="muted">Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a> or <a href="/support">/support</a>.</p>
+        <p class="muted">Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p class="muted">GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>
     </main>
     <footer class="site-foot">

@@ -178,6 +178,9 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
             <h3><code>x_id_usage</code></h3>
             <p>The Worker records daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window to enforce the global 30-day quota.</p>
           </article>
+        </div>
+        <p>In plain words: if you subscribe, we keep a fingerprint (hash) of your API key, your Stripe customer and subscription IDs, billing dates and how many calls you&rsquo;ve used. We never see your card number.</p>
+        <div class="grid">
           <article class="card">
             <h3><code>api_keys</code></h3>
             <p>If you subscribe to an API key plan, the Worker stores a SHA-256 hash of your API key (<code>key_hash</code>; the plain key is shown once on the claim page and is not retained after claim), Stripe customer ID (<code>stripe_customer_id</code>), Stripe subscription ID (<code>stripe_subscription_id</code>), plan status (<code>status</code>), billing-period dates (<code>period_start</code>, <code>period_end</code>), row creation time (<code>created_at</code>), Checkout session ID (<code>checkout_session_id</code>), whether the key has been claimed (<code>claimed</code>), and a temporary <code>pending_key</code> that is cleared after claim.</p>
@@ -207,8 +210,9 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
 
       <section aria-labelledby="privacy-retention">
         <h2 id="privacy-retention">Retention and data requests</h2>
-        <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">/support</a>. MentionForge does not automatically delete those rows when a subscription ends.</p>
-        <p>Data requests (access or deletion): <a href="/support">/support</a> and the support email listed there. Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+        <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">/support</a>. MentionForge does not automatically delete those rows when a subscription ends. Stripe keeps its own payment records under its policy; deleting our rows does not delete Stripe&rsquo;s.</p>
+        <p>Private requests (access or deletion): use the contact shown on this page when served by the Worker.</p>
+        <p>Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
   terms: {
@@ -236,15 +240,19 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
 
       <section aria-labelledby="terms-key-subscription">
         <h2 id="terms-key-subscription">API key subscription</h2>
-        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls.</p>
+        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls. The price and billing interval are shown at Stripe Checkout before you pay.</p>
         <p>Cancel anytime via the Stripe billing portal (<code>POST /v1/keys/portal</code>) or <a href="/support">/support</a>. Cancellation takes effect at the end of the current billing period; you keep access until then. There are no pro-rated refunds by default. Refund requests are reviewed case by case via <a href="/support">/support</a>.</p>
-        <p>Your API key is shown once. Keep it safe. When the quota is reached, further requests are denied until the next billing period and are not charged. Keys may be revoked for abuse. The service is provided as-is.</p>
+        <p>If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.</p>
+        <p>Your API key is shown once. Keep it safe.</p>
+        <p>When your 1,500 calls for the billing period are used up, further key requests are denied until the next billing period, and nothing is charged. The service&rsquo;s global rate limits and rolling 30-day ID quota also apply to key plans.</p>
+        <p>Keys may be revoked for abuse. The service is provided as-is.</p>
       </section>
 
       <section aria-labelledby="terms-license">
         <h2 id="terms-license">Open-source license and contact</h2>
         <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
-        <p class="muted">Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a> or <a href="/support">/support</a>.</p>
+        <p class="muted">Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p class="muted">GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
   about: {
@@ -284,14 +292,14 @@ export function trustPageHtml(slug: TrustPageSlug, env?: Pick<Env, "SUPPORT_EMAI
   let sectionsHtml = spec.sectionsHtml;
   if (email && slug === "privacy") {
     sectionsHtml = sectionsHtml.replace(
-      "Data requests (access or deletion): <a href=\"/support\">/support</a> and the support email listed there.",
+      "Private requests (access or deletion): use the contact shown on this page when served by the Worker.",
       `Data requests (access or deletion): <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
     );
   }
   if (email && slug === "terms") {
     sectionsHtml = sectionsHtml.replace(
-      "Contact and issue tracking: <a href=\"https://github.com/EnkiduHub/MentionForge/issues\">https://github.com/EnkiduHub/MentionForge/issues</a> or <a href=\"/support\">/support</a>.",
-      `Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>, <a href="/support">/support</a>, or ${supportMailtoAnchor(email)}.`,
+      "Private requests: use the contact shown on this page when served by the Worker.",
+      `Private requests: <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
     );
   }
   const headerNav = (
@@ -564,12 +572,14 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
     })
     .join("\n        ");
 
-  const emailContactHtml = email
-    ? `<p>Email: ${supportMailtoAnchor(email)}</p>\n        `
-    : "";
-  const lostKeyContact = email
-    ? `email ${supportMailtoAnchor(email)} or open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`
-    : `open a request on <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub Issues</a>`;
+  const lostKeyParagraph = email
+    ? `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Email ${supportMailtoAnchor(email)} from your checkout email address (do not post your email address, Stripe session ID or API key in a public GitHub issue). We reissue a replacement key after verifying your checkout email or session ID.`
+    : `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Private requests: use the contact shown on this page when served by the Worker.`;
+  const contactHtml = email
+    ? `<p>Email: ${supportMailtoAnchor(email)}</p>
+        <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>`
+    : `<p>Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -617,7 +627,7 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
 
       <section aria-labelledby="support-lost-key">
         <h2 id="support-lost-key">Lost API key</h2>
-        <p>Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. If you lost your key or need it rotated, ${lostKeyContact}. A replacement key is reissued after verifying the checkout email address or Stripe Checkout session ID (<code>cs_...</code>).</p>
+        <p>${lostKeyParagraph}</p>
       </section>
 
       <section aria-labelledby="support-manage">
@@ -638,7 +648,7 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
 
       <section aria-labelledby="support-contact">
         <h2 id="support-contact">Contact</h2>
-        ${emailContactHtml}<p>GitHub Issues: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>
+        ${contactHtml}
       </section>
     </main>
     <footer class="site-foot">

@@ -311,6 +311,9 @@ describe("agent discoverability", () => {
     expect(privacy).not.toMatch(/does not collect names or email/i);
     expect(privacy).toContain("Stripe");
     expect(privacy).toContain("https://stripe.com/privacy");
+    expect(privacy).toContain("In plain words:");
+    expect(privacy).toContain("We never see your card number.");
+    expect(privacy).toContain("deleting our rows does not delete Stripe");
     expect(privacy).toContain("trial_wallets");
     expect(privacy).toContain("idempotency");
     expect(privacy).toContain("stats_daily");
@@ -322,6 +325,10 @@ describe("agent discoverability", () => {
     expect(terms).toContain("https://github.com/EnkiduHub/MentionForge/issues");
     expect(terms).toContain("API key subscription");
     expect(terms).toContain("1,500");
+    expect(terms).toContain("When your 1,500 calls for the billing period are used up");
+    expect(terms).toContain("global rate limits and rolling 30-day ID quota also apply to key plans");
+    expect(terms).toContain("The price and billing interval are shown at Stripe Checkout before you pay.");
+    expect(terms).toContain("If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.");
     expect(terms).toContain("POST /v1/keys/portal");
     expect(terms).not.toMatch(/GDPR|SOC\s*2/i);
     const about = await (await call("/about")).text();
@@ -354,7 +361,21 @@ describe("agent discoverability", () => {
 
     const withoutEmail = await call("/support", {}, mockEnv({ SUPPORT_EMAIL: "" }));
     expect(withoutEmail.status).toBe(200);
-    expect(await withoutEmail.text()).not.toContain("mailto:");
+    const withoutHtml = await withoutEmail.text();
+    expect(withoutHtml).not.toContain("mailto:");
+
+    const githubIssueHref = 'href="https://github.com/EnkiduHub/MentionForge/issues"';
+    const lostKey = (page: string) => {
+      const match = page.match(/<section aria-labelledby="support-lost-key">[\s\S]*?<\/section>/i);
+      expect(match).toBeTruthy();
+      return match![0];
+    };
+    expect(lostKey(html)).not.toContain(githubIssueHref);
+    expect(lostKey(emailHtml)).not.toContain(githubIssueHref);
+    expect(lostKey(withoutHtml)).not.toContain(githubIssueHref);
+    expect(lostKey(onDisk)).not.toContain(githubIssueHref);
+    expect(lostKey(emailHtml)).toContain("do not post your email address, Stripe session ID or API key in a public GitHub issue");
+    expect(lostKey(withoutHtml)).toContain("Private requests: use the contact shown on this page when served by the Worker.");
 
     expect(PUBLIC_SITEMAP_PATHS).not.toContain("/support");
 
@@ -380,6 +401,7 @@ describe("agent discoverability", () => {
     expect(planKeyMonthlyCalls(mockEnv({ PLAN_KEY_MONTHLY_CALLS: undefined }))).toBe(1500);
     expect(planKeyMonthlyCalls(mockEnv({ PLAN_KEY_MONTHLY_CALLS: "" }))).toBe(1500);
     expect(trustPageHtml("terms")).toContain("1,500 research calls");
+    expect(trustPageHtml("terms")).toContain("When your 1,500 calls for the billing period are used up");
   });
 
   it("operator HTML uses the 96px chrome mark and PNG favicon", async () => {

@@ -70,6 +70,9 @@ describe("worker fetch", () => {
     expect(supportHtml).toContain("/v1/keys/portal");
     expect(supportHtml).toContain("https://github.com/EnkiduHub/MentionForge/issues");
     expect(supportHtml).toContain("mailto:harbor-ops@mail.grokbot.com");
+    const lostKey = supportHtml.match(/<section aria-labelledby="support-lost-key">[\s\S]*?<\/section>/i)?.[0] ?? "";
+    expect(lostKey).toContain("mailto:harbor-ops@mail.grokbot.com");
+    expect(lostKey).not.toContain('href="https://github.com/EnkiduHub/MentionForge/issues"');
 
     const ctx2 = createExecutionContext();
     const claimJs = await worker.fetch(new Request("https://example.com/claim.js"), env, ctx2);

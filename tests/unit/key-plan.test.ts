@@ -9,7 +9,7 @@ import {
   getGlobalFetch,
   setGlobalFetch,
 } from "../helpers/env";
-import { authenticateApiKey } from "../../src/lib/api-key";
+import { authenticateApiKey, keyIsLive } from "../../src/lib/api-key";
 import { readPlanUsage } from "../../src/lib/plan-quota";
 import { KEY_ALREADY_CLAIMED_MSG, PORTAL_RETURN_URL, verifyStripeSignature } from "../../src/lib/stripe";
 
@@ -605,6 +605,24 @@ describe("Stripe Key plan", () => {
     expect(res.status).toBe(402);
     const body = (await res.json()) as { error: { code: string } };
     expect(body.error.code).toBe("PAYMENT_REQUIRED");
+  });
+
+  it("keyIsLive: past_due is live before period_end and not after", () => {
+    const now = 1_700_000_000;
+    const pastDue = {
+      key_hash: "h",
+      stripe_customer_id: "cus",
+      stripe_subscription_id: "sub",
+      status: "past_due",
+      period_start: now - 100,
+      period_end: now + 100,
+      claimed: 1,
+      pending_key: null,
+      checkout_session_id: null,
+    };
+    expect(keyIsLive(pastDue, now)).toBe(true);
+    expect(keyIsLive({ ...pastDue, period_end: now }, now)).toBe(false);
+    expect(keyIsLive({ ...pastDue, period_end: now - 1 }, now)).toBe(false);
   });
 
   it("allows past_due while period_end is in the future, and denies canceled, unpaid, incomplete_expired, and expired keys with actionable hints", async () => {

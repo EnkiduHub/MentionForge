@@ -39,6 +39,10 @@ Put the real `database_id` in `wrangler.jsonc` (top-level, `env.staging`, `env.p
 - `GET /health` JSON; `payments_ready` false → `degraded` (config only: wallet + facilitator URL + CDP keys on mainnet). Cached `public, max-age=30`. `build.sha` is the git short SHA and `build.built_at` is ISO-8601 UTC from `scripts/write-build-info.mjs` (wrangler `build.command` on `npx wrangler deploy` / `wrangler dev`). When git is unavailable the Worker reports `{"sha":"dev","built_at":null}`. Package `version` is unchanged.
 - `GET /health?deep=1` requires `Authorization: Bearer $OPERATOR_TOKEN`. Adds D1 ping and a live facilitator `GET /supported` (`facilitator_live`). `Cache-Control: private, no-store`. `facilitator_live.ok` false → `degraded` (do not spend USDC until this is true).
 
+## Stripe Key plan
+
+Manual cancellations must use `cancel_at_period_end=true` (never an immediate cancel). The live Billing Portal configuration uses cancellation at period end with no proration.
+
 ## Deploy
 
 ```bash
