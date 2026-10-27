@@ -65,7 +65,10 @@ describe("worker fetch", () => {
     await waitOnExecutionContext(ctx1);
     expect(supportRes.status).toBe(200);
     expect(supportRes.headers.get("content-type") ?? "").toMatch(/text\/html/);
+    expect(supportRes.headers.get("x-robots-tag")).toBe("noindex, nofollow");
     const supportHtml = await supportRes.text();
+    expect(supportHtml).toContain("harbor-ops@mail.grokbot.com");
+    expect(supportHtml).toContain('name="robots" content="noindex, nofollow"');
     expect(supportHtml).toContain('<main id="main">');
     expect(supportHtml).toContain("/v1/keys/portal");
     expect(supportHtml).toContain("https://github.com/EnkiduHub/MentionForge/issues");

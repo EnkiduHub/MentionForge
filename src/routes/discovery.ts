@@ -360,6 +360,7 @@ discoveryRoutes.get("/support", async (c) => {
   return c.html(page, 200, {
     ...htmlSecurityHeaders(),
     "Cache-Control": "public, max-age=300",
+    "X-Robots-Tag": "noindex, nofollow",
   });
 });
 

@@ -352,6 +352,9 @@ describe("agent discoverability", () => {
     expect(html).toContain("/v1/keys/me");
     expect(html).toContain("https://github.com/EnkiduHub/MentionForge/issues");
     expect(html).toContain("case by case");
+    expect(html).toContain("harbor-ops@mail.grokbot.com");
+    expect(html).toContain('name="robots" content="noindex, nofollow"');
+    expect(res.headers.get("x-robots-tag")).toBe("noindex, nofollow");
     expect(html).toContain('href="mailto:harbor-ops@mail.grokbot.com"');
 
     const withEmail = await call("/support", {}, mockEnv({ SUPPORT_EMAIL: "support@mentionforge.example" }));
@@ -375,7 +378,7 @@ describe("agent discoverability", () => {
     expect(lostKey(withoutHtml)).not.toContain(githubIssueHref);
     expect(lostKey(onDisk)).not.toContain(githubIssueHref);
     expect(lostKey(emailHtml)).toContain("do not post your email address, Stripe session ID or API key in a public GitHub issue");
-    expect(lostKey(withoutHtml)).toContain("Private requests: use the contact shown on this page when served by the Worker.");
+    expect(lostKey(withoutHtml)).toContain("Private requests: email harbor-ops@mail.grokbot.com.");
 
     expect(PUBLIC_SITEMAP_PATHS).not.toContain("/support");
 
