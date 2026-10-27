@@ -153,10 +153,10 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   privacy: {
     title: "Privacy",
     description:
-      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API, and how on-chain x402 payments work.",
+      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects if you subscribe to an API key plan.",
     sectionsHtml: `      <section aria-labelledby="privacy-accounts">
-        <h2 id="privacy-accounts">No accounts or emails</h2>
-        <p>MentionForge does not use user accounts, sign-ups, passwords, or tracking cookies. It does not collect names or email addresses.</p>
+        <h2 id="privacy-accounts">Accounts, email, and payments</h2>
+        <p>Free trial and pay-per-call use need no account, sign-up, password, or tracking cookies. If you subscribe to an API key plan, Stripe (our payment processor) collects your email address and payment details under <a href="https://stripe.com/privacy">Stripe&rsquo;s privacy policy</a>. MentionForge does not receive card numbers. Stripe emails receipts and invoices to the subscriber.</p>
       </section>
 
       <section aria-labelledby="privacy-d1">
@@ -178,6 +178,18 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
             <h3><code>x_id_usage</code></h3>
             <p>The Worker records daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window to enforce the global 30-day quota.</p>
           </article>
+          <article class="card">
+            <h3><code>api_keys</code></h3>
+            <p>If you subscribe to an API key plan, the Worker stores a SHA-256 hash of your API key (<code>key_hash</code>; the plain key is shown once on the claim page and is not retained after claim), Stripe customer ID (<code>stripe_customer_id</code>), Stripe subscription ID (<code>stripe_subscription_id</code>), plan status (<code>status</code>), billing-period dates (<code>period_start</code>, <code>period_end</code>), row creation time (<code>created_at</code>), Checkout session ID (<code>checkout_session_id</code>), whether the key has been claimed (<code>claimed</code>), and a temporary <code>pending_key</code> that is cleared after claim.</p>
+          </article>
+          <article class="card">
+            <h3><code>plan_usage</code></h3>
+            <p>Per-key usage counts for quota: API key hash (<code>key_hash</code>), billing period start (<code>period_start</code>), and calls used in that period (<code>calls</code>).</p>
+          </article>
+          <article class="card">
+            <h3><code>stripe_events</code></h3>
+            <p>Webhook event IDs (<code>event_id</code>) and receive timestamps (<code>received_at</code>) so the same Stripe event is not applied twice. This table does not store email addresses or card numbers.</p>
+          </article>
         </div>
       </section>
 
@@ -191,7 +203,12 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
       <section aria-labelledby="privacy-onchain">
         <h2 id="privacy-onchain">On-chain payments are public</h2>
         <p>Paid calls settle $0.02 USDC per call on Base (or Base Sepolia on staging) via the configured x402 facilitator. Blockchain transactions, wallet addresses, and transaction hashes (<code>tx_hash</code>) are permanently public on the Base blockchain.</p>
-        <p class="muted">Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+      </section>
+
+      <section aria-labelledby="privacy-retention">
+        <h2 id="privacy-retention">Retention and data requests</h2>
+        <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">/support</a>. MentionForge does not automatically delete those rows when a subscription ends.</p>
+        <p>Data requests (access or deletion): <a href="/support">/support</a> and the support email listed there. Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
   terms: {
