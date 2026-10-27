@@ -107,6 +107,27 @@ export function sessionPriceIds(session: Record<string, unknown>): string[] {
   return ids;
 }
 
+function subscriptionPriceIds(sub: Record<string, unknown>): string[] {
+  const ids: string[] = [];
+  const addPrice = (p: unknown) => {
+    if (typeof p === "string" && p) ids.push(p);
+    else if (p && typeof p === "object") {
+      const id = (p as { id?: unknown }).id;
+      if (typeof id === "string" && id) ids.push(id);
+    }
+  };
+  const items = asRecord(sub.items).data;
+  if (Array.isArray(items)) {
+    for (const item of items) {
+      const rec = asRecord(item);
+      addPrice(rec.price);
+      addPrice(rec.plan);
+    }
+  }
+  addPrice(sub.plan);
+  return ids;
+}
+
 export function periodFromSubscription(sub: Record<string, unknown>): { start: number; end: number } {
   const items = asRecord(sub.items).data;
   const first = Array.isArray(items) ? asRecord(items[0]) : {};
@@ -233,7 +254,11 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
       type === "invoice.paid"
         ? typeof data.subscription === "string"
           ? data.subscription
-          : String(asRecord(data.subscription).id ?? "")
+          : String(
+              asRecord(data.subscription).id ??
+                asRecord(asRecord(data.parent).subscription_details).subscription ??
+                "",
+            )
         : typeof data.id === "string"
           ? data.id
           : "";
@@ -269,43 +294,204 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
   }
 }
 
-export async function claimKey(env: Env, sessionId: string, requestId: string): Promise<{ key: string; plan: "key" }> {
+export const KEY_ALREADY_CLAIMED_MSG =
+  "This key was already shown. If you lost it, see /support to have it reissued.";
+
+async function selfHealKeyFromSession(
+  env: Env,
+  session: Record<string, unknown>,
+  sessionId: string,
+  requestId: string,
+): Promise<void> {
+  if (session.mode !== "subscription") return;
+  const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
+  if (!priceId) return;
+
+  const subId =
+    typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
+  let customerId =
+    typeof session.customer === "string" ? session.customer : String(asRecord(session.customer).id ?? "");
+  if (!subId) return;
+
+  let prices = sessionPriceIds(session);
+  if (prices.length === 0) {
+    try {
+      const expanded = asRecord(
+        await stripeGet(env, `/v1/checkout/sessions/${sessionId}?expand[]=line_items`, requestId),
+      );
+      prices = sessionPriceIds(expanded);
+    } catch {
+      logRequest({ msg: "stripe_claim_session_expand_failed", request_id: requestId });
+    }
+  }
+
+  let sub: Record<string, unknown> = {};
+  try {
+    sub = await loadSubscription(env, subId);
+  } catch {
+    logRequest({ msg: "stripe_claim_sub_load_failed", request_id: requestId });
+    if (!prices.includes(priceId)) return;
+  }
+
+  for (const p of subscriptionPriceIds(sub)) {
+    if (!prices.includes(p)) prices.push(p);
+  }
+  if (!prices.includes(priceId)) return;
+
+  if (!customerId) {
+    customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
+  }
+  if (!customerId) return;
+
+  const status = String(sub.status ?? "active");
+  const period = periodFromSubscription(sub);
+  const now = Math.floor(Date.now() / 1000);
+  const periodStart = period.start || now;
+  const periodEnd = period.end || periodStart + 30 * 86400;
+
+  await upsertKeyFromSubscription(env, {
+    customerId,
+    subscriptionId: subId,
+    status,
+    periodStart,
+    periodEnd,
+    checkoutSessionId: sessionId,
+  });
+}
+
+async function resolveClaimableKey(env: Env, sessionId: string, requestId: string): Promise<ApiKeyRecord> {
   if (!sessionId.startsWith("cs_")) {
-    throw new AgentError("VALIDATION_ERROR", "session_id must be a Stripe Checkout session id.", { request_id: requestId });
+    throw new AgentError("VALIDATION_ERROR", "session_id must be a Stripe Checkout session id.", {
+      request_id: requestId,
+    });
   }
   let session: Record<string, unknown>;
   try {
     session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${sessionId}`, requestId));
   } catch (err) {
     if (isStripeResourceMissing(err)) {
-      throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", { request_id: requestId });
+      throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", {
+        request_id: requestId,
+      });
     }
     throw err;
   }
   const paid = session.payment_status === "paid" || session.status === "complete";
   if (!paid || session.status !== "complete") {
-    throw new AgentError("PAYMENT_REQUIRED", "Checkout session is not paid and complete.", { request_id: requestId });
+    throw new AgentError("PAYMENT_REQUIRED", "Checkout session is not paid and complete.", {
+      request_id: requestId,
+    });
   }
   const subId =
     typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
-  const row = await lookupApiKeyBySession(env, sessionId);
+  let row = await lookupApiKeyBySession(env, sessionId);
+  if (!row) {
+    await selfHealKeyFromSession(env, session, sessionId, requestId);
+    row = await lookupApiKeyBySession(env, sessionId);
+  }
   if (!row) {
     throw new AgentError("NOT_FOUND", "No API key for this checkout session.", { request_id: requestId });
   }
   if (subId && row.stripe_subscription_id !== subId) {
-    throw new AgentError("UNAUTHORIZED", "Checkout session does not match this subscription.", { request_id: requestId });
+    throw new AgentError("UNAUTHORIZED", "Checkout session does not match this subscription.", {
+      request_id: requestId,
+    });
   }
-  if (row.claimed) {
-    throw new AgentError("KEY_ALREADY_CLAIMED", "This API key was already claimed.", { request_id: requestId });
+  if (row.claimed || !row.pending_key) {
+    throw new AgentError("KEY_ALREADY_CLAIMED", KEY_ALREADY_CLAIMED_MSG, {
+      request_id: requestId,
+      hint: KEY_ALREADY_CLAIMED_MSG,
+    });
   }
+  return row;
+}
+
+export async function previewKeyClaim(
+  env: Env,
+  sessionId: string,
+  requestId: string,
+): Promise<{ plan: "key"; session_id: string; claimed: false }> {
+  await resolveClaimableKey(env, sessionId, requestId);
+  return { plan: "key", session_id: sessionId, claimed: false };
+}
+
+export async function claimKey(env: Env, sessionId: string, requestId: string): Promise<{ key: string; plan: "key" }> {
+  const row = await resolveClaimableKey(env, sessionId, requestId);
   const plaintext = row.pending_key;
   if (!plaintext) {
-    throw new AgentError("KEY_ALREADY_CLAIMED", "This API key was already claimed.", { request_id: requestId });
+    throw new AgentError("KEY_ALREADY_CLAIMED", KEY_ALREADY_CLAIMED_MSG, {
+      request_id: requestId,
+      hint: KEY_ALREADY_CLAIMED_MSG,
+    });
   }
-  await env.DB.prepare("UPDATE api_keys SET claimed = 1, pending_key = NULL WHERE key_hash = ? AND claimed = 0")
+  const res = await env.DB.prepare("UPDATE api_keys SET claimed = 1, pending_key = NULL WHERE key_hash = ? AND claimed = 0")
     .bind(row.key_hash)
     .run();
+  if ((res.meta?.changes ?? 0) === 0) {
+    throw new AgentError("KEY_ALREADY_CLAIMED", KEY_ALREADY_CLAIMED_MSG, {
+      request_id: requestId,
+      hint: KEY_ALREADY_CLAIMED_MSG,
+    });
+  }
   return { key: plaintext, plan: "key" };
+}
+
+export const PORTAL_RETURN_URL = "https://mentionforge.mentionforge.workers.dev/support";
+
+export async function createBillingPortalSession(
+  env: Env,
+  customerId: string,
+  requestId: string,
+): Promise<{ url: string }> {
+  const secret = env.STRIPE_SECRET_KEY ?? "";
+  if (!secret || !customerId) {
+    throw new AgentError("PORTAL_UNAVAILABLE", "Stripe Billing Portal is not configured.", {
+      request_id: requestId,
+      hint: "Contact /support to manage or cancel your subscription.",
+    });
+  }
+  const body = new URLSearchParams({
+    customer: customerId,
+    return_url: PORTAL_RETURN_URL,
+  }).toString();
+  let res: Response;
+  try {
+    res = await fetch("https://api.stripe.com/v1/billing_portal/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${secret}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body,
+    });
+  } catch {
+    throw new AgentError("PORTAL_UNAVAILABLE", "Stripe Billing Portal request failed.", {
+      request_id: requestId,
+      hint: "Contact /support to manage or cancel your subscription.",
+      details: { status: 0, support_url: "/support" },
+    });
+  }
+  if (!res.ok) {
+    throw new AgentError(
+      "PORTAL_UNAVAILABLE",
+      "Stripe Billing Portal is not configured or temporarily unavailable.",
+      {
+        request_id: requestId,
+        hint: "Contact /support to manage or cancel your subscription.",
+        details: { status: res.status, support_url: "/support" },
+      },
+    );
+  }
+  const payload = asRecord(await res.json());
+  const url = typeof payload.url === "string" ? payload.url : "";
+  if (!url) {
+    throw new AgentError("PORTAL_UNAVAILABLE", "Stripe Billing Portal did not return a session URL.", {
+      request_id: requestId,
+      hint: "Contact /support to manage or cancel your subscription.",
+      details: { support_url: "/support" },
+    });
+  }
+  return { url };
 }
 
 export type { ApiKeyRecord };

@@ -153,10 +153,10 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   privacy: {
     title: "Privacy",
     description:
-      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API, and how on-chain x402 payments work.",
+      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects if you subscribe to an API key plan.",
     sectionsHtml: `      <section aria-labelledby="privacy-accounts">
-        <h2 id="privacy-accounts">No accounts or emails</h2>
-        <p>MentionForge does not use user accounts, sign-ups, passwords, or tracking cookies. It does not collect names or email addresses.</p>
+        <h2 id="privacy-accounts">Accounts, email, and payments</h2>
+        <p>Free trial and pay-per-call use need no account, sign-up, password, or tracking cookies. If you subscribe to an API key plan, Stripe (our payment processor) collects your email address and payment details under <a href="https://stripe.com/privacy">Stripe&rsquo;s privacy policy</a>. MentionForge does not receive card numbers. Stripe emails receipts and invoices to the subscriber.</p>
       </section>
 
       <section aria-labelledby="privacy-d1">
@@ -179,6 +179,21 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
             <p>The Worker records daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window to enforce the global 30-day quota.</p>
           </article>
         </div>
+        <p>In plain words: if you subscribe, we keep a fingerprint (hash) of your API key, your Stripe customer and subscription IDs, billing dates and how many calls you&rsquo;ve used. We never see your card number.</p>
+        <div class="grid">
+          <article class="card">
+            <h3><code>api_keys</code></h3>
+            <p>If you subscribe to an API key plan, the Worker stores a SHA-256 hash of your API key (<code>key_hash</code>; the plain key is shown once on the claim page and is not retained after claim), Stripe customer ID (<code>stripe_customer_id</code>), Stripe subscription ID (<code>stripe_subscription_id</code>), plan status (<code>status</code>), billing-period dates (<code>period_start</code>, <code>period_end</code>), row creation time (<code>created_at</code>), Checkout session ID (<code>checkout_session_id</code>), whether the key has been claimed (<code>claimed</code>), and a temporary <code>pending_key</code> that is cleared after claim.</p>
+          </article>
+          <article class="card">
+            <h3><code>plan_usage</code></h3>
+            <p>Per-key usage counts for quota: API key hash (<code>key_hash</code>), billing period start (<code>period_start</code>), and calls used in that period (<code>calls</code>).</p>
+          </article>
+          <article class="card">
+            <h3><code>stripe_events</code></h3>
+            <p>Webhook event IDs (<code>event_id</code>) and receive timestamps (<code>received_at</code>) so the same Stripe event is not applied twice. This table does not store email addresses or card numbers.</p>
+          </article>
+        </div>
       </section>
 
       <section aria-labelledby="privacy-metrics">
@@ -191,13 +206,19 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
       <section aria-labelledby="privacy-onchain">
         <h2 id="privacy-onchain">On-chain payments are public</h2>
         <p>Paid calls settle $0.02 USDC per call on Base (or Base Sepolia on staging) via the configured x402 facilitator. Blockchain transactions, wallet addresses, and transaction hashes (<code>tx_hash</code>) are permanently public on the Base blockchain.</p>
-        <p class="muted">Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+      </section>
+
+      <section aria-labelledby="privacy-retention">
+        <h2 id="privacy-retention">Retention and data requests</h2>
+        <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">/support</a>. MentionForge does not automatically delete those rows when a subscription ends. Stripe keeps its own payment records under its policy; deleting our rows does not delete Stripe&rsquo;s.</p>
+        <p>Private requests (access or deletion): use the contact shown on this page when served by the Worker.</p>
+        <p>Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
   terms: {
     title: "Terms",
     description:
-      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC on-chain x402 settlement, 10-call wallet trial, and GitHub issue contact.",
+      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC on-chain x402 settlement, 10-call wallet trial, API key subscription, and GitHub issue contact.",
     sectionsHtml: `      <section aria-labelledby="terms-as-is">
         <h2 id="terms-as-is">Service provided as-is</h2>
         <p>MentionForge is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; without warranties of any kind, express or implied, including accuracy, completeness, availability, or fitness for a particular purpose.</p>
@@ -217,10 +238,21 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
         <p>Requests are subject to per-minute rate limits (<code>HTTP 429</code> with <code>Retry-After</code>) and a rolling 30-day disclosed-ID quota. Do not flood endpoints or attempt to bypass rate limits or payment verification.</p>
       </section>
 
+      <section aria-labelledby="terms-key-subscription">
+        <h2 id="terms-key-subscription">API key subscription</h2>
+        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls. The price and billing interval are shown at Stripe Checkout before you pay.</p>
+        <p>Cancel anytime via the Stripe billing portal (<code>POST /v1/keys/portal</code>) or <a href="/support">/support</a>. Cancellation takes effect at the end of the current billing period; you keep access until then. There are no pro-rated refunds by default. Refund requests are reviewed case by case via <a href="/support">/support</a>.</p>
+        <p>If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.</p>
+        <p>Your API key is shown once. Keep it safe.</p>
+        <p>When your 1,500 calls for the billing period are used up, further key requests are denied until the next billing period, and nothing is charged. The service&rsquo;s global rate limits and rolling 30-day ID quota also apply to key plans.</p>
+        <p>Keys may be revoked for abuse. The service is provided as-is.</p>
+      </section>
+
       <section aria-labelledby="terms-license">
         <h2 id="terms-license">Open-source license and contact</h2>
         <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
-        <p class="muted">Contact and issue tracking: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+        <p class="muted">Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p class="muted">GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
       </section>`,
   },
   about: {
@@ -247,10 +279,29 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   },
 };
 
-export function trustPageHtml(slug: TrustPageSlug): string {
+function supportMailtoAnchor(email: string): string {
+  const safe = escapeHtml(email.trim());
+  return `<a href="mailto:${safe}">${safe}</a>`;
+}
+
+export function trustPageHtml(slug: TrustPageSlug, env?: Pick<Env, "SUPPORT_EMAIL">): string {
   const spec = TRUST_PAGES[slug];
   const path = `/${slug}`;
   const canonicalUrl = `https://mentionforge.mentionforge.workers.dev${path}`;
+  const email = (env?.SUPPORT_EMAIL ?? "").trim();
+  let sectionsHtml = spec.sectionsHtml;
+  if (email && slug === "privacy") {
+    sectionsHtml = sectionsHtml.replace(
+      "Private requests (access or deletion): use the contact shown on this page when served by the Worker.",
+      `Data requests (access or deletion): <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
+    );
+  }
+  if (email && slug === "terms") {
+    sectionsHtml = sectionsHtml.replace(
+      "Private requests: use the contact shown on this page when served by the Worker.",
+      `Private requests: <a href="/support">/support</a> or ${supportMailtoAnchor(email)}.`,
+    );
+  }
   const headerNav = (
     [
       ["/llms.txt", "llms.txt"],
@@ -314,13 +365,297 @@ export function trustPageHtml(slug: TrustPageSlug): string {
         </div>
       </header>
 
-${spec.sectionsHtml}
+${sectionsHtml}
     </main>
     <footer class="site-foot">
       <nav aria-label="Footer">
         ${footerNav}
       </nav>
       <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+    </footer>
+  </div>
+</body>
+</html>
+`;
+}
+
+export type ClaimPageView =
+  | { mode: "ready"; sessionId: string }
+  | { mode: "revealed"; key: string }
+  | { mode: "error"; code: string; message: string; hint: string };
+
+const CLAIM_CURL_EXAMPLE = `curl -X POST https://mentionforge.mentionforge.workers.dev/v1/research -H 'Authorization: Bearer YOUR_KEY' -H 'content-type: application/json' -d '{"query":"Cloudflare Workers"}'`;
+
+export function claimPageHtml(view: ClaimPageView): string {
+  const title =
+    view.mode === "ready"
+      ? "Claim your API key"
+      : view.mode === "revealed"
+        ? "Your API key"
+        : view.code === "KEY_ALREADY_CLAIMED"
+          ? "API key already claimed"
+          : "Unable to claim API key";
+
+  const lede =
+    view.mode === "ready"
+      ? "Your Key plan subscription is confirmed. Reveal your API key below when you are ready to copy and store it."
+      : view.mode === "revealed"
+        ? "Your Key plan API key has been generated and claimed."
+        : view.message;
+
+  let mainContent = "";
+  if (view.mode === "ready") {
+    mainContent = `      <section aria-labelledby="claim-ready-title">
+        <h2 id="claim-ready-title">One-time key reveal</h2>
+        <p><strong>Save this key now - it is shown once</strong> after you click the button below. Refreshing this page before clicking does not consume your key.</p>
+        <form method="post" action="/v1/keys/claim">
+          <input type="hidden" name="session_id" value="${escapeHtml(view.sessionId)}"/>
+          <div class="cta">
+            <button type="submit" class="btn">Reveal my API key</button>
+          </div>
+        </form>
+        <p class="muted">Quota: 1,500 calls per billing period · Need help? Visit <a href="/support">/support</a>.</p>
+      </section>`;
+  } else if (view.mode === "revealed") {
+    const mcpExample = JSON.stringify(
+      {
+        mcpServers: {
+          mentionforge: {
+            url: "https://mentionforge.mentionforge.workers.dev/mcp",
+            headers: {
+              Authorization: "Bearer YOUR_KEY",
+            },
+          },
+        },
+      },
+      null,
+      2,
+    );
+    mainContent = `      <section aria-labelledby="claim-key-title">
+        <div class="section-head">
+          <h2 id="claim-key-title">API key</h2>
+          <button type="button" class="copy" data-copy="api-key">Copy</button>
+        </div>
+        <p><strong>Save this key now - it is shown once</strong>. MentionForge stores only the SHA-256 hash after this page is served. If you lose it, see <a href="/support">/support</a> to have it reissued.</p>
+        <pre id="api-key">${escapeHtml(view.key)}</pre>
+      </section>
+
+      <section aria-labelledby="claim-howto-title">
+        <div class="section-head">
+          <h2 id="claim-howto-title">Quickstart (REST)</h2>
+          <button type="button" class="copy" data-copy="claim-curl">Copy</button>
+        </div>
+        <p>Send <code>Authorization: Bearer YOUR_KEY</code> (or <code>X-Api-Key</code>) on any paid endpoint (<code>/v1/research</code>, <code>/v1/compare</code>, <code>/v1/digest</code>, <code>/v1/risk</code>, <code>/v1/reply</code>, <code>/v1/mentions</code>, <code>/v1/trends</code>):</p>
+        <pre id="claim-curl">${CLAIM_CURL_EXAMPLE}</pre>
+      </section>
+
+      <section aria-labelledby="claim-mcp-title">
+        <div class="section-head">
+          <h2 id="claim-mcp-title">MCP header note</h2>
+          <button type="button" class="copy" data-copy="claim-mcp">Copy</button>
+        </div>
+        <p>For Streamable HTTP MCP (<code>/mcp</code>), pass your key in the <code>Authorization: Bearer YOUR_KEY</code> (or <code>X-Api-Key</code>) request header:</p>
+        <pre id="claim-mcp">${mcpExample}</pre>
+      </section>
+
+      <section aria-labelledby="claim-manage-title">
+        <h2 id="claim-manage-title">Quota, usage, billing portal, and support</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Quota</h3>
+            <p><strong>1,500 calls per billing period</strong> across paid research endpoints and MCP tools. Calls stop at 1,500 with HTTP 429 <code>PLAN_QUOTA_REACHED</code> and reset automatically when your next billing period renews.</p>
+          </article>
+          <article class="card">
+            <h3>Check usage (<code>/v1/keys/me</code>)</h3>
+            <p>Call <code>GET /v1/keys/me</code> with <code>Authorization: Bearer YOUR_KEY</code> to see <code>calls_used</code>, <code>calls_limit</code>, <code>calls_remaining</code>, <code>period_start</code>, and <code>period_end</code>.</p>
+          </article>
+          <article class="card">
+            <h3>Manage or cancel (<code>/v1/keys/portal</code>)</h3>
+            <p>Call <code>POST /v1/keys/portal</code> with <code>Authorization: Bearer YOUR_KEY</code> to receive a Stripe Billing Portal <code>{ url }</code> where you can update payment methods or cancel anytime.</p>
+          </article>
+          <article class="card">
+            <h3>Support (<code>/support</code>)</h3>
+            <p>Lost your key, need it reissued, or need billing help? Visit <a href="/support">/support</a>.</p>
+          </article>
+        </div>
+      </section>`;
+  } else {
+    mainContent = `      <section aria-labelledby="claim-error-title">
+        <h2 id="claim-error-title"><code>${escapeHtml(view.code)}</code></h2>
+        <p>${escapeHtml(view.hint)}</p>
+        <p>Need assistance or lost your key? See <a href="/support">/support</a> to have it reissued or manage your subscription.</p>
+      </section>`;
+  }
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <meta name="robots" content="noindex, nofollow"/>
+  <title>MENTION//FORGE — ${escapeHtml(title)}</title>
+  <link rel="icon" href="${BRAND_ASSETS.faviconIco}" sizes="any"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="${BRAND_ASSETS.appleTouch}"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/claim.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        <a href="/">Home</a>
+        <a href="/llms.txt">llms.txt</a>
+        <a href="/openapi.json">OpenAPI</a>
+        <a href="/support">support</a>
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>${escapeHtml(title)}</h1>
+          <p class="lede muted">${escapeHtml(lede)}</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+${mainContent}
+    </main>
+    <footer class="site-foot">
+      <p><a href="/">Home</a> · <a href="/support">Support</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+    </footer>
+  </div>
+</body>
+</html>
+`;
+}
+
+export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
+  const email = (env?.SUPPORT_EMAIL ?? "").trim();
+  const canonicalUrl = "https://mentionforge.mentionforge.workers.dev/support";
+  const description =
+    "Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact.";
+  const headerNav = (
+    [
+      ["/llms.txt", "llms.txt"],
+      ["/skill.md", "skill.md"],
+      ["/openapi.json", "OpenAPI"],
+      ["/.well-known/x402", "x402"],
+      ["/v1/pricing", "pricing"],
+      ["/v1/research/example", "example"],
+      ["/health", "health"],
+      ["https://github.com/EnkiduHub/MentionForge", "GitHub"],
+    ] satisfies Array<[string, string]>
+  )
+    .map(([href, label]) => `<a href="${href}">${escapeHtml(label)}</a>`)
+    .join("\n        ");
+  const footerNav = (
+    [
+      ["/", "Home"],
+      ["/about", "About"],
+      ["/privacy", "Privacy"],
+      ["/terms", "Terms"],
+      ["/support", "Support"],
+    ] satisfies Array<[string, string]>
+  )
+    .map(([href, label]) => {
+      const current = href === "/support" ? ' aria-current="page"' : "";
+      return `<a href="${href}"${current}>${escapeHtml(label)}</a>`;
+    })
+    .join("\n        ");
+
+  const lostKeyParagraph = email
+    ? `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Email ${supportMailtoAnchor(email)} from your checkout email address (do not post your email address, Stripe session ID or API key in a public GitHub issue). We reissue a replacement key after verifying your checkout email or session ID.`
+    : `Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Private requests: use the contact shown on this page when served by the Worker.`;
+  const contactHtml = email
+    ? `<p>Email: ${supportMailtoAnchor(email)}</p>
+        <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>`
+    : `<p>Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>`;
+
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <title>MENTION//FORGE — Support</title>
+  <meta name="description" content="${escapeHtml(description)}"/>
+  <meta property="og:title" content="MENTION//FORGE — Support"/>
+  <meta property="og:description" content="${escapeHtml(description)}"/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="MentionForge"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta property="og:url" content="${canonicalUrl}"/>
+  <meta property="og:image" content="${BRAND_ASSETS.og}"/>
+  <link rel="canonical" href="${canonicalUrl}"/>
+  <link rel="icon" href="${BRAND_ASSETS.faviconIco}" sizes="any"/>
+  <link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="${BRAND_ASSETS.appleTouch}"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        ${headerNav}
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>Support</h1>
+          <p class="lede muted">${escapeHtml(description)}</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+      <section aria-labelledby="support-lost-key">
+        <h2 id="support-lost-key">Lost API key</h2>
+        <p>${lostKeyParagraph}</p>
+      </section>
+
+      <section aria-labelledby="support-manage">
+        <h2 id="support-manage">Check usage &amp; cancel anytime</h2>
+        <p>Check your current billing period and remaining quota at any time with <code>GET /v1/keys/me</code>:</p>
+        <pre>curl -sS https://mentionforge.mentionforge.workers.dev/v1/keys/me \\
+  -H 'Authorization: Bearer YOUR_KEY'</pre>
+        <p>Cancel anytime or update your payment method through the Stripe Billing Portal by calling <code>POST /v1/keys/portal</code> with your API key:</p>
+        <pre>curl -sS -X POST https://mentionforge.mentionforge.workers.dev/v1/keys/portal \\
+  -H 'Authorization: Bearer YOUR_KEY'</pre>
+        <p>Open the returned <code>url</code> in your browser to manage or cancel your subscription. If you no longer have your API key or cannot access the billing portal, contact support below with your checkout email and we will cancel it for you.</p>
+      </section>
+
+      <section aria-labelledby="support-refunds">
+        <h2 id="support-refunds">Cancellations &amp; refunds</h2>
+        <p>Cancelled subscriptions stop renewing and remain active until the end of the current billing period (<code>period_end</code>). Refund requests are handled case by case via support.</p>
+      </section>
+
+      <section aria-labelledby="support-contact">
+        <h2 id="support-contact">Contact</h2>
+        ${contactHtml}
+      </section>
+    </main>
+    <footer class="site-foot">
+      <nav aria-label="Footer">
+        ${footerNav}
+      </nav>
+      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
       <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
     </footer>
   </div>

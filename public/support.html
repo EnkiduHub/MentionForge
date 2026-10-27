@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="dark"/>
+  <meta name="theme-color" content="#0B0C0F"/>
+  <title>MENTION//FORGE — Support</title>
+  <meta name="description" content="Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact."/>
+  <meta property="og:title" content="MENTION//FORGE — Support"/>
+  <meta property="og:description" content="Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact."/>
+  <meta property="og:type" content="website"/>
+  <meta property="og:site_name" content="MentionForge"/>
+  <meta property="og:locale" content="en_US"/>
+  <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/support"/>
+  <meta property="og:image" content="/og.png"/>
+  <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/support"/>
+  <link rel="icon" href="/favicon.ico" sizes="any"/>
+  <link rel="icon" href="/logo-128x128.png" type="image/png" sizes="128x128"/>
+  <link rel="apple-touch-icon" href="/logo-256x256.png"/>
+  <link rel="stylesheet" href="/styles.css"/>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <div class="aurora" aria-hidden="true"></div>
+  <div class="wrap">
+    <header class="top">
+      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
+      <nav aria-label="Discovery">
+        <a href="/llms.txt">llms.txt</a>
+        <a href="/skill.md">skill.md</a>
+        <a href="/openapi.json">OpenAPI</a>
+        <a href="/.well-known/x402">x402</a>
+        <a href="/v1/pricing">pricing</a>
+        <a href="/v1/research/example">example</a>
+        <a href="/health">health</a>
+        <a href="https://github.com/EnkiduHub/MentionForge">GitHub</a>
+      </nav>
+    </header>
+    <main id="main">
+      <header class="hero hero-compact">
+        <div>
+          <h1>Support</h1>
+          <p class="lede muted">Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact.</p>
+        </div>
+        <div class="mark-wrap">
+          <img class="mark mark-sm" src="/logo-256x256.png" width="96" height="96" alt=""/>
+        </div>
+      </header>
+
+      <section aria-labelledby="support-lost-key">
+        <h2 id="support-lost-key">Lost API key</h2>
+        <p>Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Private requests: use the contact shown on this page when served by the Worker.</p>
+      </section>
+
+      <section aria-labelledby="support-manage">
+        <h2 id="support-manage">Check usage &amp; cancel anytime</h2>
+        <p>Check your current billing period and remaining quota at any time with <code>GET /v1/keys/me</code>:</p>
+        <pre>curl -sS https://mentionforge.mentionforge.workers.dev/v1/keys/me \
+  -H 'Authorization: Bearer YOUR_KEY'</pre>
+        <p>Cancel anytime or update your payment method through the Stripe Billing Portal by calling <code>POST /v1/keys/portal</code> with your API key:</p>
+        <pre>curl -sS -X POST https://mentionforge.mentionforge.workers.dev/v1/keys/portal \
+  -H 'Authorization: Bearer YOUR_KEY'</pre>
+        <p>Open the returned <code>url</code> in your browser to manage or cancel your subscription. If you no longer have your API key or cannot access the billing portal, contact support below with your checkout email and we will cancel it for you.</p>
+      </section>
+
+      <section aria-labelledby="support-refunds">
+        <h2 id="support-refunds">Cancellations &amp; refunds</h2>
+        <p>Cancelled subscriptions stop renewing and remain active until the end of the current billing period (<code>period_end</code>). Refund requests are handled case by case via support.</p>
+      </section>
+
+      <section aria-labelledby="support-contact">
+        <h2 id="support-contact">Contact</h2>
+        <p>Private requests: use the contact shown on this page when served by the Worker.</p>
+        <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>
+      </section>
+    </main>
+    <footer class="site-foot">
+      <nav aria-label="Footer">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
+        <a href="/support" aria-current="page">Support</a>
+      </nav>
+      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
+      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+    </footer>
+  </div>
+</body>
+</html>

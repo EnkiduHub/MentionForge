@@ -42,6 +42,8 @@ interface Env {
   STRIPE_KEY_PRICE_ID?: string;
   /** Monthly call quota for the Key plan. Default 1500. */
   PLAN_KEY_MONTHLY_CALLS?: string;
+  /** Optional support email rendered as a mailto link on /support, /privacy, and /terms when non-empty. */
+  SUPPORT_EMAIL?: string;
   /** Stripe secret key. Worker secret, never a wrangler var. */
   STRIPE_SECRET_KEY?: string;
   /** Stripe webhook signing secret. Worker secret, never a wrangler var. */

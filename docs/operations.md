@@ -2,7 +2,7 @@
 
 ## Secrets
 
-Worker secrets: `SANDBOX_KEY`, `OPERATOR_TOKEN`, optional `BRAVE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`. Production Base payments also need `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` (CDP Secret API key — not a wallet export). Stripe Key plan needs `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Public vars: `STRIPE_KEY_PRICE_ID`, `PLAN_KEY_MONTHLY_CALLS`.
+Worker secrets: `SANDBOX_KEY`, `OPERATOR_TOKEN`, optional `BRAVE_API_KEY`, `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET`, `X_BEARER_TOKEN`. Production Base payments also need `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` (CDP Secret API key — not a wallet export). Stripe Key plan needs `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`. Public vars: `STRIPE_KEY_PRICE_ID`, `PLAN_KEY_MONTHLY_CALLS`, `SUPPORT_EMAIL` (`harbor-ops@mail.grokbot.com` on production and staging; rendered as `mailto:` on `/support`, `/privacy`, and `/terms` when set).
 
 `.dev.vars` is **local only** (`wrangler dev`). Comments in that file are not deployed. Remote Workers need `npx wrangler secret put NAME --env production` (and staging). Never put `TEST_PAYER_PRIVATE_KEY` on the Worker.
 
@@ -38,6 +38,10 @@ Put the real `database_id` in `wrangler.jsonc` (top-level, `env.staging`, `env.p
 - `HEAD /health` for uptime probes
 - `GET /health` JSON; `payments_ready` false → `degraded` (config only: wallet + facilitator URL + CDP keys on mainnet). Cached `public, max-age=30`. `build.sha` is the git short SHA and `build.built_at` is ISO-8601 UTC from `scripts/write-build-info.mjs` (wrangler `build.command` on `npx wrangler deploy` / `wrangler dev`). When git is unavailable the Worker reports `{"sha":"dev","built_at":null}`. Package `version` is unchanged.
 - `GET /health?deep=1` requires `Authorization: Bearer $OPERATOR_TOKEN`. Adds D1 ping and a live facilitator `GET /supported` (`facilitator_live`). `Cache-Control: private, no-store`. `facilitator_live.ok` false → `degraded` (do not spend USDC until this is true).
+
+## Stripe Key plan
+
+Manual cancellations must use `cancel_at_period_end=true` (never an immediate cancel). The live Billing Portal configuration uses cancellation at period end with no proration.
 
 ## Deploy
 

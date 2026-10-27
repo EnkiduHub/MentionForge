@@ -165,6 +165,33 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
       "/v1/entity": { get: { tags: ["discovery"], summary: "Free Wikipedia + Wikidata identity card" } },
       "/v1/suggest": { get: { tags: ["discovery"], summary: "Free tool router" } },
       "/v1/pricing": { get: { tags: ["discovery"], summary: "Price, trial, networks" } },
+      "/v1/keys/me": {
+        get: {
+          tags: ["operator"],
+          operationId: "getKeyUsage",
+          summary: "API key plan endpoints: usage and billing period for Bearer mfk_ key",
+          security: [{ operator: [] }],
+          responses: {
+            "200": {
+              description: "Current period usage, quota, and manage_url for the presented API key.",
+            },
+            "401": { description: "UNAUTHORIZED — missing or invalid API key." },
+          },
+        },
+      },
+      "/v1/keys/portal": {
+        post: {
+          tags: ["operator"],
+          operationId: "createKeyPortalSession",
+          summary: "API key plan endpoints: create billing portal session for Bearer mfk_ key",
+          security: [{ operator: [] }],
+          responses: {
+            "200": { description: "Billing portal redirect URL ({ url })." },
+            "401": { description: "UNAUTHORIZED — missing or invalid API key." },
+            "503": { description: "PORTAL_UNAVAILABLE — portal not configured; contact /support." },
+          },
+        },
+      },
       "/health": { get: { tags: ["discovery"], summary: "Liveness + cached circuits (no GDELT)" }, head: { tags: ["discovery"], summary: "Uptime probe" } },
       "/stats": { get: { tags: ["discovery"], summary: "Successful completions: calls = paid + trial. No revenue." } },
       "/openapi.json": { get: { tags: ["discovery"] } },

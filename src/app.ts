@@ -37,6 +37,7 @@ export function createApp() {
       path === "/about" ||
       path === "/privacy" ||
       path === "/terms" ||
+      path === "/support" ||
       path.startsWith("/.well-known") ||
       path === "/openapi.json" ||
       path.startsWith("/llms") ||

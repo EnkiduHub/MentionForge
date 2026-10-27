@@ -6,7 +6,8 @@ import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
 import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
-import { TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
+import { supportPageHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
+import { planKeyMonthlyCalls } from "../../src/lib/plan-quota";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
 import { healthInputSchema } from "../../src/schemas/lenses";
 import { researchRequestSchema } from "../../src/schemas/research";
@@ -276,10 +277,12 @@ describe("agent discoverability", () => {
     }
   });
 
-  it("trust pages (/privacy, /terms, /about) return 200 text/html with <main>, match public/*.html twins, and omit Key plan or Stripe", async () => {
+  it("trust pages (/privacy, /terms, /about) return 200 text/html with <main> and match public/*.html twins", async () => {
+    const mailto = 'href="mailto:harbor-ops@mail.grokbot.com"';
     for (const slug of TRUST_PAGE_SLUGS) {
       const onDisk = readFileSync(new URL(`../../public/${slug}.html`, import.meta.url), "utf8").replace(/\r\n/g, "\n");
       expect(trustPageHtml(slug)).toBe(onDisk);
+      expect(onDisk).not.toContain("mailto:");
 
       const res = await call(`/${slug}`);
       expect(res.status, slug).toBe(200);
@@ -295,19 +298,110 @@ describe("agent discoverability", () => {
       expect(html).toContain('href="/privacy"');
       expect(html).toContain('href="/terms"');
       expect(html).toContain(`<link rel="canonical" href="https://mentionforge.test/${slug}"/>`);
-      expect(html).not.toMatch(/\bstripe\b|\bkey plan\b|\$29\b|\bapi_keys\b|\bplan_usage\b/i);
+      expect(html).not.toMatch(/\$29\b/);
+      if (slug === "about") {
+        expect(html).not.toMatch(/\bstripe\b|\bkey plan\b|\bapi_keys\b|\bplan_usage\b/i);
+        expect(html).not.toContain("mailto:");
+      } else {
+        expect(html).toContain(mailto);
+        expect(html).toMatch(/stripe/i);
+      }
     }
     const privacy = await (await call("/privacy")).text();
+    expect(privacy).not.toMatch(/does not collect names or email/i);
+    expect(privacy).toContain("Stripe");
+    expect(privacy).toContain("https://stripe.com/privacy");
+    expect(privacy).toContain("In plain words:");
+    expect(privacy).toContain("We never see your card number.");
+    expect(privacy).toContain("deleting our rows does not delete Stripe");
     expect(privacy).toContain("trial_wallets");
     expect(privacy).toContain("idempotency");
     expect(privacy).toContain("stats_daily");
     expect(privacy).toContain("x_id_usage");
+    expect(privacy).toContain("api_keys");
+    expect(privacy).toContain("plan_usage");
+    expect(privacy).toContain("stripe_events");
     const terms = await (await call("/terms")).text();
     expect(terms).toContain("https://github.com/EnkiduHub/MentionForge/issues");
+    expect(terms).toContain("API key subscription");
+    expect(terms).toContain("1,500");
+    expect(terms).toContain("When your 1,500 calls for the billing period are used up");
+    expect(terms).toContain("global rate limits and rolling 30-day ID quota also apply to key plans");
+    expect(terms).toContain("The price and billing interval are shown at Stripe Checkout before you pay.");
+    expect(terms).toContain("If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.");
+    expect(terms).toContain("POST /v1/keys/portal");
     expect(terms).not.toMatch(/GDPR|SOC\s*2/i);
     const about = await (await call("/about")).text();
     expect(about).toContain("MIT License");
     expect(about).toContain("https://github.com/EnkiduHub/MentionForge");
+  });
+
+  it("GET /support matches public/support.html, renders SUPPORT_EMAIL mailto, and openapi/llms.txt list API key plan endpoints without marketing the purchase", async () => {
+    const onDisk = readFileSync(new URL("../../public/support.html", import.meta.url), "utf8").replace(/\r\n/g, "\n");
+    expect(supportPageHtml()).toBe(onDisk);
+    expect(onDisk).not.toContain("mailto:");
+
+    const res = await call("/support");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toMatch(/text\/html/);
+    expect(res.headers.get("content-security-policy") ?? "").toMatch(/script-src 'self'/);
+    const html = await res.text();
+    expect(html).toContain('<main id="main">');
+    expect([...html.matchAll(/<main\b[^>]*>/gi)]).toHaveLength(1);
+    expect(html).toContain("/v1/keys/portal");
+    expect(html).toContain("/v1/keys/me");
+    expect(html).toContain("https://github.com/EnkiduHub/MentionForge/issues");
+    expect(html).toContain("case by case");
+    expect(html).toContain('href="mailto:harbor-ops@mail.grokbot.com"');
+
+    const withEmail = await call("/support", {}, mockEnv({ SUPPORT_EMAIL: "support@mentionforge.example" }));
+    expect(withEmail.status).toBe(200);
+    const emailHtml = await withEmail.text();
+    expect(emailHtml).toContain('href="mailto:support@mentionforge.example"');
+
+    const withoutEmail = await call("/support", {}, mockEnv({ SUPPORT_EMAIL: "" }));
+    expect(withoutEmail.status).toBe(200);
+    const withoutHtml = await withoutEmail.text();
+    expect(withoutHtml).not.toContain("mailto:");
+
+    const githubIssueHref = 'href="https://github.com/EnkiduHub/MentionForge/issues"';
+    const lostKey = (page: string) => {
+      const match = page.match(/<section aria-labelledby="support-lost-key">[\s\S]*?<\/section>/i);
+      expect(match).toBeTruthy();
+      return match![0];
+    };
+    expect(lostKey(html)).not.toContain(githubIssueHref);
+    expect(lostKey(emailHtml)).not.toContain(githubIssueHref);
+    expect(lostKey(withoutHtml)).not.toContain(githubIssueHref);
+    expect(lostKey(onDisk)).not.toContain(githubIssueHref);
+    expect(lostKey(emailHtml)).toContain("do not post your email address, Stripe session ID or API key in a public GitHub issue");
+    expect(lostKey(withoutHtml)).toContain("Private requests: use the contact shown on this page when served by the Worker.");
+
+    expect(PUBLIC_SITEMAP_PATHS).not.toContain("/support");
+
+    const llms = await (await call("/llms.txt")).text();
+    expect(llms).toContain("API key plan endpoints");
+    expect(llms).toContain("/v1/keys/me");
+    expect(llms).toContain("/v1/keys/portal");
+    expect(llms).not.toMatch(/\$29|buy\.stripe\.com/i);
+
+    const openapi = (await (await call("/openapi.json")).json()) as { paths: Record<string, unknown> };
+    expect(openapi.paths["/v1/keys/me"]).toBeTruthy();
+    expect(openapi.paths["/v1/keys/portal"]).toBeTruthy();
+  });
+
+  it("terms 1,500 quota matches PLAN_KEY_MONTHLY_CALLS in wrangler and the Worker default", () => {
+    const raw = readFileSync(new URL("../../wrangler.jsonc", import.meta.url), "utf8");
+    const quotas = [...raw.matchAll(/"PLAN_KEY_MONTHLY_CALLS"\s*:\s*"([^"]+)"/g)].map((m) => m[1]!);
+    expect(quotas.length).toBeGreaterThanOrEqual(3);
+    expect(quotas.every((v) => v === "1500")).toBe(true);
+    const emails = [...raw.matchAll(/"SUPPORT_EMAIL"\s*:\s*"([^"]*)"/g)].map((m) => m[1]!);
+    expect(emails.length).toBeGreaterThanOrEqual(3);
+    expect(emails.every((v) => v === "harbor-ops@mail.grokbot.com")).toBe(true);
+    expect(planKeyMonthlyCalls(mockEnv({ PLAN_KEY_MONTHLY_CALLS: undefined }))).toBe(1500);
+    expect(planKeyMonthlyCalls(mockEnv({ PLAN_KEY_MONTHLY_CALLS: "" }))).toBe(1500);
+    expect(trustPageHtml("terms")).toContain("1,500 research calls");
+    expect(trustPageHtml("terms")).toContain("When your 1,500 calls for the billing period are used up");
   });
 
   it("operator HTML uses the 96px chrome mark and PNG favicon", async () => {
