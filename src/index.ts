@@ -54,7 +54,8 @@ export default {
           const landing =
             url.pathname === "/" || url.pathname === "" || url.pathname === "/index.html";
           const calls = landing ? (await publicUsage(env)).calls : 0;
-          const page = hydrateLandingHtml(absolutizePublicHtml(html, url.origin), env, calls);
+          const absolutized = absolutizePublicHtml(html, url.origin);
+          const page = landing ? hydrateLandingHtml(absolutized, env, calls) : absolutized;
           const rewritten = new Response(page, {
             status: asset.status,
             statusText: asset.statusText,
@@ -65,6 +66,11 @@ export default {
         if (/\.(?:js|css)$/i.test(url.pathname)) {
           const headers = new Headers(asset.headers);
           headers.set("Cache-Control", "public, max-age=60, must-revalidate");
+          return applySecurityHeaders(new Response(asset.body, { status: asset.status, headers }), kind);
+        }
+        if (url.pathname.toLowerCase() === "/logo-440w.webp") {
+          const headers = new Headers(asset.headers);
+          headers.set("Cache-Control", "public, max-age=31536000, immutable");
           return applySecurityHeaders(new Response(asset.body, { status: asset.status, headers }), kind);
         }
         return applySecurityHeaders(asset, kind);

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Site: wrap landing content in `<main id="main">`, demote nested `Public volume` stat headings to `<h3>`, and add a plain-language 3-step `How it works` section with worked costs and plain definitions of `x402` and `USDC on Base`.
+- Site: add static `/privacy`, `/terms`, and `/about` HTML pages derived from Worker code, linked in the footer and `/sitemap.xml`, and set `Cache-Control: public, max-age=31536000, immutable` on `/logo-440w.webp`.
 - Docs: README Hosted product vs this repo lists POST-only `/v1/mentions` and `/v1/trends` with the other paid lenses (MF-D1024).
 - Stripe Key plan: $29/mo (`STRIPE_KEY_PRICE_ID`), 1,500 calls per billing period, hard stop `PLAN_QUOTA_REACHED` (HTTP 429, not counted). `Authorization: Bearer mfk_...` / `X-Api-Key` skips x402 and trial. Plan quota is reserved before work; the global X_ID cap (1,500,000 IDs / 30 days) still applies. Either cap denies with nothing charged; an X_ID denial releases the plan reservation. 1,500 × 50 IDs = 75,000 IDs per key-month (5% of the global cap). Webhook `POST /v1/stripe/webhook` and one-time `GET /v1/keys/claim`.
 - Docs: README Official MCP Registry badge and Listed on links use the same `/v0.1/servers` search URL as `DIRECTORY_LINKS.official_registry` (MF-D1023).
