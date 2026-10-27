@@ -501,6 +501,12 @@ describe("agent discoverability", () => {
     expect(readme).toContain("`get_health` — free liveness");
     expect(readme).toContain("`get_pricing` — free catalog");
     expect(readme).toContain("POST-only `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` `/v1/mentions` `/v1/trends`");
+    const apiDocs = readFileSync(new URL("../../docs/api.md", import.meta.url), "utf8");
+    expect(readme).toContain("`GET /about` `/privacy` `/terms` `/support`");
+    expect(apiDocs).toContain("| `GET /support` |");
+    for (const slug of TRUST_PAGE_SLUGS) {
+      expect(apiDocs).toContain(`| \`GET /${slug}\` |`);
+    }
     expect(dockerfile).toMatch(/mcp-remote@0\.14\.5/);
     expect(dockerfile).toContain("scripts/glama-stdio.mjs");
     expect(dockerfile).toMatch(/^WORKDIR \/app$/m);

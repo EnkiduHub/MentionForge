@@ -66,6 +66,9 @@ GET `/v1/research` is supported via query string (`view` / `focus` / `include_ma
 | `GET /.well-known/x402` | Resource URLs built from `request.url` origin |
 | `GET /.well-known/mcp` | Streamable HTTP pointer + server-card link |
 | `GET /server-card.json` | MCP server card |
+| `GET /about` | Product about page (no Key plan or Stripe copy) |
+| `GET /privacy` | Privacy policy (Stripe email/payment processor; D1 rows; on-chain payments are public) |
+| `GET /terms` | Terms of use for the hosted origin |
 | `GET /support` | Support page for lost API key reissue, billing portal cancellation, and refunds (`SUPPORT_EMAIL` rendered as `mailto:` on `/support`, `/privacy`, and `/terms` when set) |
 | `GET /v1/keys/me` | Bearer `mfk_...` API key usage, billing period, and `manage_url` (`/v1/keys/portal`) |
 | `POST /v1/keys/portal` | Bearer `mfk_...` Stripe Billing Portal session `{ url }` (`503 PORTAL_UNAVAILABLE` when portal is not configured) |
