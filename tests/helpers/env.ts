@@ -118,12 +118,18 @@ export function memoryD1() {
             return { meta: { changes: 0 } };
           }
           if (sql.includes("UPDATE api_keys SET status = ?")) {
-            const row = [...apiKeys.values()].find((k) => k.stripe_subscription_id === String(binds[4]));
+            const coalesceSession = sql.includes("COALESCE(checkout_session_id");
+            const subId = String(binds[coalesceSession ? 5 : 4]);
+            const row = [...apiKeys.values()].find((k) => k.stripe_subscription_id === subId);
             if (row) {
               row.status = String(binds[0]);
               row.period_start = Number(binds[1]);
               row.period_end = Number(binds[2]);
               row.stripe_customer_id = String(binds[3]);
+              if (coalesceSession && row.checkout_session_id == null && binds[4] != null) {
+                row.checkout_session_id = String(binds[4]);
+                apiKeysBySession.set(row.checkout_session_id, row.key_hash);
+              }
               return { meta: { changes: 1 } };
             }
             return { meta: { changes: 0 } };

@@ -55,6 +55,91 @@ async function sign(payload: string, secret: string, ts = Math.floor(Date.now() 
   return `t=${ts},v1=${hex}`;
 }
 
+async function postWebhook(env: Env, event: Record<string, unknown>): Promise<Response> {
+  const payload = JSON.stringify(event);
+  const sig = await sign(payload, env.STRIPE_WEBHOOK_SECRET!);
+  return call(
+    "/v1/stripe/webhook",
+    { method: "POST", headers: { "Stripe-Signature": sig, "content-type": "application/json" }, body: payload },
+    env,
+  );
+}
+
+function checkoutCompletedEvent(eventId: string, sessionId: string, customerId: string, subscriptionId: string) {
+  return {
+    id: eventId,
+    type: "checkout.session.completed",
+    data: {
+      object: {
+        id: sessionId,
+        mode: "subscription",
+        payment_status: "paid",
+        status: "complete",
+        customer: customerId,
+        subscription: subscriptionId,
+        line_items: { data: [{ price: { id: PRICE } }] },
+      },
+    },
+  };
+}
+
+function invoicePaidEvent(eventId: string, customerId: string, subscriptionId: string) {
+  return {
+    id: eventId,
+    type: "invoice.paid",
+    data: {
+      object: {
+        id: `in_${eventId}`,
+        customer: customerId,
+        subscription: subscriptionId,
+      },
+    },
+  };
+}
+
+function stubKeyPlanStripe(opts: {
+  sessions: Array<{ id: string; customer: string; subscription: string }>;
+  subscriptions: Array<{ id: string; customer: string; periodStart: number; periodEnd: number }>;
+}): () => void {
+  const prev = getGlobalFetch();
+  setGlobalFetch(async (input, init) => {
+    const url = String(input instanceof Request ? input.url : input);
+    for (const session of opts.sessions) {
+      if (url.includes(`api.stripe.com/v1/checkout/sessions/${session.id}`)) {
+        return new Response(
+          JSON.stringify({
+            id: session.id,
+            mode: "subscription",
+            payment_status: "paid",
+            status: "complete",
+            customer: session.customer,
+            subscription: session.subscription,
+            line_items: { data: [{ price: { id: PRICE } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+    for (const sub of opts.subscriptions) {
+      if (url.includes(`api.stripe.com/v1/subscriptions/${sub.id}`)) {
+        return new Response(
+          JSON.stringify({
+            id: sub.id,
+            status: "active",
+            customer: sub.customer,
+            current_period_start: sub.periodStart,
+            current_period_end: sub.periodEnd,
+            items: { data: [{ price: { id: PRICE } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+    }
+    return prev(input as never, init);
+  });
+  return () => setGlobalFetch(prev);
+}
+
 function researchInit(key: string, extra: HeadersInit = {}): RequestInit {
   return {
     method: "POST",
@@ -522,6 +607,205 @@ describe("Stripe Key plan", () => {
     expect(claimed2.key).toMatch(/^mfk_[0-9a-f]{48}$/);
 
     setGlobalFetch(prev);
+  });
+
+  it("invoice.paid then checkout.session.completed backfills checkout_session_id so GET preview then POST reveals one mfk_ key once", async () => {
+    const env = mockEnv();
+    const now = Math.floor(Date.now() / 1000);
+    const restore = stubKeyPlanStripe({
+      sessions: [{ id: "cs_order_a", customer: "cus_order_a", subscription: "sub_order_a" }],
+      subscriptions: [
+        {
+          id: "sub_order_a",
+          customer: "cus_order_a",
+          periodStart: now - 60,
+          periodEnd: now + 30 * 86400,
+        },
+      ],
+    });
+
+    const invoiceRes = await postWebhook(env, invoicePaidEvent("evt_order_a_invoice", "cus_order_a", "sub_order_a"));
+    expect(invoiceRes.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBeNull();
+
+    const checkoutRes = await postWebhook(
+      env,
+      checkoutCompletedEvent("evt_order_a_checkout", "cs_order_a", "cus_order_a", "sub_order_a"),
+    );
+    expect(checkoutRes.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_a");
+
+    const preview = await call(
+      "/v1/keys/claim?session_id=cs_order_a",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(preview.status).toBe(200);
+    const previewBody = (await preview.json()) as { claimed: boolean; key?: string; session_id: string };
+    expect(previewBody.claimed).toBe(false);
+    expect(previewBody.session_id).toBe("cs_order_a");
+    expect(previewBody.key).toBeUndefined();
+    expect([...mem(env).apiKeys.values()][0]?.claimed).toBe(0);
+
+    const claimed = await call(
+      "/v1/keys/claim?session_id=cs_order_a",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(claimed.status).toBe(200);
+    const claimedBody = (await claimed.json()) as { key: string; plan: string; prefix: string };
+    expect(claimedBody.key).toMatch(/^mfk_[0-9a-f]{48}$/);
+    expect(claimedBody.plan).toBe("key");
+    expect(claimedBody.prefix).toBe("mfk_");
+    expect(mem(env).apiKeys.size).toBe(1);
+
+    const again = await call(
+      "/v1/keys/claim?session_id=cs_order_a",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(again.status).toBe(410);
+    expect(mem(env).apiKeys.size).toBe(1);
+    restore();
+  });
+
+  it("invoice.paid only (no checkout webhook) self-heals checkout_session_id from the Stripe session and claim succeeds", async () => {
+    const env = mockEnv();
+    const now = Math.floor(Date.now() / 1000);
+    const restore = stubKeyPlanStripe({
+      sessions: [{ id: "cs_order_b", customer: "cus_order_b", subscription: "sub_order_b" }],
+      subscriptions: [
+        {
+          id: "sub_order_b",
+          customer: "cus_order_b",
+          periodStart: now - 60,
+          periodEnd: now + 30 * 86400,
+        },
+      ],
+    });
+
+    const invoiceRes = await postWebhook(env, invoicePaidEvent("evt_order_b_invoice", "cus_order_b", "sub_order_b"));
+    expect(invoiceRes.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBeNull();
+    expect([...mem(env).apiKeys.values()][0]?.claimed).toBe(0);
+
+    const preview = await call(
+      "/v1/keys/claim?session_id=cs_order_b",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(preview.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_b");
+
+    const claimed = await call(
+      "/v1/keys/claim?session_id=cs_order_b",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(claimed.status).toBe(200);
+    const claimedBody = (await claimed.json()) as { key: string };
+    expect(claimedBody.key).toMatch(/^mfk_[0-9a-f]{48}$/);
+    expect(mem(env).apiKeys.size).toBe(1);
+    restore();
+  });
+
+  it("checkout.session.completed then invoice.paid keeps a single api_keys row per subscription and claim still works", async () => {
+    const env = mockEnv();
+    const now = Math.floor(Date.now() / 1000);
+    const restore = stubKeyPlanStripe({
+      sessions: [{ id: "cs_order_c", customer: "cus_order_c", subscription: "sub_order_c" }],
+      subscriptions: [
+        {
+          id: "sub_order_c",
+          customer: "cus_order_c",
+          periodStart: now - 60,
+          periodEnd: now + 30 * 86400,
+        },
+      ],
+    });
+
+    const checkoutRes = await postWebhook(
+      env,
+      checkoutCompletedEvent("evt_order_c_checkout", "cs_order_c", "cus_order_c", "sub_order_c"),
+    );
+    expect(checkoutRes.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    const originalHash = [...mem(env).apiKeys.values()][0]?.key_hash;
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_c");
+
+    const invoiceRes = await postWebhook(env, invoicePaidEvent("evt_order_c_invoice", "cus_order_c", "sub_order_c"));
+    expect(invoiceRes.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.key_hash).toBe(originalHash);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_c");
+
+    const claimed = await call(
+      "/v1/keys/claim?session_id=cs_order_c",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(claimed.status).toBe(200);
+    const claimedBody = (await claimed.json()) as { key: string };
+    expect(claimedBody.key).toMatch(/^mfk_[0-9a-f]{48}$/);
+    expect(mem(env).apiKeys.size).toBe(1);
+    restore();
+  });
+
+  it("does not overwrite an existing checkout_session_id with a second different session id", async () => {
+    const env = mockEnv();
+    const now = Math.floor(Date.now() / 1000);
+    const restore = stubKeyPlanStripe({
+      sessions: [
+        { id: "cs_order_d1", customer: "cus_order_d", subscription: "sub_order_d" },
+        { id: "cs_order_d2", customer: "cus_order_d", subscription: "sub_order_d" },
+      ],
+      subscriptions: [
+        {
+          id: "sub_order_d",
+          customer: "cus_order_d",
+          periodStart: now - 60,
+          periodEnd: now + 30 * 86400,
+        },
+      ],
+    });
+
+    const first = await postWebhook(
+      env,
+      checkoutCompletedEvent("evt_order_d_checkout_1", "cs_order_d1", "cus_order_d", "sub_order_d"),
+    );
+    expect(first.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_d1");
+
+    const second = await postWebhook(
+      env,
+      checkoutCompletedEvent("evt_order_d_checkout_2", "cs_order_d2", "cus_order_d", "sub_order_d"),
+    );
+    expect(second.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_d1");
+
+    const otherClaim = await call(
+      "/v1/keys/claim?session_id=cs_order_d2",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(otherClaim.status).toBe(404);
+    const otherBody = (await otherClaim.json()) as { error: { code: string } };
+    expect(otherBody.error.code).toBe("NOT_FOUND");
+    expect([...mem(env).apiKeys.values()][0]?.checkout_session_id).toBe("cs_order_d1");
+
+    const originalClaim = await call(
+      "/v1/keys/claim?session_id=cs_order_d1",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(originalClaim.status).toBe(200);
+    restore();
   });
 
   it("returns 404 KEY_SESSION_NOT_FOUND when Stripe does not know the session", async () => {

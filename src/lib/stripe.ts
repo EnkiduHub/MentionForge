@@ -163,10 +163,17 @@ async function upsertKeyFromSubscription(
     .first<{ key_hash: string }>();
   if (existing) {
     await env.DB.prepare(
-      `UPDATE api_keys SET status = ?, period_start = ?, period_end = ?, stripe_customer_id = ?
+      `UPDATE api_keys SET status = ?, period_start = ?, period_end = ?, stripe_customer_id = ?, checkout_session_id = COALESCE(checkout_session_id, ?)
        WHERE stripe_subscription_id = ?`,
     )
-      .bind(opts.status, opts.periodStart, opts.periodEnd, opts.customerId, opts.subscriptionId)
+      .bind(
+        opts.status,
+        opts.periodStart,
+        opts.periodEnd,
+        opts.customerId,
+        opts.checkoutSessionId ?? null,
+        opts.subscriptionId,
+      )
       .run();
     return;
   }
