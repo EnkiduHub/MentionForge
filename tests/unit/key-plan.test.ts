@@ -1331,6 +1331,53 @@ describe("Stripe Key plan", () => {
     setGlobalFetch(prev);
   });
 
+  it("rate limits claim before calling Stripe and does not apply that limiter to the webhook", async () => {
+    const env = mockEnv({
+      UNPAID_LIMIT: { async limit() { return { success: false }; } },
+    });
+    const prev = getGlobalFetch();
+    let stripeCalls = 0;
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com")) stripeCalls += 1;
+      return prev(input as never, init);
+    });
+    const getRes = await call(
+      "/v1/keys/claim?session_id=cs_rate_limit_1",
+      { method: "GET", headers: { Accept: "application/json", "cf-connecting-ip": "203.0.113.9" } },
+      env,
+    );
+    expect(getRes.status).toBe(429);
+    expect(getRes.headers.get("retry-after")).toBe("30");
+    expect(((await getRes.json()) as { error: { code: string } }).error.code).toBe("RATE_LIMITED");
+    const postRes = await call(
+      "/v1/keys/claim",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "content-type": "application/json",
+          "cf-connecting-ip": "203.0.113.9",
+        },
+        body: JSON.stringify({ session_id: "cs_rate_limit_1" }),
+      },
+      env,
+    );
+    expect(postRes.status).toBe(429);
+    expect(stripeCalls).toBe(0);
+    const webhook = await call(
+      "/v1/stripe/webhook",
+      {
+        method: "POST",
+        headers: { "Stripe-Signature": "t=1,v1=deadbeef", "content-type": "application/json" },
+        body: JSON.stringify({ id: "evt_rate", type: "checkout.session.completed" }),
+      },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(webhook.status).toBe(400);
+  });
+
   it("verifyStripeSignature rejects stale timestamps", async () => {
     const payload = "{}";
     const sig = await sign(payload, "whsec_test_mock", Math.floor(Date.now() / 1000) - 400);
