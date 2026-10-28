@@ -24,6 +24,12 @@ const CLAIM_HEADERS: Record<string, string> = {
 
 function respondClaimError(c: Context<{ Bindings: Env }>, err: AgentError): Response {
   const status = err.status() as 400 | 401 | 402 | 404 | 410 | 429 | 500 | 503;
+  const headers: Record<string, string> = {
+    ...CLAIM_HEADERS,
+    "X-Request-Id": err.request_id,
+    Vary: "Accept, Sec-Fetch-Dest",
+  };
+  if (err.code === "RATE_LIMITED") headers["Retry-After"] = String(err.details.retry_after ?? 30);
   if (wantsHtmlDocument(c)) {
     return c.html(
       claimPageHtml({
@@ -35,17 +41,16 @@ function respondClaimError(c: Context<{ Bindings: Env }>, err: AgentError): Resp
       status,
       {
         ...htmlSecurityHeaders(),
-        ...CLAIM_HEADERS,
-        "X-Request-Id": err.request_id,
-        Vary: "Accept, Sec-Fetch-Dest",
+        ...headers,
       },
     );
   }
-  return c.json(err.body(), status, {
-    ...CLAIM_HEADERS,
-    "X-Request-Id": err.request_id,
-    Vary: "Accept, Sec-Fetch-Dest",
-  });
+  return c.json(err.body(), status, headers);
+}
+
+async function limitClaim(c: Context<{ Bindings: Env }>, requestId: string): Promise<void> {
+  const ip = c.req.header("cf-connecting-ip")?.trim() || "claim";
+  await limitOrThrow(c.env.UNPAID_LIMIT, `claim:${ip}`, requestId, 30);
 }
 
 async function readPostedSessionId(c: Context<{ Bindings: Env }>): Promise<string> {
@@ -109,6 +114,7 @@ stripeRoutes.get("/v1/keys/claim", async (c) => {
   const requestId = String(c.get("requestId") ?? "unknown");
   const sessionId = (c.req.query("session_id") ?? "").trim();
   try {
+    await limitClaim(c, requestId);
     const preview = await previewKeyClaim(c.env, sessionId, requestId);
     if (wantsHtmlDocument(c)) {
       return c.html(
@@ -147,6 +153,7 @@ stripeRoutes.post("/v1/keys/claim", async (c) => {
   const requestId = String(c.get("requestId") ?? "unknown");
   const sessionId = await readPostedSessionId(c);
   try {
+    await limitClaim(c, requestId);
     const claimed = await claimKey(c.env, sessionId, requestId);
     if (wantsHtmlDocument(c)) {
       return c.html(
