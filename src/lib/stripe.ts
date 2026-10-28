@@ -5,6 +5,22 @@ import { logRequest } from "./logger";
 
 const SIG_TOLERANCE_S = 300;
 
+/** Statuses for which a new key may be minted. past_due stays usable until period_end. */
+const KEY_ISSUABLE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"]);
+
+/**
+ * Checkout Session ids are `cs_test_` or `cs_live_` plus an alphanumeric token.
+ * Rejects empty values, non-cs_ ids, and path/query injection such as
+ * `cs_x/../../../../v1/customers`.
+ */
+const CHECKOUT_SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]+$/;
+
+const UNPAID_CHECKOUT_MSG = "Checkout session is not paid and complete.";
+const UNPAID_CHECKOUT_HINT =
+  "Finish checkout payment, then reopen this page with the same session_id. No API key was issued.";
+const REFUND_OR_DISPUTE_MSG = "Checkout payment is refunded or disputed.";
+const REFUND_OR_DISPUTE_HINT = "This checkout was refunded or disputed. No API key was issued.";
+
 export async function verifyStripeSignature(
   payload: string,
   header: string | null,
@@ -136,6 +152,13 @@ export function periodFromSubscription(sub: Record<string, unknown>): { start: n
   return { start, end };
 }
 
+async function eventAlreadyHandled(env: Env, eventId: string): Promise<boolean> {
+  const row = await env.DB.prepare("SELECT event_id FROM stripe_events WHERE event_id = ?")
+    .bind(eventId)
+    .first<{ event_id: string }>();
+  return Boolean(row);
+}
+
 async function recordEvent(env: Env, eventId: string): Promise<boolean> {
   const res = await env.DB.prepare(
     `INSERT INTO stripe_events (event_id, received_at) VALUES (?, ?)
@@ -199,29 +222,35 @@ async function upsertKeyFromSubscription(
     .run();
 }
 
-async function loadSubscription(env: Env, id: string): Promise<Record<string, unknown>> {
-  const sub = await stripeGet(env, `/v1/subscriptions/${id}`);
+async function loadSubscription(env: Env, id: string, requestId = "stripe"): Promise<Record<string, unknown>> {
+  const sub = await stripeGet(env, `/v1/subscriptions/${encodeURIComponent(id)}`, requestId);
   return asRecord(sub);
 }
 
 export async function handleStripeEvent(env: Env, event: Record<string, unknown>, requestId: string): Promise<void> {
-  const type = String(event.type ?? "");
   const id = String(event.id ?? "");
   if (!id) return;
-  const fresh = await recordEvent(env, id);
-  if (!fresh) return;
+  if (await eventAlreadyHandled(env, id)) return;
+  await applyStripeEvent(env, event, requestId);
+  await recordEvent(env, id);
+}
 
+async function applyStripeEvent(env: Env, event: Record<string, unknown>, requestId: string): Promise<void> {
+  const type = String(event.type ?? "");
   const obj = asRecord(event.data).object as Record<string, unknown> | undefined;
   const data = asRecord(obj);
 
-  if (type === "checkout.session.completed") {
+  if (type === "checkout.session.completed" || type === "checkout.session.async_payment_succeeded") {
     if (data.mode !== "subscription") return;
+    // checkout.session.completed can fire while payment_status is still "unpaid"
+    // (delayed notification methods). Issue only after the session is paid.
+    if (data.payment_status !== "paid") return;
     const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
     let prices = sessionPriceIds(data);
     if (prices.length === 0 && typeof data.id === "string") {
       try {
         const expanded = asRecord(
-          await stripeGet(env, `/v1/checkout/sessions/${data.id}?expand[]=line_items`),
+          await stripeGet(env, `/v1/checkout/sessions/${encodeURIComponent(data.id)}?expand[]=line_items`),
         );
         prices = sessionPriceIds(expanded);
       } catch {
@@ -233,17 +262,30 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
     const subId = typeof data.subscription === "string" ? data.subscription : String(asRecord(data.subscription).id ?? "");
     const customerId = typeof data.customer === "string" ? data.customer : String(asRecord(data.customer).id ?? "");
     if (!subId || !customerId) return;
-    let status = "active";
+    let status = "";
     let periodStart = Math.floor(Date.now() / 1000);
     let periodEnd = periodStart + 30 * 86400;
+    let loadedSub: Record<string, unknown> | null = null;
     try {
-      const sub = await loadSubscription(env, subId);
-      status = String(sub.status ?? "active");
+      const sub = await loadSubscription(env, subId, requestId);
+      loadedSub = sub;
+      status = String(sub.status ?? "");
       const period = periodFromSubscription(sub);
       if (period.start) periodStart = period.start;
       if (period.end) periodEnd = period.end;
-    } catch {
-      /* use defaults */
+    } catch (err) {
+      // Do not mint with a default "active" status, and do not ack the event.
+      // Stripe retries 5xx; the event id is recorded only after apply returns.
+      logRequest({ msg: "stripe_subscription_load_failed", request_id: requestId });
+      throw err;
+    }
+    if (!KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status)) return;
+    try {
+      if (loadedSub && (await refundOrDisputeBlocks(env, loadedSub, requestId))) return;
+      if (await refundOrDisputeBlocks(env, data, requestId)) return;
+    } catch (err) {
+      logRequest({ msg: "stripe_refund_check_failed", request_id: requestId });
+      throw err;
     }
     await upsertKeyFromSubscription(env, {
       customerId,
@@ -273,15 +315,24 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
     let sub = data;
     if (type === "invoice.paid") {
       try {
-        sub = await loadSubscription(env, subId);
+        sub = await loadSubscription(env, subId, requestId);
       } catch {
         return;
       }
     }
     const customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
     const period = periodFromSubscription(sub);
-    const status = String(sub.status ?? "active");
+    const status = String(sub.status ?? "");
     if (!customerId || !period.start || !period.end) return;
+    const existing = await env.DB.prepare("SELECT key_hash FROM api_keys WHERE stripe_subscription_id = ?")
+      .bind(subId)
+      .first<{ key_hash: string }>();
+    const prices = subscriptionPriceIds(sub);
+    const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
+    // Updates to an existing row still apply. A new key requires the Key price and an issuable status.
+    if (!existing && (!priceId || !prices.includes(priceId) || !KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status))) {
+      return;
+    }
     await upsertKeyFromSubscription(env, {
       customerId,
       subscriptionId: subId,
@@ -304,27 +355,110 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
 export const KEY_ALREADY_CLAIMED_MSG =
   "This key was already shown. If you lost it, see /support to have it reissued.";
 
+function chargeLikeBlocked(obj: Record<string, unknown>): boolean {
+  if (obj.refunded === true || obj.disputed === true) return true;
+  const amountRefunded = Number(obj.amount_refunded ?? 0);
+  if (Number.isFinite(amountRefunded) && amountRefunded > 0) return true;
+  const dispute = obj.dispute;
+  if (typeof dispute === "string" && dispute.length > 0) return true;
+  if (dispute && typeof dispute === "object") return true;
+  return false;
+}
+
+function nestedMoneyBlocked(root: Record<string, unknown>): boolean {
+  if (chargeLikeBlocked(root)) return true;
+  const charge = root.charge ?? root.latest_charge;
+  if (charge && typeof charge === "object" && chargeLikeBlocked(asRecord(charge))) return true;
+  const paymentIntent = root.payment_intent;
+  if (paymentIntent && typeof paymentIntent === "object") {
+    const intent = asRecord(paymentIntent);
+    if (chargeLikeBlocked(intent)) return true;
+    const latest = intent.latest_charge;
+    if (latest && typeof latest === "object" && chargeLikeBlocked(asRecord(latest))) return true;
+    const charges = asRecord(intent.charges).data;
+    if (Array.isArray(charges)) {
+      for (const item of charges) {
+        if (chargeLikeBlocked(asRecord(item))) return true;
+      }
+    }
+  }
+  const invoice = root.invoice ?? root.latest_invoice;
+  if (invoice && typeof invoice === "object" && nestedMoneyBlocked(asRecord(invoice))) return true;
+  return false;
+}
+
+/** True when a session or subscription we already fetched shows a refund or dispute.
+ * String invoice / payment_intent / charge ids are loaded. Missing ids are not guessed. */
+async function refundOrDisputeBlocks(
+  env: Env,
+  root: Record<string, unknown>,
+  requestId: string,
+): Promise<boolean> {
+  if (nestedMoneyBlocked(root)) return true;
+  const invoice = root.invoice ?? root.latest_invoice;
+  if (typeof invoice === "string" && invoice) {
+    const loaded = asRecord(
+      await stripeGet(env, `/v1/invoices/${encodeURIComponent(invoice)}?expand[]=charge&expand[]=payment_intent`, requestId),
+    );
+    if (nestedMoneyBlocked(loaded)) return true;
+    const charge = loaded.charge;
+    if (
+      typeof charge === "string" &&
+      charge &&
+      chargeLikeBlocked(asRecord(await stripeGet(env, `/v1/charges/${encodeURIComponent(charge)}`, requestId)))
+    ) {
+      return true;
+    }
+  }
+  const paymentIntent = root.payment_intent;
+  if (typeof paymentIntent === "string" && paymentIntent) {
+    const loaded = asRecord(
+      await stripeGet(
+        env,
+        `/v1/payment_intents/${encodeURIComponent(paymentIntent)}?expand[]=latest_charge`,
+        requestId,
+      ),
+    );
+    if (nestedMoneyBlocked(loaded)) return true;
+  }
+  return false;
+}
+
+function unpaidCheckoutError(requestId: string): AgentError {
+  return new AgentError("PAYMENT_REQUIRED", UNPAID_CHECKOUT_MSG, {
+    request_id: requestId,
+    hint: UNPAID_CHECKOUT_HINT,
+  });
+}
+
+function refundOrDisputeError(requestId: string): AgentError {
+  return new AgentError("PAYMENT_REQUIRED", REFUND_OR_DISPUTE_MSG, {
+    request_id: requestId,
+    hint: REFUND_OR_DISPUTE_HINT,
+  });
+}
+
 async function selfHealKeyFromSession(
   env: Env,
   session: Record<string, unknown>,
   sessionId: string,
   requestId: string,
-): Promise<void> {
-  if (session.mode !== "subscription") return;
+): Promise<boolean> {
+  if (session.mode !== "subscription") return false;
   const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
-  if (!priceId) return;
+  if (!priceId) return false;
 
   const subId =
     typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
   let customerId =
     typeof session.customer === "string" ? session.customer : String(asRecord(session.customer).id ?? "");
-  if (!subId) return;
+  if (!subId) return false;
 
   let prices = sessionPriceIds(session);
   if (prices.length === 0) {
     try {
       const expanded = asRecord(
-        await stripeGet(env, `/v1/checkout/sessions/${sessionId}?expand[]=line_items`, requestId),
+        await stripeGet(env, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items`, requestId),
       );
       prices = sessionPriceIds(expanded);
     } catch {
@@ -332,25 +466,35 @@ async function selfHealKeyFromSession(
     }
   }
 
-  let sub: Record<string, unknown> = {};
+  let sub: Record<string, unknown>;
   try {
-    sub = await loadSubscription(env, subId);
+    sub = await loadSubscription(env, subId, requestId);
   } catch {
     logRequest({ msg: "stripe_claim_sub_load_failed", request_id: requestId });
-    if (!prices.includes(priceId)) return;
+    if (!prices.includes(priceId)) return false;
+    // This path used to ignore the failure and mint status "active". Claim refuses
+    // with 402 and inserts nothing. A 5xx/network error on the Checkout Session
+    // request itself still surfaces as 503 before self-heal.
+    throw unpaidCheckoutError(requestId);
   }
 
   for (const p of subscriptionPriceIds(sub)) {
     if (!prices.includes(p)) prices.push(p);
   }
-  if (!prices.includes(priceId)) return;
+  if (!prices.includes(priceId)) return false;
+
+  if (await refundOrDisputeBlocks(env, sub, requestId)) return true;
+  if (await refundOrDisputeBlocks(env, session, requestId)) return true;
 
   if (!customerId) {
     customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
   }
-  if (!customerId) return;
+  if (!customerId) return false;
 
-  const status = String(sub.status ?? "active");
+  const status = String(sub.status ?? "");
+  if (!KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status)) {
+    throw unpaidCheckoutError(requestId);
+  }
   const period = periodFromSubscription(sub);
   const now = Math.floor(Date.now() / 1000);
   const periodStart = period.start || now;
@@ -364,17 +508,28 @@ async function selfHealKeyFromSession(
     periodEnd,
     checkoutSessionId: sessionId,
   });
+  return false;
+}
+
+async function assertStoredSubscriptionAllowsReveal(env: Env, subId: string, requestId: string): Promise<void> {
+  try {
+    const sub = await loadSubscription(env, subId, requestId);
+    if (await refundOrDisputeBlocks(env, sub, requestId)) throw refundOrDisputeError(requestId);
+  } catch (err) {
+    if (isStripeResourceMissing(err)) return;
+    throw err;
+  }
 }
 
 async function resolveClaimableKey(env: Env, sessionId: string, requestId: string): Promise<ApiKeyRecord> {
-  if (!sessionId.startsWith("cs_")) {
-    throw new AgentError("VALIDATION_ERROR", "session_id must be a Stripe Checkout session id.", {
+  if (!CHECKOUT_SESSION_ID.test(sessionId)) {
+    throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", {
       request_id: requestId,
     });
   }
   let session: Record<string, unknown>;
   try {
-    session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${sessionId}`, requestId));
+    session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, requestId));
   } catch (err) {
     if (isStripeResourceMissing(err)) {
       throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", {
@@ -383,18 +538,23 @@ async function resolveClaimableKey(env: Env, sessionId: string, requestId: strin
     }
     throw err;
   }
-  const paid = session.payment_status === "paid" || session.status === "complete";
-  if (!paid || session.status !== "complete") {
-    throw new AgentError("PAYMENT_REQUIRED", "Checkout session is not paid and complete.", {
-      request_id: requestId,
-    });
+  if (session.payment_status !== "paid" || session.status !== "complete") {
+    throw unpaidCheckoutError(requestId);
+  }
+  if (await refundOrDisputeBlocks(env, session, requestId)) {
+    throw refundOrDisputeError(requestId);
   }
   const subId =
     typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
   let row = await lookupApiKeyBySession(env, sessionId);
   if (!row) {
-    await selfHealKeyFromSession(env, session, sessionId, requestId);
+    const blocked = await selfHealKeyFromSession(env, session, sessionId, requestId);
+    if (blocked) throw refundOrDisputeError(requestId);
     row = await lookupApiKeyBySession(env, sessionId);
+  } else if (subId) {
+    // A key stored before the refund must not be shown. A missing subscription
+    // (404) leaves the session-level check as the decision; Stripe 5xx still throws.
+    await assertStoredSubscriptionAllowsReveal(env, subId, requestId);
   }
   if (!row) {
     throw new AgentError("NOT_FOUND", "No API key for this checkout session.", { request_id: requestId });
