@@ -448,7 +448,7 @@ describe("agent discoverability", () => {
 
   it("README, docs/mcp.md, and examples/README list every registered MCP prompt and POST-only paid REST lens", () => {
     const mcpSrc = readFileSync(new URL("../../src/mcp.ts", import.meta.url), "utf8");
-    const prompts = [...mcpSrc.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g)].map((m) => m[1]);
+    const prompts = [...mcpSrc.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g)].map((m) => m[1] as string);
     expect(prompts).toEqual([
       "competitor_brief",
       "crisis_watch",
