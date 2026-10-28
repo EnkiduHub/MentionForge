@@ -446,6 +446,34 @@ describe("agent discoverability", () => {
     expect(missing).toEqual([]);
   });
 
+  it("README, docs/mcp.md, and examples/README list every registered MCP prompt and POST-only paid REST lens", () => {
+    const mcpSrc = readFileSync(new URL("../../src/mcp.ts", import.meta.url), "utf8");
+    const prompts = [...mcpSrc.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g)].map((m) => m[1]);
+    expect(prompts).toEqual([
+      "competitor_brief",
+      "crisis_watch",
+      "review_digest",
+      "pain_mining",
+      "mention_export",
+      "trend_watch",
+    ]);
+
+    const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+    const mcpDocs = readFileSync(new URL("../../docs/mcp.md", import.meta.url), "utf8");
+    const examplesIndex = readFileSync(new URL("../../examples/README.md", import.meta.url), "utf8");
+    const missingFromReadme = prompts.filter((name) => !mentionsToolName(readme, name));
+    const missingFromDocs = prompts.filter((name) => !mentionsToolName(mcpDocs, name));
+    expect(missingFromReadme).toEqual([]);
+    expect(missingFromDocs).toEqual([]);
+    expect(mcpDocs).toContain("## MCP prompts");
+    expect(readme).toContain("[MCP prompts](docs/mcp.md#mcp-prompts)");
+
+    for (const path of ["/v1/compare", "/v1/digest", "/v1/risk", "/v1/reply", "/v1/mentions", "/v1/trends"] as const) {
+      expect(readme).toContain(path);
+      expect(examplesIndex).toContain(path);
+    }
+  });
+
   it("server card serverInfo matches package.json and tool inputSchema matches live Zod", async () => {
     const pkg = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
       version: string;
