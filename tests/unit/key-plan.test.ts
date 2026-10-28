@@ -1331,6 +1331,143 @@ describe("Stripe Key plan", () => {
     setGlobalFetch(prev);
   });
 
+  it("does not issue or reveal a key when the checkout payment is refunded or disputed", async () => {
+    const prev = getGlobalFetch();
+    const periodStart = 1_700_000_000;
+    const periodEnd = periodStart + 30 * 86400;
+    const sub = (id: string, customer: string, charge: Record<string, unknown>) => ({
+      id,
+      status: "active",
+      customer,
+      current_period_start: periodStart,
+      current_period_end: periodEnd,
+      items: { data: [{ price: { id: PRICE } }] },
+      latest_invoice: { id: `in_${id}`, charge },
+    });
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/checkout/sessions/cs_refunded")) {
+        return new Response(
+          JSON.stringify({
+            id: "cs_refunded",
+            mode: "subscription",
+            payment_status: "paid",
+            status: "complete",
+            customer: "cus_refund",
+            subscription: "sub_refund",
+            line_items: { data: [{ price: { id: PRICE } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.includes("/subscriptions/sub_refund")) {
+        return new Response(
+          JSON.stringify(sub("sub_refund", "cus_refund", { id: "ch_refund", refunded: true, disputed: false, amount_refunded: 2900 })),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.includes("/checkout/sessions/cs_disputed")) {
+        return new Response(
+          JSON.stringify({
+            id: "cs_disputed",
+            mode: "subscription",
+            payment_status: "paid",
+            status: "complete",
+            customer: "cus_dispute",
+            subscription: "sub_dispute",
+            line_items: { data: [{ price: { id: PRICE } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.includes("/subscriptions/sub_dispute")) {
+        return new Response(
+          JSON.stringify(sub("sub_dispute", "cus_dispute", { id: "ch_dispute", refunded: false, disputed: true, amount_refunded: 0 })),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+
+    const env = mockEnv();
+    const refunded = await call(
+      "/v1/keys/claim?session_id=cs_refunded",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(refunded.status).toBe(402);
+    expect(((await refunded.json()) as { error: { code: string; message: string } }).error.message).toBe(
+      "Checkout payment is refunded or disputed.",
+    );
+    expect(mem(env).apiKeys.size).toBe(0);
+
+    const disputed = await call(
+      "/v1/keys/claim?session_id=cs_disputed",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(disputed.status).toBe(402);
+    expect(mem(env).apiKeys.size).toBe(0);
+
+    const wh = await postWebhook(env, {
+      id: "evt_refunded_checkout",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_refunded",
+          mode: "subscription",
+          payment_status: "paid",
+          status: "complete",
+          customer: "cus_refund",
+          subscription: "sub_refund",
+          line_items: { data: [{ price: { id: PRICE } }] },
+        },
+      },
+    });
+    expect(wh.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(0);
+
+    const pending = "mfk_refunded_existing_aaaaaaaaaaaaaa";
+    await seedApiKey(env, pending, {
+      checkout_session_id: "cs_refunded_existing",
+      pending_key: pending,
+      claimed: 0,
+      stripe_subscription_id: "sub_refund_existing",
+    });
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/checkout/sessions/cs_refunded_existing")) {
+        return new Response(
+          JSON.stringify({
+            id: "cs_refunded_existing",
+            mode: "subscription",
+            payment_status: "paid",
+            status: "complete",
+            customer: "cus_refund",
+            subscription: "sub_refund_existing",
+            invoice: {
+              id: "in_existing",
+              charge: { id: "ch_existing", refunded: true, disputed: false, amount_refunded: 2900 },
+            },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const reveal = await call(
+      "/v1/keys/claim?session_id=cs_refunded_existing",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(reveal.status).toBe(402);
+    const revealBody = (await reveal.json()) as { key?: string };
+    expect(revealBody.key).toBeUndefined();
+    expect([...mem(env).apiKeys.values()][0]?.claimed).toBe(0);
+    expect([...mem(env).apiKeys.values()][0]?.pending_key).toBe(pending);
+  });
+
   it("verifyStripeSignature rejects stale timestamps", async () => {
     const payload = "{}";
     const sig = await sign(payload, "whsec_test_mock", Math.floor(Date.now() / 1000) - 400);

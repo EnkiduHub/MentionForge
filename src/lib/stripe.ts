@@ -236,14 +236,23 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
     let status = "active";
     let periodStart = Math.floor(Date.now() / 1000);
     let periodEnd = periodStart + 30 * 86400;
+    let loadedSub: Record<string, unknown> | null = null;
     try {
       const sub = await loadSubscription(env, subId);
+      loadedSub = sub;
       status = String(sub.status ?? "active");
       const period = periodFromSubscription(sub);
       if (period.start) periodStart = period.start;
       if (period.end) periodEnd = period.end;
     } catch {
       /* use defaults */
+    }
+    try {
+      if (loadedSub && (await refundOrDisputeBlocks(env, loadedSub, requestId))) return;
+      if (await refundOrDisputeBlocks(env, data, requestId)) return;
+    } catch {
+      logRequest({ msg: "stripe_refund_check_failed", request_id: requestId });
+      return;
     }
     await upsertKeyFromSubscription(env, {
       customerId,
@@ -304,21 +313,96 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
 export const KEY_ALREADY_CLAIMED_MSG =
   "This key was already shown. If you lost it, see /support to have it reissued.";
 
+const REFUND_OR_DISPUTE_MSG = "Checkout payment is refunded or disputed.";
+const REFUND_OR_DISPUTE_HINT = "This checkout was refunded or disputed. No API key was issued.";
+
+function chargeLikeBlocked(obj: Record<string, unknown>): boolean {
+  if (obj.refunded === true || obj.disputed === true) return true;
+  const amountRefunded = Number(obj.amount_refunded ?? 0);
+  if (Number.isFinite(amountRefunded) && amountRefunded > 0) return true;
+  const dispute = obj.dispute;
+  if (typeof dispute === "string" && dispute.length > 0) return true;
+  if (dispute && typeof dispute === "object") return true;
+  return false;
+}
+
+function nestedMoneyBlocked(root: Record<string, unknown>): boolean {
+  if (chargeLikeBlocked(root)) return true;
+  const charge = root.charge ?? root.latest_charge;
+  if (charge && typeof charge === "object" && chargeLikeBlocked(asRecord(charge))) return true;
+  const paymentIntent = root.payment_intent;
+  if (paymentIntent && typeof paymentIntent === "object") {
+    const intent = asRecord(paymentIntent);
+    if (chargeLikeBlocked(intent)) return true;
+    const latest = intent.latest_charge;
+    if (latest && typeof latest === "object" && chargeLikeBlocked(asRecord(latest))) return true;
+    const charges = asRecord(intent.charges).data;
+    if (Array.isArray(charges)) {
+      for (const item of charges) {
+        if (chargeLikeBlocked(asRecord(item))) return true;
+      }
+    }
+  }
+  const invoice = root.invoice ?? root.latest_invoice;
+  if (invoice && typeof invoice === "object" && nestedMoneyBlocked(asRecord(invoice))) return true;
+  return false;
+}
+
+/** True when a session or subscription we already fetched shows a refund or dispute.
+ * String invoice / payment_intent / charge ids are loaded. Missing ids are not guessed. */
+async function refundOrDisputeBlocks(
+  env: Env,
+  root: Record<string, unknown>,
+  requestId: string,
+): Promise<boolean> {
+  if (nestedMoneyBlocked(root)) return true;
+  const invoice = root.invoice ?? root.latest_invoice;
+  if (typeof invoice === "string" && invoice) {
+    const loaded = asRecord(
+      await stripeGet(env, `/v1/invoices/${encodeURIComponent(invoice)}?expand[]=charge&expand[]=payment_intent`, requestId),
+    );
+    if (nestedMoneyBlocked(loaded)) return true;
+    const charge = loaded.charge;
+    if (typeof charge === "string" && charge && chargeLikeBlocked(asRecord(await stripeGet(env, `/v1/charges/${encodeURIComponent(charge)}`, requestId)))) {
+      return true;
+    }
+  }
+  const paymentIntent = root.payment_intent;
+  if (typeof paymentIntent === "string" && paymentIntent) {
+    const loaded = asRecord(
+      await stripeGet(
+        env,
+        `/v1/payment_intents/${encodeURIComponent(paymentIntent)}?expand[]=latest_charge`,
+        requestId,
+      ),
+    );
+    if (nestedMoneyBlocked(loaded)) return true;
+  }
+  return false;
+}
+
+function refundOrDisputeError(requestId: string): AgentError {
+  return new AgentError("PAYMENT_REQUIRED", REFUND_OR_DISPUTE_MSG, {
+    request_id: requestId,
+    hint: REFUND_OR_DISPUTE_HINT,
+  });
+}
+
 async function selfHealKeyFromSession(
   env: Env,
   session: Record<string, unknown>,
   sessionId: string,
   requestId: string,
-): Promise<void> {
-  if (session.mode !== "subscription") return;
+): Promise<boolean> {
+  if (session.mode !== "subscription") return false;
   const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
-  if (!priceId) return;
+  if (!priceId) return false;
 
   const subId =
     typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
   let customerId =
     typeof session.customer === "string" ? session.customer : String(asRecord(session.customer).id ?? "");
-  if (!subId) return;
+  if (!subId) return false;
 
   let prices = sessionPriceIds(session);
   if (prices.length === 0) {
@@ -337,18 +421,21 @@ async function selfHealKeyFromSession(
     sub = await loadSubscription(env, subId);
   } catch {
     logRequest({ msg: "stripe_claim_sub_load_failed", request_id: requestId });
-    if (!prices.includes(priceId)) return;
+    if (!prices.includes(priceId)) return false;
   }
 
   for (const p of subscriptionPriceIds(sub)) {
     if (!prices.includes(p)) prices.push(p);
   }
-  if (!prices.includes(priceId)) return;
+  if (!prices.includes(priceId)) return false;
+
+  if (await refundOrDisputeBlocks(env, sub, requestId)) return true;
+  if (await refundOrDisputeBlocks(env, session, requestId)) return true;
 
   if (!customerId) {
     customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
   }
-  if (!customerId) return;
+  if (!customerId) return false;
 
   const status = String(sub.status ?? "active");
   const period = periodFromSubscription(sub);
@@ -364,6 +451,7 @@ async function selfHealKeyFromSession(
     periodEnd,
     checkoutSessionId: sessionId,
   });
+  return false;
 }
 
 async function resolveClaimableKey(env: Env, sessionId: string, requestId: string): Promise<ApiKeyRecord> {
@@ -389,11 +477,15 @@ async function resolveClaimableKey(env: Env, sessionId: string, requestId: strin
       request_id: requestId,
     });
   }
+  if (await refundOrDisputeBlocks(env, session, requestId)) {
+    throw refundOrDisputeError(requestId);
+  }
   const subId =
     typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
   let row = await lookupApiKeyBySession(env, sessionId);
   if (!row) {
-    await selfHealKeyFromSession(env, session, sessionId, requestId);
+    const blocked = await selfHealKeyFromSession(env, session, sessionId, requestId);
+    if (blocked) throw refundOrDisputeError(requestId);
     row = await lookupApiKeyBySession(env, sessionId);
   }
   if (!row) {
