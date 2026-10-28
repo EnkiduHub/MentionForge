@@ -1331,6 +1331,110 @@ describe("Stripe Key plan", () => {
     setGlobalFetch(prev);
   });
 
+  it("does not issue a key for a complete checkout whose payment_status is unpaid", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/checkout/sessions/cs_unpaid_complete")) {
+        return new Response(
+          JSON.stringify({
+            id: "cs_unpaid_complete",
+            mode: "subscription",
+            payment_status: "unpaid",
+            status: "complete",
+            customer: "cus_unpaid",
+            subscription: "sub_unpaid",
+            line_items: { data: [{ price: { id: PRICE } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.includes("api.stripe.com/v1/subscriptions/sub_unpaid")) {
+        return new Response(
+          JSON.stringify({
+            id: "sub_unpaid",
+            status: "incomplete",
+            customer: "cus_unpaid",
+            current_period_start: 1_700_000_000,
+            current_period_end: 1_700_000_000 + 30 * 86400,
+            items: { data: [{ price: { id: PRICE } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const res = await call(
+      "/v1/keys/claim?session_id=cs_unpaid_complete",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(res.status).toBe(402);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("PAYMENT_REQUIRED");
+    expect(mem(env).apiKeys.size).toBe(0);
+
+    const event = {
+      id: "evt_unpaid_complete",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_unpaid_complete",
+          mode: "subscription",
+          payment_status: "unpaid",
+          status: "complete",
+          customer: "cus_unpaid",
+          subscription: "sub_unpaid",
+          line_items: { data: [{ price: { id: PRICE } }] },
+        },
+      },
+    };
+    const wh = await postWebhook(env, event);
+    expect(wh.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(0);
+  });
+
+  it("does not mint a key from invoice.paid when the subscription price is not the Key plan", async () => {
+    const env = mockEnv();
+    const now = Math.floor(Date.now() / 1000);
+    const restore = stubKeyPlanStripe({
+      sessions: [],
+      subscriptions: [
+        {
+          id: "sub_other_price",
+          customer: "cus_other_price",
+          periodStart: now - 60,
+          periodEnd: now + 30 * 86400,
+        },
+      ],
+    });
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/subscriptions/sub_other_price")) {
+        return new Response(
+          JSON.stringify({
+            id: "sub_other_price",
+            status: "active",
+            customer: "cus_other_price",
+            current_period_start: now - 60,
+            current_period_end: now + 30 * 86400,
+            items: { data: [{ price: { id: "price_other_product" } }] },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const res = await postWebhook(env, invoicePaidEvent("evt_other_price", "cus_other_price", "sub_other_price"));
+    setGlobalFetch(prev);
+    restore();
+    expect(res.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(0);
+  });
+
   it("verifyStripeSignature rejects stale timestamps", async () => {
     const payload = "{}";
     const sig = await sign(payload, "whsec_test_mock", Math.floor(Date.now() / 1000) - 400);

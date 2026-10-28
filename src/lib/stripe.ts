@@ -5,6 +5,9 @@ import { logRequest } from "./logger";
 
 const SIG_TOLERANCE_S = 300;
 
+/** Statuses for which a new key may be minted. past_due stays usable until period_end. */
+const KEY_ISSUABLE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_due"]);
+
 export async function verifyStripeSignature(
   payload: string,
   header: string | null,
@@ -214,8 +217,11 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
   const obj = asRecord(event.data).object as Record<string, unknown> | undefined;
   const data = asRecord(obj);
 
-  if (type === "checkout.session.completed") {
+  if (type === "checkout.session.completed" || type === "checkout.session.async_payment_succeeded") {
     if (data.mode !== "subscription") return;
+    // checkout.session.completed can fire while payment_status is still "unpaid"
+    // (delayed notification methods). Issue only after the session is paid.
+    if (data.payment_status !== "paid") return;
     const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
     let prices = sessionPriceIds(data);
     if (prices.length === 0 && typeof data.id === "string") {
@@ -233,18 +239,20 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
     const subId = typeof data.subscription === "string" ? data.subscription : String(asRecord(data.subscription).id ?? "");
     const customerId = typeof data.customer === "string" ? data.customer : String(asRecord(data.customer).id ?? "");
     if (!subId || !customerId) return;
-    let status = "active";
+    let status = "";
     let periodStart = Math.floor(Date.now() / 1000);
     let periodEnd = periodStart + 30 * 86400;
     try {
       const sub = await loadSubscription(env, subId);
-      status = String(sub.status ?? "active");
+      status = String(sub.status ?? "");
       const period = periodFromSubscription(sub);
       if (period.start) periodStart = period.start;
       if (period.end) periodEnd = period.end;
     } catch {
-      /* use defaults */
+      logRequest({ msg: "stripe_subscription_load_failed", request_id: requestId });
+      return;
     }
+    if (!KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status)) return;
     await upsertKeyFromSubscription(env, {
       customerId,
       subscriptionId: subId,
@@ -280,8 +288,16 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
     }
     const customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
     const period = periodFromSubscription(sub);
-    const status = String(sub.status ?? "active");
+    const status = String(sub.status ?? "");
     if (!customerId || !period.start || !period.end) return;
+    const existing = await env.DB.prepare("SELECT key_hash FROM api_keys WHERE stripe_subscription_id = ?")
+      .bind(subId)
+      .first<{ key_hash: string }>();
+    const prices = subscriptionPriceIds(sub);
+    const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
+    if (!existing && (!priceId || !prices.includes(priceId) || !KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status))) {
+      return;
+    }
     await upsertKeyFromSubscription(env, {
       customerId,
       subscriptionId: subId,
@@ -332,12 +348,17 @@ async function selfHealKeyFromSession(
     }
   }
 
-  let sub: Record<string, unknown> = {};
+  let sub: Record<string, unknown>;
   try {
     sub = await loadSubscription(env, subId);
-  } catch {
+  } catch (err) {
     logRequest({ msg: "stripe_claim_sub_load_failed", request_id: requestId });
     if (!prices.includes(priceId)) return;
+    if (err instanceof AgentError) throw err;
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Stripe API request failed.", {
+      request_id: requestId,
+      hint: STRIPE_UNAVAILABLE_HINT,
+    });
   }
 
   for (const p of subscriptionPriceIds(sub)) {
@@ -350,7 +371,8 @@ async function selfHealKeyFromSession(
   }
   if (!customerId) return;
 
-  const status = String(sub.status ?? "active");
+  const status = String(sub.status ?? "");
+  if (!KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status)) return;
   const period = periodFromSubscription(sub);
   const now = Math.floor(Date.now() / 1000);
   const periodStart = period.start || now;
@@ -383,10 +405,10 @@ async function resolveClaimableKey(env: Env, sessionId: string, requestId: strin
     }
     throw err;
   }
-  const paid = session.payment_status === "paid" || session.status === "complete";
-  if (!paid || session.status !== "complete") {
+  if (session.payment_status !== "paid" || session.status !== "complete") {
     throw new AgentError("PAYMENT_REQUIRED", "Checkout session is not paid and complete.", {
       request_id: requestId,
+      hint: "Finish checkout payment, then reopen this page with the same session_id. No API key was issued.",
     });
   }
   const subId =
