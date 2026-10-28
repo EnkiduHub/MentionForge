@@ -13,7 +13,28 @@ const KEY_ISSUABLE_SUBSCRIPTION_STATUSES = new Set(["active", "trialing", "past_
  * Rejects empty values, non-cs_ ids, and path/query injection such as
  * `cs_x/../../../../v1/customers`.
  */
-const CHECKOUT_SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]+$/;
+const CHECKOUT_SESSION_ID = /^cs_(test|live)_[A-Za-z0-9]{1,200}$/;
+
+/**
+ * Outbound Stripe API version, sent as `Stripe-Version` on every `stripeGet`.
+ *
+ * docs.stripe.com/api/versioning (read 2026-10-28) says the current version is
+ * `2026-09-30.endive`. That release is after `2025-03-31.basil`, which removed
+ * `invoice.charge`, `invoice.payment_intent`, and `invoice.paid` and replaced
+ * them with `invoice.payments` / `InvoicePayment`
+ * (docs.stripe.com/changelog/basil/2025-03-31/add-support-for-multiple-partial-payments-on-invoices).
+ * Endive did not remove InvoicePayment. Webhook bodies still arrive in the
+ * endpoint's own version, so refund checks accept both shapes.
+ */
+const STRIPE_API_VERSION = "2026-09-30.endive";
+
+/**
+ * Four expand properties is the documented maximum (docs.stripe.com/expand).
+ * `payments.data.payment.payment_intent.latest_charge` on `GET /v1/invoices/{id}`
+ * is five segments and would 400. Listing invoice payments keeps `latest_charge`
+ * inside the limit: `data.payment.payment_intent.latest_charge`.
+ */
+const INVOICE_PAYMENTS_EXPAND = "data.payment.payment_intent.latest_charge";
 
 const UNPAID_CHECKOUT_MSG = "Checkout session is not paid and complete.";
 const UNPAID_CHECKOUT_HINT =
@@ -65,7 +86,7 @@ export async function stripeGet(env: Env, path: string, requestId = "stripe"): P
   let res: Response;
   try {
     res = await fetch(`https://api.stripe.com${path}`, {
-      headers: { Authorization: `Bearer ${secret}` },
+      headers: { Authorization: `Bearer ${secret}`, "Stripe-Version": STRIPE_API_VERSION },
     });
   } catch {
     throw new AgentError("PAYMENT_UNAVAILABLE", "Stripe API request failed.", {
@@ -236,6 +257,7 @@ export async function handleStripeEvent(env: Env, event: Record<string, unknown>
 }
 
 async function applyStripeEvent(env: Env, event: Record<string, unknown>, requestId: string): Promise<void> {
+  const refundMemo = createRefundMemo();
   const type = String(event.type ?? "");
   const obj = asRecord(event.data).object as Record<string, unknown> | undefined;
   const data = asRecord(obj);
@@ -253,9 +275,10 @@ async function applyStripeEvent(env: Env, event: Record<string, unknown>, reques
           await stripeGet(env, `/v1/checkout/sessions/${encodeURIComponent(data.id)}?expand[]=line_items`),
         );
         prices = sessionPriceIds(expanded);
-      } catch {
+      } catch (err) {
+        // A swallowed expand error used to ack the event, so Stripe never retried.
         logRequest({ msg: "stripe_session_expand_failed", request_id: requestId });
-        return;
+        throw err;
       }
     }
     if (!priceId || !prices.includes(priceId)) return;
@@ -281,8 +304,8 @@ async function applyStripeEvent(env: Env, event: Record<string, unknown>, reques
     }
     if (!KEY_ISSUABLE_SUBSCRIPTION_STATUSES.has(status)) return;
     try {
-      if (loadedSub && (await refundOrDisputeBlocks(env, loadedSub, requestId))) return;
-      if (await refundOrDisputeBlocks(env, data, requestId)) return;
+      if (loadedSub && (await refundOrDisputeBlocks(env, loadedSub, requestId, refundMemo))) return;
+      if (await refundOrDisputeBlocks(env, data, requestId, refundMemo)) return;
     } catch (err) {
       logRequest({ msg: "stripe_refund_check_failed", request_id: requestId });
       throw err;
@@ -316,8 +339,10 @@ async function applyStripeEvent(env: Env, event: Record<string, unknown>, reques
     if (type === "invoice.paid") {
       try {
         sub = await loadSubscription(env, subId, requestId);
-      } catch {
-        return;
+      } catch (err) {
+        // Do not ack invoice.paid when the subscription could not be loaded.
+        logRequest({ msg: "stripe_invoice_sub_load_failed", request_id: requestId });
+        throw err;
       }
     }
     const customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
@@ -355,6 +380,17 @@ async function applyStripeEvent(env: Env, event: Record<string, unknown>, reques
 export const KEY_ALREADY_CLAIMED_MSG =
   "This key was already shown. If you lost it, see /support to have it reissued.";
 
+type RefundMemo = {
+  /** Successful invoice-id lookups only. Failures are not cached. */
+  invoices: Map<string, boolean>;
+  charges: Map<string, Record<string, unknown>>;
+  paymentIntents: Map<string, Record<string, unknown>>;
+};
+
+function createRefundMemo(): RefundMemo {
+  return { invoices: new Map(), charges: new Map(), paymentIntents: new Map() };
+}
+
 function chargeLikeBlocked(obj: Record<string, unknown>): boolean {
   if (obj.refunded === true || obj.disputed === true) return true;
   const amountRefunded = Number(obj.amount_refunded ?? 0);
@@ -387,39 +423,234 @@ function nestedMoneyBlocked(root: Record<string, unknown>): boolean {
   return false;
 }
 
-/** True when a session or subscription we already fetched shows a refund or dispute.
- * String invoice / payment_intent / charge ids are loaded. Missing ids are not guessed. */
+/**
+ * Refund lookup is fail-closed: a transport error, 4xx, or 5xx while reading the
+ * charge throws `PAYMENT_UNAVAILABLE` and does not mint a key. The webhook does
+ * not record the event, so Stripe retries. A paid invoice whose latest charge is
+ * present and not refunded or disputed is not an error — that claim still issues
+ * a key. The same invoice id is fetched at most once per memo (one claim or one
+ * webhook delivery).
+ *
+ * Basil and later (including the pinned `2026-09-30.endive`): string invoice ids
+ * use `GET /v1/invoice_payments?invoice={id}&expand[]=data.payment.payment_intent.latest_charge`.
+ * Pre-basil objects still in hand (`invoice.charge` / `invoice.payment_intent`,
+ * or a 404 from invoice_payments) are read from `GET /v1/invoices/{id}` with no
+ * removed expand, then `GET /v1/charges/{id}` or
+ * `GET /v1/payment_intents/{id}?expand[]=latest_charge` when those fields are ids.
+ * Any dispute id or dispute object blocks issuance.
+ */
+async function loadCharge(
+  env: Env,
+  chargeId: string,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<Record<string, unknown>> {
+  const cached = memo.charges.get(chargeId);
+  if (cached) return cached;
+  const loaded = asRecord(await stripeGet(env, `/v1/charges/${encodeURIComponent(chargeId)}`, requestId));
+  memo.charges.set(chargeId, loaded);
+  return loaded;
+}
+
+async function loadPaymentIntent(
+  env: Env,
+  paymentIntentId: string,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<Record<string, unknown>> {
+  const cached = memo.paymentIntents.get(paymentIntentId);
+  if (cached) return cached;
+  const loaded = asRecord(
+    await stripeGet(
+      env,
+      `/v1/payment_intents/${encodeURIComponent(paymentIntentId)}?expand[]=latest_charge`,
+      requestId,
+    ),
+  );
+  memo.paymentIntents.set(paymentIntentId, loaded);
+  return loaded;
+}
+
+async function chargeRefBlocks(
+  env: Env,
+  charge: unknown,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<boolean> {
+  if (typeof charge === "string" && charge) {
+    return chargeLikeBlocked(await loadCharge(env, charge, requestId, memo));
+  }
+  if (charge && typeof charge === "object") return chargeLikeBlocked(asRecord(charge));
+  return false;
+}
+
+async function paymentIntentRefBlocks(
+  env: Env,
+  paymentIntent: unknown,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<{ blocked: boolean; sawCharge: boolean }> {
+  let intent = paymentIntent;
+  if (typeof paymentIntent === "string" && paymentIntent) {
+    intent = await loadPaymentIntent(env, paymentIntent, requestId, memo);
+  }
+  if (!intent || typeof intent !== "object") return { blocked: false, sawCharge: false };
+  const record = asRecord(intent);
+  if (chargeLikeBlocked(record)) return { blocked: true, sawCharge: true };
+  const latest = record.latest_charge;
+  if (await chargeRefBlocks(env, latest, requestId, memo)) return { blocked: true, sawCharge: true };
+  if (latest && (typeof latest === "string" || typeof latest === "object")) return { blocked: false, sawCharge: true };
+  const charges = asRecord(record.charges).data;
+  if (Array.isArray(charges)) {
+    let saw = false;
+    for (const item of charges) {
+      if (await chargeRefBlocks(env, item, requestId, memo)) return { blocked: true, sawCharge: true };
+      if (item && (typeof item === "string" || typeof item === "object")) saw = true;
+    }
+    if (saw) return { blocked: false, sawCharge: true };
+  }
+  return { blocked: false, sawCharge: false };
+}
+
+/** Inspect one InvoicePayment.payment object. `sawCharge` means a charge payload was readable. */
+async function invoicePaymentBlocks(
+  env: Env,
+  payment: Record<string, unknown>,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<{ blocked: boolean; sawCharge: boolean }> {
+  const fromIntent = await paymentIntentRefBlocks(env, payment.payment_intent, requestId, memo);
+  if (fromIntent.blocked) return fromIntent;
+  const fromCharge = await chargeRefBlocks(env, payment.charge, requestId, memo);
+  if (fromCharge) return { blocked: true, sawCharge: true };
+  const sawCharge =
+    fromIntent.sawCharge || (typeof payment.charge === "string" && payment.charge.length > 0) ||
+    (payment.charge !== null && typeof payment.charge === "object");
+  return { blocked: false, sawCharge };
+}
+
+async function paymentsListBlocks(
+  env: Env,
+  payments: unknown,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<{ blocked: boolean; sawCharge: boolean }> {
+  const rows = asRecord(payments).data;
+  if (!Array.isArray(rows) || rows.length === 0) return { blocked: false, sawCharge: false };
+  let sawCharge = false;
+  for (const row of rows) {
+    const payment = asRecord(asRecord(row).payment);
+    const result = await invoicePaymentBlocks(env, payment, requestId, memo);
+    if (result.blocked) return { blocked: true, sawCharge: true };
+    if (result.sawCharge) sawCharge = true;
+  }
+  return { blocked: false, sawCharge };
+}
+
+/**
+ * Pre-basil invoice object, or a basil invoice retrieve used only as a fallback.
+ * Returns whether a charge was actually visible so the caller can fail closed
+ * when a string invoice id produced no charge at all.
+ */
+async function legacyInvoiceBlocks(
+  env: Env,
+  invoice: Record<string, unknown>,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<{ blocked: boolean; sawCharge: boolean }> {
+  if (nestedMoneyBlocked(invoice)) return { blocked: true, sawCharge: true };
+  const payments = await paymentsListBlocks(env, invoice.payments, requestId, memo);
+  if (payments.blocked) return payments;
+  let sawCharge = payments.sawCharge;
+  if (await chargeRefBlocks(env, invoice.charge, requestId, memo)) return { blocked: true, sawCharge: true };
+  if (typeof invoice.charge === "string" || (invoice.charge && typeof invoice.charge === "object")) sawCharge = true;
+  const fromIntent = await paymentIntentRefBlocks(env, invoice.payment_intent, requestId, memo);
+  if (fromIntent.blocked) return fromIntent;
+  if (fromIntent.sawCharge) sawCharge = true;
+  return { blocked: false, sawCharge };
+}
+
+async function invoiceIdBlocks(
+  env: Env,
+  invoiceId: string,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<boolean> {
+  const cached = memo.invoices.get(invoiceId);
+  if (cached !== undefined) return cached;
+
+  let listResult: { blocked: boolean; sawCharge: boolean } = { blocked: false, sawCharge: false };
+  try {
+    const list = asRecord(
+      await stripeGet(
+        env,
+        `/v1/invoice_payments?invoice=${encodeURIComponent(invoiceId)}&expand[]=${INVOICE_PAYMENTS_EXPAND}`,
+        requestId,
+      ),
+    );
+    listResult = await paymentsListBlocks(env, list, requestId, memo);
+  } catch (err) {
+    // 404: invoice_payments does not exist on pre-basil versions. Any other
+    // error means we could not confirm the charge, so fail closed.
+    if (!isStripeResourceMissing(err)) throw err;
+  }
+
+  if (listResult.blocked) {
+    memo.invoices.set(invoiceId, true);
+    return true;
+  }
+  if (listResult.sawCharge) {
+    memo.invoices.set(invoiceId, false);
+    return false;
+  }
+
+  let legacy: Record<string, unknown>;
+  try {
+    legacy = asRecord(await stripeGet(env, `/v1/invoices/${encodeURIComponent(invoiceId)}`, requestId));
+  } catch (err) {
+    if (!isStripeResourceMissing(err)) throw err;
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Could not confirm this checkout charge is still paid.", {
+      request_id: requestId,
+      hint: STRIPE_UNAVAILABLE_HINT,
+      details: { status: 404 },
+    });
+  }
+  const legacyResult = await legacyInvoiceBlocks(env, legacy, requestId, memo);
+  if (!legacyResult.sawCharge) {
+    throw new AgentError("PAYMENT_UNAVAILABLE", "Could not confirm this checkout charge is still paid.", {
+      request_id: requestId,
+      hint: STRIPE_UNAVAILABLE_HINT,
+    });
+  }
+  memo.invoices.set(invoiceId, legacyResult.blocked);
+  return legacyResult.blocked;
+}
+
+/** True when a session or subscription shows a refund or dispute.
+ * String invoice / payment_intent / charge ids are loaded through `memo`. */
 async function refundOrDisputeBlocks(
   env: Env,
   root: Record<string, unknown>,
   requestId: string,
+  memo: RefundMemo,
 ): Promise<boolean> {
   if (nestedMoneyBlocked(root)) return true;
+  const embeddedPayments = await paymentsListBlocks(env, root.payments, requestId, memo);
+  if (embeddedPayments.blocked) return true;
   const invoice = root.invoice ?? root.latest_invoice;
-  if (typeof invoice === "string" && invoice) {
-    const loaded = asRecord(
-      await stripeGet(env, `/v1/invoices/${encodeURIComponent(invoice)}?expand[]=charge&expand[]=payment_intent`, requestId),
-    );
-    if (nestedMoneyBlocked(loaded)) return true;
-    const charge = loaded.charge;
-    if (
-      typeof charge === "string" &&
-      charge &&
-      chargeLikeBlocked(asRecord(await stripeGet(env, `/v1/charges/${encodeURIComponent(charge)}`, requestId)))
-    ) {
-      return true;
-    }
+  if (invoice && typeof invoice === "object") {
+    const embedded = await legacyInvoiceBlocks(env, asRecord(invoice), requestId, memo);
+    if (embedded.blocked) return true;
+  } else if (typeof invoice === "string" && invoice) {
+    if (await invoiceIdBlocks(env, invoice, requestId, memo)) return true;
   }
   const paymentIntent = root.payment_intent;
   if (typeof paymentIntent === "string" && paymentIntent) {
-    const loaded = asRecord(
-      await stripeGet(
-        env,
-        `/v1/payment_intents/${encodeURIComponent(paymentIntent)}?expand[]=latest_charge`,
-        requestId,
-      ),
-    );
-    if (nestedMoneyBlocked(loaded)) return true;
+    const fromIntent = await paymentIntentRefBlocks(env, paymentIntent, requestId, memo);
+    if (fromIntent.blocked) return true;
+  } else if (paymentIntent && typeof paymentIntent === "object") {
+    const fromIntent = await paymentIntentRefBlocks(env, paymentIntent, requestId, memo);
+    if (fromIntent.blocked) return true;
   }
   return false;
 }
@@ -443,6 +674,7 @@ async function selfHealKeyFromSession(
   session: Record<string, unknown>,
   sessionId: string,
   requestId: string,
+  memo: RefundMemo,
 ): Promise<boolean> {
   if (session.mode !== "subscription") return false;
   const priceId = env.STRIPE_KEY_PRICE_ID ?? "";
@@ -483,8 +715,8 @@ async function selfHealKeyFromSession(
   }
   if (!prices.includes(priceId)) return false;
 
-  if (await refundOrDisputeBlocks(env, sub, requestId)) return true;
-  if (await refundOrDisputeBlocks(env, session, requestId)) return true;
+  if (await refundOrDisputeBlocks(env, sub, requestId, memo)) return true;
+  if (await refundOrDisputeBlocks(env, session, requestId, memo)) return true;
 
   if (!customerId) {
     customerId = typeof sub.customer === "string" ? sub.customer : String(asRecord(sub.customer).id ?? "");
@@ -511,10 +743,15 @@ async function selfHealKeyFromSession(
   return false;
 }
 
-async function assertStoredSubscriptionAllowsReveal(env: Env, subId: string, requestId: string): Promise<void> {
+async function assertStoredSubscriptionAllowsReveal(
+  env: Env,
+  subId: string,
+  requestId: string,
+  memo: RefundMemo,
+): Promise<void> {
   try {
     const sub = await loadSubscription(env, subId, requestId);
-    if (await refundOrDisputeBlocks(env, sub, requestId)) throw refundOrDisputeError(requestId);
+    if (await refundOrDisputeBlocks(env, sub, requestId, memo)) throw refundOrDisputeError(requestId);
   } catch (err) {
     if (isStripeResourceMissing(err)) return;
     throw err;
@@ -541,20 +778,21 @@ async function resolveClaimableKey(env: Env, sessionId: string, requestId: strin
   if (session.payment_status !== "paid" || session.status !== "complete") {
     throw unpaidCheckoutError(requestId);
   }
-  if (await refundOrDisputeBlocks(env, session, requestId)) {
+  const refundMemo = createRefundMemo();
+  if (await refundOrDisputeBlocks(env, session, requestId, refundMemo)) {
     throw refundOrDisputeError(requestId);
   }
   const subId =
     typeof session.subscription === "string" ? session.subscription : String(asRecord(session.subscription).id ?? "");
   let row = await lookupApiKeyBySession(env, sessionId);
   if (!row) {
-    const blocked = await selfHealKeyFromSession(env, session, sessionId, requestId);
+    const blocked = await selfHealKeyFromSession(env, session, sessionId, requestId, refundMemo);
     if (blocked) throw refundOrDisputeError(requestId);
     row = await lookupApiKeyBySession(env, sessionId);
   } else if (subId) {
     // A key stored before the refund must not be shown. A missing subscription
     // (404) leaves the session-level check as the decision; Stripe 5xx still throws.
-    await assertStoredSubscriptionAllowsReveal(env, subId, requestId);
+    await assertStoredSubscriptionAllowsReveal(env, subId, requestId, refundMemo);
   }
   if (!row) {
     throw new AgentError("NOT_FOUND", "No API key for this checkout session.", { request_id: requestId });

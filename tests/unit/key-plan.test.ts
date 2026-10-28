@@ -1556,15 +1556,33 @@ describe("Stripe Key plan", () => {
     const prev = getGlobalFetch();
     const periodStart = 1_700_000_000;
     const periodEnd = periodStart + 30 * 86400;
-    const sub = (id: string, customer: string, charge: Record<string, unknown>) => ({
+    const sub = (id: string, customer: string) => ({
       id,
       status: "active",
       customer,
       current_period_start: periodStart,
       current_period_end: periodEnd,
       items: { data: [{ price: { id: PRICE } }] },
-      latest_invoice: { id: `in_${id}`, charge },
+      latest_invoice: `in_${id}`,
     });
+    const basilList = (charge: Record<string, unknown>) => ({
+      object: "list",
+      data: [
+        {
+          id: "inpay_test",
+          object: "invoice_payment",
+          status: "paid",
+          payment: {
+            type: "payment_intent",
+            payment_intent: { id: "pi_test", object: "payment_intent", latest_charge: charge },
+          },
+        },
+      ],
+    });
+    const invoiceCharges: Record<string, Record<string, unknown>> = {
+      in_sub_refund: { id: "ch_refund", object: "charge", refunded: false, disputed: false, amount_refunded: 2900 },
+      in_sub_dispute: { id: "ch_dispute", object: "charge", refunded: false, disputed: true, amount_refunded: 0 },
+    };
     setGlobalFetch(async (input, init) => {
       const url = String(input instanceof Request ? input.url : input);
       if (url.includes("/checkout/sessions/cs_test_refunded")) {
@@ -1582,12 +1600,16 @@ describe("Stripe Key plan", () => {
         );
       }
       if (url.includes("/subscriptions/sub_refund")) {
-        return new Response(
-          JSON.stringify(
-            sub("sub_refund", "cus_refund", { id: "ch_refund", refunded: false, disputed: false, amount_refunded: 2900 }),
-          ),
-          { status: 200, headers: { "content-type": "application/json" } },
-        );
+        return new Response(JSON.stringify(sub("sub_refund", "cus_refund")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_sub_refund")) {
+        return new Response(JSON.stringify(basilList(invoiceCharges.in_sub_refund!)), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
       }
       if (url.includes("/checkout/sessions/cs_test_disputed")) {
         return new Response(
@@ -1604,12 +1626,16 @@ describe("Stripe Key plan", () => {
         );
       }
       if (url.includes("/subscriptions/sub_dispute")) {
-        return new Response(
-          JSON.stringify(
-            sub("sub_dispute", "cus_dispute", { id: "ch_dispute", refunded: false, disputed: true, amount_refunded: 0 }),
-          ),
-          { status: 200, headers: { "content-type": "application/json" } },
-        );
+        return new Response(JSON.stringify(sub("sub_dispute", "cus_dispute")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_sub_dispute")) {
+        return new Response(JSON.stringify(basilList(invoiceCharges.in_sub_dispute!)), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
       }
       return prev(input as never, init);
     });
@@ -1661,6 +1687,14 @@ describe("Stripe Key plan", () => {
     });
     setGlobalFetch(async (input, init) => {
       const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_existing")) {
+        return new Response(
+          JSON.stringify(
+            basilList({ id: "ch_existing", object: "charge", refunded: true, disputed: false, amount_refunded: 2900 }),
+          ),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
       if (url.includes("/checkout/sessions/cs_test_refundedexisting")) {
         return new Response(
           JSON.stringify({
@@ -1670,10 +1704,7 @@ describe("Stripe Key plan", () => {
             status: "complete",
             customer: "cus_refund",
             subscription: "sub_refund_existing",
-            invoice: {
-              id: "in_existing",
-              charge: { id: "ch_existing", refunded: true, disputed: false, amount_refunded: 2900 },
-            },
+            invoice: "in_existing",
           }),
           { status: 200, headers: { "content-type": "application/json" } },
         );
@@ -1718,9 +1749,15 @@ describe("Stripe Key plan", () => {
         );
       }
       if (url.includes("/subscriptions/sub_refunded_sub")) {
+        return new Response(JSON.stringify(sub("sub_refunded_sub", "cus_refund")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_sub_refunded_sub")) {
         return new Response(
           JSON.stringify(
-            sub("sub_refunded_sub", "cus_refund", { id: "ch_sub", refunded: true, disputed: false, amount_refunded: 0 }),
+            basilList({ id: "ch_sub", object: "charge", refunded: true, disputed: false, amount_refunded: 0 }),
           ),
           { status: 200, headers: { "content-type": "application/json" } },
         );
@@ -1741,6 +1778,416 @@ describe("Stripe Key plan", () => {
     expect([...mem(envSub).apiKeys.values()][0]?.pending_key).toBe(pendingOnSub);
   });
 
+  function basilInvoicePayments(charge: Record<string, unknown>) {
+    return {
+      object: "list",
+      data: [
+        {
+          id: "inpay_shape",
+          object: "invoice_payment",
+          status: "paid",
+          payment: {
+            type: "payment_intent",
+            payment_intent: { id: "pi_shape", object: "payment_intent", latest_charge: charge },
+          },
+        },
+      ],
+    };
+  }
+
+  function paidSession(id: string, subId: string, invoiceId: string) {
+    return {
+      id,
+      mode: "subscription",
+      payment_status: "paid",
+      status: "complete",
+      customer: "cus_shape",
+      subscription: subId,
+      invoice: invoiceId,
+      line_items: { data: [{ price: { id: PRICE } }] },
+    };
+  }
+
+  function paidSub(id: string, invoiceId: string) {
+    return {
+      id,
+      status: "active",
+      customer: "cus_shape",
+      current_period_start: 1_700_000_000,
+      current_period_end: 1_700_000_000 + 30 * 86400,
+      items: { data: [{ price: { id: PRICE } }] },
+      latest_invoice: invoiceId,
+    };
+  }
+
+  it("issues a key for a paid basil invoice payment and fetches that invoice once", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    let invoiceFetches = 0;
+    let stripeVersion = "";
+    const clean = { id: "ch_basil_paid", object: "charge", refunded: false, disputed: false, amount_refunded: 0 };
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      const headers = init?.headers;
+      if (headers && !(headers instanceof Headers) && !Array.isArray(headers)) {
+        stripeVersion = String((headers as Record<string, string>)["Stripe-Version"] ?? stripeVersion);
+      }
+      if (url.includes("/checkout/sessions/cs_test_basilpaid")) {
+        return new Response(JSON.stringify(paidSession("cs_test_basilpaid", "sub_basil_paid", "in_basil_paid")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/subscriptions/sub_basil_paid")) {
+        return new Response(JSON.stringify(paidSub("sub_basil_paid", "in_basil_paid")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_basil_paid")) {
+        invoiceFetches += 1;
+        expect(url).toContain("expand[]=data.payment.payment_intent.latest_charge");
+        expect(url).not.toContain("expand[]=charge");
+        return new Response(JSON.stringify(basilInvoicePayments(clean)), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return prev(input as never, init);
+    });
+    const res = await call(
+      "/v1/keys/claim?session_id=cs_test_basilpaid",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { key: string }).key).toMatch(/^mfk_[0-9a-f]{48}$/);
+    expect(mem(env).apiKeys.size).toBe(1);
+    expect(invoiceFetches).toBe(1);
+    expect(stripeVersion).toBe("2026-09-30.endive");
+  });
+
+  it("blocks a refunded or disputed basil invoice payment resolved from an invoice id", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    const charges: Record<string, Record<string, unknown>> = {
+      in_basil_refunded: { id: "ch_basil_refunded", object: "charge", refunded: false, disputed: false, amount_refunded: 2900 },
+      in_basil_disputed: {
+        id: "ch_basil_disputed",
+        object: "charge",
+        refunded: false,
+        disputed: true,
+        amount_refunded: 0,
+        dispute: "du_basil",
+      },
+    };
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/checkout/sessions/cs_test_basilrefund")) {
+        return new Response(JSON.stringify(paidSession("cs_test_basilrefund", "sub_basil_refund", "in_basil_refunded")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/subscriptions/sub_basil_refund")) {
+        return new Response(JSON.stringify(paidSub("sub_basil_refund", "in_basil_refunded")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/checkout/sessions/cs_test_basildispute")) {
+        return new Response(JSON.stringify(paidSession("cs_test_basildispute", "sub_basil_dispute", "in_basil_disputed")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/subscriptions/sub_basil_dispute")) {
+        return new Response(JSON.stringify(paidSub("sub_basil_dispute", "in_basil_disputed")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments")) {
+        const invoiceId = new URL(url).searchParams.get("invoice") ?? "";
+        const charge = charges[invoiceId];
+        if (charge) {
+          return new Response(JSON.stringify(basilInvoicePayments(charge)), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+      }
+      return prev(input as never, init);
+    });
+    const refunded = await call(
+      "/v1/keys/claim?session_id=cs_test_basilrefund",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(refunded.status).toBe(402);
+    const disputed = await call(
+      "/v1/keys/claim?session_id=cs_test_basildispute",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(disputed.status).toBe(402);
+    expect(mem(env).apiKeys.size).toBe(0);
+  });
+
+  it("issues a key for a paid pre-basil charge id and blocks refunded or disputed charge ids", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    const charges: Record<string, Record<string, unknown>> = {
+      ch_pre_paid: { id: "ch_pre_paid", object: "charge", refunded: false, disputed: false, amount_refunded: 0 },
+      ch_pre_refunded: { id: "ch_pre_refunded", object: "charge", refunded: true, disputed: false, amount_refunded: 2900 },
+      ch_pre_disputed: { id: "ch_pre_disputed", object: "charge", refunded: false, disputed: true, amount_refunded: 0 },
+    };
+    const invoices: Record<string, string> = {
+      in_pre_paid: "ch_pre_paid",
+      in_pre_refunded: "ch_pre_refunded",
+      in_pre_disputed: "ch_pre_disputed",
+    };
+    const sessions: Record<string, { sub: string; invoice: string }> = {
+      cs_test_prepaid: { sub: "sub_pre_paid", invoice: "in_pre_paid" },
+      cs_test_prerefund: { sub: "sub_pre_refund", invoice: "in_pre_refunded" },
+      cs_test_predispute: { sub: "sub_pre_dispute", invoice: "in_pre_disputed" },
+    };
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      for (const [sessionId, row] of Object.entries(sessions)) {
+        if (url.includes(`/checkout/sessions/${sessionId}`)) {
+          return new Response(JSON.stringify(paidSession(sessionId, row.sub, row.invoice)), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+        if (url.includes(`/subscriptions/${row.sub}`)) {
+          return new Response(JSON.stringify(paidSub(row.sub, row.invoice)), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+      }
+      if (url.includes("/v1/invoice_payments")) {
+        return new Response(JSON.stringify({ error: { code: "resource_missing" } }), {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoices/")) {
+        expect(url).not.toContain("expand[]=charge");
+        expect(url).not.toContain("expand[]=payment_intent");
+        const invoiceId = url.split("/v1/invoices/")[1]?.split("?")[0] ?? "";
+        const chargeId = invoices[invoiceId];
+        if (chargeId) {
+          return new Response(
+            JSON.stringify({ id: invoiceId, object: "invoice", charge: chargeId, payment_intent: `pi_${chargeId}` }),
+            { status: 200, headers: { "content-type": "application/json" } },
+          );
+        }
+      }
+      if (url.includes("/v1/charges/")) {
+        const chargeId = url.split("/v1/charges/")[1]?.split("?")[0] ?? "";
+        const charge = charges[chargeId];
+        if (charge) {
+          return new Response(JSON.stringify(charge), { status: 200, headers: { "content-type": "application/json" } });
+        }
+      }
+      if (url.includes("/v1/payment_intents/")) {
+        const piId = decodeURIComponent(url.split("/v1/payment_intents/")[1]?.split("?")[0] ?? "");
+        const charge = charges[piId.replace(/^pi_/, "")];
+        if (charge) {
+          return new Response(JSON.stringify({ id: piId, object: "payment_intent", latest_charge: charge }), {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          });
+        }
+      }
+      return prev(input as never, init);
+    });
+    const paid = await call(
+      "/v1/keys/claim?session_id=cs_test_prepaid",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(paid.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    const refunded = await call(
+      "/v1/keys/claim?session_id=cs_test_prerefund",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(refunded.status).toBe(402);
+    const disputed = await call(
+      "/v1/keys/claim?session_id=cs_test_predispute",
+      { method: "GET", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(disputed.status).toBe(402);
+    expect(mem(env).apiKeys.size).toBe(1);
+  });
+
+  it("blocks a pre-basil payment_intent id when its latest charge is disputed", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/checkout/sessions/cs_test_preintent")) {
+        return new Response(JSON.stringify(paidSession("cs_test_preintent", "sub_pre_intent", "in_pre_intent")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/subscriptions/sub_pre_intent")) {
+        return new Response(JSON.stringify(paidSub("sub_pre_intent", "in_pre_intent")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments")) {
+        return new Response(JSON.stringify({ error: { code: "resource_missing" } }), {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoices/in_pre_intent")) {
+        return new Response(JSON.stringify({ id: "in_pre_intent", object: "invoice", payment_intent: "pi_pre_intent" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/payment_intents/pi_pre_intent")) {
+        expect(url).toContain("expand[]=latest_charge");
+        return new Response(
+          JSON.stringify({
+            id: "pi_pre_intent",
+            object: "payment_intent",
+            latest_charge: { id: "ch_pre_intent", object: "charge", refunded: false, disputed: true, amount_refunded: 0 },
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const res = await call(
+      "/v1/keys/claim?session_id=cs_test_preintent",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(res.status).toBe(402);
+    expect(mem(env).apiKeys.size).toBe(0);
+  });
+
+  it("fails closed when the refund lookup errors and still issues a key for a paid charge", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/checkout/sessions/cs_test_lookupfail")) {
+        return new Response(JSON.stringify(paidSession("cs_test_lookupfail", "sub_lookup_fail", "in_lookup_fail")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/subscriptions/sub_lookup_fail")) {
+        return new Response(JSON.stringify(paidSub("sub_lookup_fail", "in_lookup_fail")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_lookup_fail")) {
+        return new Response(JSON.stringify({ error: { type: "api_error" } }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/checkout/sessions/cs_test_lookupok")) {
+        return new Response(JSON.stringify(paidSession("cs_test_lookupok", "sub_lookup_ok", "in_lookup_ok")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/subscriptions/sub_lookup_ok")) {
+        return new Response(JSON.stringify(paidSub("sub_lookup_ok", "in_lookup_ok")), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      if (url.includes("/v1/invoice_payments") && url.includes("invoice=in_lookup_ok")) {
+        return new Response(
+          JSON.stringify(
+            basilInvoicePayments({ id: "ch_lookup_ok", object: "charge", refunded: false, disputed: false, amount_refunded: 0 }),
+          ),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const failed = await call(
+      "/v1/keys/claim?session_id=cs_test_lookupfail",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    expect(failed.status).toBe(503);
+    expect(((await failed.json()) as { error: { code: string } }).error.code).toBe("PAYMENT_UNAVAILABLE");
+    expect(mem(env).apiKeys.size).toBe(0);
+    const wh = await postWebhook(
+      env,
+      checkoutCompletedEvent("evt_lookup_fail", "cs_test_lookupfail", "cus_shape", "sub_lookup_fail"),
+    );
+    expect(wh.status).toBeGreaterThanOrEqual(500);
+    expect((env.DB as unknown as { stripeEvents: Set<string> }).stripeEvents.has("evt_lookup_fail")).toBe(false);
+    expect(mem(env).apiKeys.size).toBe(0);
+    const paid = await call(
+      "/v1/keys/claim?session_id=cs_test_lookupok",
+      { method: "POST", headers: { Accept: "application/json" } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(paid.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+  });
+
+  it("does not ack invoice.paid or checkout expand when the Stripe read fails", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("/subscriptions/sub_inv_fail") || url.includes("/checkout/sessions/cs_test_expandfail")) {
+        return new Response(JSON.stringify({ error: { type: "api_error" } }), {
+          status: 500,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return prev(input as never, init);
+    });
+    const invoice = await postWebhook(env, invoicePaidEvent("evt_inv_fail", "cus_inv_fail", "sub_inv_fail"));
+    expect(invoice.status).toBeGreaterThanOrEqual(500);
+    expect((env.DB as unknown as { stripeEvents: Set<string> }).stripeEvents.has("evt_inv_fail")).toBe(false);
+    const expand = await postWebhook(env, {
+      id: "evt_expand_fail",
+      type: "checkout.session.completed",
+      data: {
+        object: {
+          id: "cs_test_expandfail",
+          mode: "subscription",
+          payment_status: "paid",
+          status: "complete",
+          customer: "cus_expand",
+          subscription: "sub_expand",
+        },
+      },
+    });
+    setGlobalFetch(prev);
+    expect(expand.status).toBeGreaterThanOrEqual(500);
+    expect((env.DB as unknown as { stripeEvents: Set<string> }).stripeEvents.has("evt_expand_fail")).toBe(false);
+    expect(mem(env).apiKeys.size).toBe(0);
+  });
+
   it("returns 404 for malformed session ids and does not call Stripe with the raw id", async () => {
     const env = mockEnv();
     const prev = getGlobalFetch();
@@ -1758,6 +2205,7 @@ describe("Stripe Key plan", () => {
       "/v1/keys/claim?session_id=" + encodeURIComponent("cs_claim_1"),
       "/v1/keys/claim?session_id=" + encodeURIComponent("cs_test_"),
       "/v1/keys/claim?session_id=" + encodeURIComponent("cs_test_abc/../../etc"),
+      "/v1/keys/claim?session_id=" + encodeURIComponent(`cs_test_${"a".repeat(201)}`),
     ];
     for (const path of cases) {
       const res = await call(path, { method: "GET", headers: { Accept: "application/json" } }, env);
