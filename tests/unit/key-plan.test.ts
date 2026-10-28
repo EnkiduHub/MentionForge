@@ -1331,6 +1331,81 @@ describe("Stripe Key plan", () => {
     setGlobalFetch(prev);
   });
 
+  it("returns 404 for malformed session ids and does not call Stripe with the raw id", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    const urls: string[] = [];
+    setGlobalFetch(async (input, init) => {
+      urls.push(String(input instanceof Request ? input.url : input));
+      return prev(input as never, init);
+    });
+    const cases = [
+      "/v1/keys/claim",
+      "/v1/keys/claim?session_id=",
+      "/v1/keys/claim?session_id=" + encodeURIComponent("not-a-session"),
+      "/v1/keys/claim?session_id=" + encodeURIComponent("cs_x/../../../../v1/customers"),
+      "/v1/keys/claim?session_id=" + encodeURIComponent("cs_live_abc?expand[]=customer"),
+    ];
+    for (const path of cases) {
+      const res = await call(path, { method: "GET", headers: { Accept: "application/json" } }, env);
+      expect(res.status, path).toBe(404);
+      const body = (await res.json()) as { error: { code: string; message: string }; stack?: string };
+      expect(body.error.code).toBe("KEY_SESSION_NOT_FOUND");
+      expect(body.error.message).toBe("No checkout session found for this id.");
+      expect(JSON.stringify(body)).not.toMatch(/stack|api_keys|sqlite/i);
+    }
+    const post = await call(
+      "/v1/keys/claim",
+      {
+        method: "POST",
+        headers: { Accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ session_id: "cs_x/../../../../v1/customers" }),
+      },
+      env,
+    );
+    expect(post.status).toBe(404);
+    expect(urls.some((url) => url.includes("api.stripe.com"))).toBe(false);
+
+    const html = await call(
+      "/v1/keys/claim?session_id=" + encodeURIComponent("cs_x/../../../../v1/customers"),
+      { method: "GET", headers: { Accept: "text/html" } },
+      env,
+    );
+    expect(html.status).toBe(404);
+    const htmlBody = await html.text();
+    expect(htmlBody).not.toMatch(/at stripe|Error:|stack/i);
+    setGlobalFetch(prev);
+  });
+
+  it("portal uses the authenticated key's customer and ignores a session_id query", async () => {
+    const env = mockEnv();
+    await seedApiKey(env, PLAIN, { stripe_customer_id: "cus_owner" });
+    const prev = getGlobalFetch();
+    const urls: string[] = [];
+    let captured = "";
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      urls.push(url);
+      if (url.includes("api.stripe.com/v1/billing_portal/sessions")) {
+        captured = input instanceof Request ? await input.clone().text() : typeof init?.body === "string" ? init.body : "";
+        return new Response(JSON.stringify({ url: "https://billing.stripe.com/p/session/test_owner" }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        });
+      }
+      return prev(input as never, init);
+    });
+    const res = await call(
+      "/v1/keys/portal?session_id=" + encodeURIComponent("cs_other/../../../../v1/customers"),
+      { method: "POST", headers: { Authorization: `Bearer ${PLAIN}` } },
+      env,
+    );
+    setGlobalFetch(prev);
+    expect(res.status).toBe(200);
+    expect(new URLSearchParams(captured).get("customer")).toBe("cus_owner");
+    expect(urls.some((url) => url.includes("/v1/customers") || url.includes("cs_other"))).toBe(false);
+  });
+
   it("verifyStripeSignature rejects stale timestamps", async () => {
     const payload = "{}";
     const sig = await sign(payload, "whsec_test_mock", Math.floor(Date.now() / 1000) - 400);

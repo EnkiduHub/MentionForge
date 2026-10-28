@@ -324,7 +324,7 @@ async function selfHealKeyFromSession(
   if (prices.length === 0) {
     try {
       const expanded = asRecord(
-        await stripeGet(env, `/v1/checkout/sessions/${sessionId}?expand[]=line_items`, requestId),
+        await stripeGet(env, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}?expand[]=line_items`, requestId),
       );
       prices = sessionPriceIds(expanded);
     } catch {
@@ -366,15 +366,17 @@ async function selfHealKeyFromSession(
   });
 }
 
+const CHECKOUT_SESSION_ID = /^cs_[A-Za-z0-9_]{1,200}$/;
+
 async function resolveClaimableKey(env: Env, sessionId: string, requestId: string): Promise<ApiKeyRecord> {
-  if (!sessionId.startsWith("cs_")) {
-    throw new AgentError("VALIDATION_ERROR", "session_id must be a Stripe Checkout session id.", {
+  if (!CHECKOUT_SESSION_ID.test(sessionId)) {
+    throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", {
       request_id: requestId,
     });
   }
   let session: Record<string, unknown>;
   try {
-    session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${sessionId}`, requestId));
+    session = asRecord(await stripeGet(env, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, requestId));
   } catch (err) {
     if (isStripeResourceMissing(err)) {
       throw new AgentError("KEY_SESSION_NOT_FOUND", "No checkout session found for this id.", {
