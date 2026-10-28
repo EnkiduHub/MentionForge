@@ -24,7 +24,12 @@ const CLAIM_HEADERS: Record<string, string> = {
 
 function respondClaimError(c: Context<{ Bindings: Env }>, err: AgentError): Response {
   const status = err.status() as 400 | 401 | 402 | 404 | 410 | 429 | 500 | 503;
-  const retryAfter = err.code === "RATE_LIMITED" ? { "Retry-After": String(err.details.retry_after ?? 30) } : {};
+  const headers: Record<string, string> = {
+    ...CLAIM_HEADERS,
+    "X-Request-Id": err.request_id,
+    Vary: "Accept, Sec-Fetch-Dest",
+  };
+  if (err.code === "RATE_LIMITED") headers["Retry-After"] = String(err.details.retry_after ?? 30);
   if (wantsHtmlDocument(c)) {
     return c.html(
       claimPageHtml({
@@ -36,19 +41,11 @@ function respondClaimError(c: Context<{ Bindings: Env }>, err: AgentError): Resp
       status,
       {
         ...htmlSecurityHeaders(),
-        ...CLAIM_HEADERS,
-        ...retryAfter,
-        "X-Request-Id": err.request_id,
-        Vary: "Accept, Sec-Fetch-Dest",
+        ...headers,
       },
     );
   }
-  return c.json(err.body(), status, {
-    ...CLAIM_HEADERS,
-    ...retryAfter,
-    "X-Request-Id": err.request_id,
-    Vary: "Accept, Sec-Fetch-Dest",
-  });
+  return c.json(err.body(), status, headers);
 }
 
 async function limitClaim(c: Context<{ Bindings: Env }>, requestId: string): Promise<void> {
