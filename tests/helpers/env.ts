@@ -216,6 +216,9 @@ export function memoryD1() {
           if (flags.failIdempotency && sql.includes("FROM idempotency")) throw new Error("idempotency db down");
           if (flags.failUsage && sql.includes("x_id_usage")) throw new Error("usage db down");
           if (flags.failPlanUsage && sql.includes("plan_usage")) throw new Error("plan usage db down");
+          if (sql.includes("FROM stripe_events WHERE event_id")) {
+            return (stripeEvents.has(String(binds[0])) ? ({ event_id: String(binds[0]) } as T) : null);
+          }
           if (sql.includes("FROM api_keys WHERE key_hash")) {
             return (apiKeys.get(String(binds[0])) as T) ?? null;
           }

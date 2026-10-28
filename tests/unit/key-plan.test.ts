@@ -1331,6 +1331,78 @@ describe("Stripe Key plan", () => {
     setGlobalFetch(prev);
   });
 
+  it("rejects a webhook when the signing secret is unset", async () => {
+    const env = mockEnv({ STRIPE_WEBHOOK_SECRET: "" });
+    const res = await call(
+      "/v1/stripe/webhook",
+      {
+        method: "POST",
+        headers: { "content-type": "application/json", "Stripe-Signature": "t=1,v1=abcd" },
+        body: JSON.stringify({ id: "evt_unset", type: "checkout.session.completed" }),
+      },
+      env,
+    );
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: { code: string; message: string } };
+    expect(body.error.code).toBe("VALIDATION_ERROR");
+    expect(body.error.message).toBe("Invalid Stripe-Signature.");
+    expect(mem(env).apiKeys.size).toBe(0);
+    expect(await verifyStripeSignature("{}", null, "")).toBe(false);
+  });
+
+  it("records a checkout webhook only after it is applied, so a failed attempt can be retried once", async () => {
+    const env = mockEnv();
+    const prev = getGlobalFetch();
+    setGlobalFetch(async (input, init) => {
+      const url = String(input instanceof Request ? input.url : input);
+      if (url.includes("api.stripe.com/v1/subscriptions/sub_retry")) {
+        return new Response(
+          JSON.stringify({
+            id: "sub_retry",
+            status: "active",
+            customer: "cus_retry",
+            current_period_start: 1_700_000_000,
+            current_period_end: 1_700_000_000 + 30 * 86400,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return prev(input as never, init);
+    });
+    const orig = env.DB.prepare.bind(env.DB);
+    let inserts = 0;
+    env.DB.prepare = ((sql: string) => {
+      const stmt = orig(sql);
+      if (sql.includes("INSERT INTO api_keys")) {
+        const run = stmt.run.bind(stmt);
+        stmt.run = (async () => {
+          inserts += 1;
+          if (inserts === 1) throw new Error("d1 insert failed");
+          return run();
+        }) as typeof stmt.run;
+      }
+      return stmt;
+    }) as typeof env.DB.prepare;
+
+    const event = checkoutCompletedEvent("evt_retry_once", "cs_retry_once", "cus_retry", "sub_retry");
+    const first = await postWebhook(env, event);
+    expect(first.status).toBe(500);
+    const firstBody = (await first.json()) as { error: { code: string; message: string }; stack?: string };
+    expect(firstBody.error.code).toBe("INTERNAL_ERROR");
+    expect(firstBody.error.message).toBe("Internal error.");
+    expect(JSON.stringify(firstBody)).not.toMatch(/d1 insert failed|stack/i);
+    expect(mem(env).apiKeys.size).toBe(0);
+
+    const second = await postWebhook(env, event);
+    expect(second.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+
+    const third = await postWebhook(env, event);
+    expect(third.status).toBe(200);
+    expect(mem(env).apiKeys.size).toBe(1);
+    setGlobalFetch(prev);
+  });
+
   it("verifyStripeSignature rejects stale timestamps", async () => {
     const payload = "{}";
     const sig = await sign(payload, "whsec_test_mock", Math.floor(Date.now() / 1000) - 400);

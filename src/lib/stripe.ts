@@ -136,6 +136,13 @@ export function periodFromSubscription(sub: Record<string, unknown>): { start: n
   return { start, end };
 }
 
+async function eventAlreadyHandled(env: Env, eventId: string): Promise<boolean> {
+  const row = await env.DB.prepare("SELECT event_id FROM stripe_events WHERE event_id = ?")
+    .bind(eventId)
+    .first<{ event_id: string }>();
+  return Boolean(row);
+}
+
 async function recordEvent(env: Env, eventId: string): Promise<boolean> {
   const res = await env.DB.prepare(
     `INSERT INTO stripe_events (event_id, received_at) VALUES (?, ?)
@@ -205,12 +212,15 @@ async function loadSubscription(env: Env, id: string): Promise<Record<string, un
 }
 
 export async function handleStripeEvent(env: Env, event: Record<string, unknown>, requestId: string): Promise<void> {
-  const type = String(event.type ?? "");
   const id = String(event.id ?? "");
   if (!id) return;
-  const fresh = await recordEvent(env, id);
-  if (!fresh) return;
+  if (await eventAlreadyHandled(env, id)) return;
+  await applyStripeEvent(env, event, requestId);
+  await recordEvent(env, id);
+}
 
+async function applyStripeEvent(env: Env, event: Record<string, unknown>, requestId: string): Promise<void> {
+  const type = String(event.type ?? "");
   const obj = asRecord(event.data).object as Record<string, unknown> | undefined;
   const data = asRecord(obj);
 
