@@ -635,3 +635,76 @@ describe("MCP origin + factory", () => {
     expect(doc.resources?.every((r) => String(r.description).includes("research_mentions"))).toBe(true);
   });
 });
+
+const PROTOCOL_META = "io.modelcontextprotocol/protocolVersion";
+
+describe("MCP protocol negotiation", () => {
+  const headers = {
+    "content-type": "application/json",
+    host: "mentionforge.test",
+    accept: "application/json, text/event-stream",
+  };
+
+  async function post(body: unknown, extra: Record<string, string> = {}) {
+    return handleMcp(
+      new Request("https://mentionforge.test/mcp", {
+        method: "POST",
+        headers: { ...headers, ...extra },
+        body: JSON.stringify(body),
+      }),
+      mockEnv(),
+      executionCtx(),
+    );
+  }
+
+  it("negotiates initialize protocolVersion 2025-06-18", async () => {
+    const res = await post({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+    });
+    expect(res.status).toBe(200);
+    const parsed = (await mcpJson(res)) as { result?: { protocolVersion?: string } };
+    expect(parsed.result?.protocolVersion).toBe("2025-06-18");
+  });
+
+  it("serves tools/list when a legacy client repeats 2025-06-18 in the protocol envelope", async () => {
+    const res = await post({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/list",
+      params: { _meta: { [PROTOCOL_META]: "2025-06-18" } },
+    });
+    expect(res.status).toBe(200);
+    const parsed = (await mcpJson(res)) as { error?: { message?: string }; result?: { tools?: unknown[] } };
+    expect(parsed.error).toBeUndefined();
+    expect((parsed.result?.tools ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("serves tools/list when only the MCP-Protocol-Version header is 2025-06-18", async () => {
+    const res = await post(
+      { jsonrpc: "2.0", id: 3, method: "tools/list", params: {} },
+      { "MCP-Protocol-Version": "2025-06-18" },
+    );
+    expect(res.status).toBe(200);
+    const parsed = (await mcpJson(res)) as { error?: { message?: string }; result?: { tools?: unknown[] } };
+    expect(parsed.error?.message ?? "").not.toMatch(/Unsupported protocol version/);
+    expect((parsed.result?.tools ?? []).length).toBeGreaterThan(0);
+  });
+
+  it("returns a JSON-RPC error for an unsupported protocol version claim", async () => {
+    const res = await post({
+      jsonrpc: "2.0",
+      id: 9,
+      method: "tools/list",
+      params: { _meta: { [PROTOCOL_META]: "1999-01-01" } },
+    });
+    expect(res.status).toBe(400);
+    const parsed = (await res.json()) as { id?: number; error?: { code?: number; message?: string; data?: { requested?: string } } };
+    expect(parsed.id).toBe(9);
+    expect(parsed.error?.code).toBe(-32022);
+    expect(parsed.error?.message).toBe("Unsupported protocol version: 1999-01-01");
+    expect(parsed.error?.data?.requested).toBe("1999-01-01");
+  });
+});
