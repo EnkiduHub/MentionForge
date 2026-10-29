@@ -10,3 +10,5 @@ Local copies of the agent-facing install snippets. Live origin: `https://mention
 | [free-tour.sh](free-tour.sh) | Zero-wallet tour of five live FREE routes (`/health`, `/v1/pricing`, `/v1/research/example`, `/v1/suggest`, `/v1/entity`) |
 
 Paid specialty REST is POST-only. Do not GET `/v1/compare` `/v1/digest` `/v1/risk` `/v1/reply` `/v1/mentions` `/v1/trends`.
+
+MCP resources (free, same names as `server.registerResource` in `src/mcp.ts`): `mentionforge://pricing`, `mentionforge://openapi`, `mentionforge://example`, `mentionforge://skill`.

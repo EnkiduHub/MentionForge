@@ -446,7 +446,7 @@ describe("agent discoverability", () => {
     expect(missing).toEqual([]);
   });
 
-  it("README, docs/mcp.md, and examples/README list every registered MCP prompt and POST-only paid REST lens", () => {
+  it("README, docs/mcp.md, and examples/README list every registered MCP prompt, resource URI, and POST-only paid REST lens", () => {
     const mcpSrc = readFileSync(new URL("../../src/mcp.ts", import.meta.url), "utf8");
     const prompts = [...mcpSrc.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g)].map((m) => m[1] as string);
     expect(prompts).toEqual([
@@ -456,6 +456,15 @@ describe("agent discoverability", () => {
       "pain_mining",
       "mention_export",
       "trend_watch",
+    ]);
+    const resources = [
+      ...mcpSrc.matchAll(/server\.registerResource\(\s*"[^"]+"\s*,\s*"(mentionforge:\/\/[^"]+)"/g),
+    ].map((m) => m[1] as string);
+    expect(resources).toEqual([
+      "mentionforge://pricing",
+      "mentionforge://openapi",
+      "mentionforge://example",
+      "mentionforge://skill",
     ]);
 
     const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
@@ -467,6 +476,11 @@ describe("agent discoverability", () => {
     expect(missingFromDocs).toEqual([]);
     expect(mcpDocs).toContain("## MCP prompts");
     expect(readme).toContain("[MCP prompts](docs/mcp.md#mcp-prompts)");
+    for (const uri of resources) {
+      expect(readme).toContain(uri);
+      expect(mcpDocs).toContain(uri);
+      expect(examplesIndex).toContain(uri);
+    }
 
     for (const path of ["/v1/compare", "/v1/digest", "/v1/risk", "/v1/reply", "/v1/mentions", "/v1/trends"] as const) {
       expect(readme).toContain(path);

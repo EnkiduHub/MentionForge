@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: `examples/README.md` lists MCP resource URIs (`mentionforge://pricing`, `openapi`, `example`, `skill`); unit test fails when README, `docs/mcp.md`, or that examples index omit a registered `server.registerResource` URI (MF-D1029).
 - Docs: `examples/README.md` lists POST-only `/v1/mentions` and `/v1/trends` with the other paid lenses; unit test fails when README, `docs/mcp.md`, or that examples index omit a registered MCP prompt or those REST paths (MF-D1028).
 - Support page: static/fallback contact is `harbor-ops@mail.grokbot.com`; `GET /support` is noindex (`X-Robots-Tag` and robots meta) and is not listed in `/sitemap.xml`.
 - Fix: `upsertKeyFromSubscription` now `COALESCE`s `checkout_session_id` on an existing subscription row so `invoice.paid` / `customer.subscription.updated` arriving before `checkout.session.completed` (or claim self-heal) no longer leave claim lookup stuck on `NOT_FOUND`.
