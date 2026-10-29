@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { createApp } from "../../src/app";
@@ -274,6 +274,18 @@ describe("agent discoverability", () => {
     for (const path of ["/about", "/privacy", "/terms", "/llms.txt", "/llms-full.txt", "/skill.md", "/openapi.json", "/server-card.json"] as const) {
       const live = await call(path);
       expect(live.status, path).toBe(200);
+    }
+  });
+
+  it("every public/*.html meta description is at most 160 characters", () => {
+    const dir = new URL("../../public/", import.meta.url);
+    const files = readdirSync(dir).filter((name) => name.endsWith(".html"));
+    expect(files.length).toBeGreaterThan(0);
+    for (const name of files) {
+      const html = readFileSync(new URL(name, dir), "utf8");
+      const match = html.match(/<meta name="description" content="([^"]*)"/);
+      expect(match, name).toBeTruthy();
+      expect(match![1]!.length, name).toBeLessThanOrEqual(160);
     }
   });
 

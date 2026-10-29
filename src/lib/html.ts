@@ -153,7 +153,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   privacy: {
     title: "Privacy",
     description:
-      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects if you subscribe to an API key plan.",
+      "Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects.",
     sectionsHtml: `      <section aria-labelledby="privacy-accounts">
         <h2 id="privacy-accounts">Accounts, email, and payments</h2>
         <p>Free trial and pay-per-call use need no account, sign-up, password, or tracking cookies. If you subscribe to an API key plan, Stripe (our payment processor) collects your email address and payment details under <a href="https://stripe.com/privacy">Stripe&rsquo;s privacy policy</a>. MentionForge does not receive card numbers. Stripe emails receipts and invoices to the subscriber.</p>
@@ -218,7 +218,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   terms: {
     title: "Terms",
     description:
-      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC on-chain x402 settlement, 10-call wallet trial, API key subscription, and GitHub issue contact.",
+      "Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC x402 settlement, 10-call wallet trial, API key subscription.",
     sectionsHtml: `      <section aria-labelledby="terms-as-is">
         <h2 id="terms-as-is">Service provided as-is</h2>
         <p>MentionForge is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; without warranties of any kind, express or implied, including accuracy, completeness, availability, or fitness for a particular purpose.</p>
