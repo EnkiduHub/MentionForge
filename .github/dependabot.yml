@@ -15,6 +15,10 @@ updates:
         update-types:
           - version-update:semver-minor
           - version-update:semver-major
+      # Runtime is Node 22 (.nvmrc / ci.yml). Ignore @types/node majors (>=23).
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
   - package-ecosystem: github-actions
     directory: /
     schedule:

@@ -39,25 +39,25 @@
     "secret-scan": "bash scripts/check-secrets.sh"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.32.1",
-    "@modelcontextprotocol/server": "^2.3.1",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@modelcontextprotocol/server": "^2.4.0",
     "@x402/core": "^2.28.0",
     "@x402/evm": "^2.28.0",
     "@x402/extensions": "^2.28.0",
     "@x402/hono": "^2.28.0",
     "@x402/mcp": "^2.28.0",
-    "agents": "^0.29.0",
-    "hono": "^4.13.13",
+    "agents": "^0.32.0",
+    "hono": "^4.13.14",
     "mcp-remote": "0.14.5",
-    "viem": "^2.57.7",
+    "viem": "^2.57.11",
     "zod": "^4.5.0"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "^1.4.9",
-    "@cloudflare/workers-types": "5.20261023.1",
+    "@cloudflare/workers-types": "5.20261026.1",
     "@types/node": "^22.20.3",
     "tsx": "^4.20.0",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
     "wrangler": "^4.154.0"
