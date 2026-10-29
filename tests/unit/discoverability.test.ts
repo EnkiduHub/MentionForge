@@ -581,9 +581,28 @@ describe("agent discoverability", () => {
     expect(readme).toContain("Sync Server does not update Available Tools");
 
     const official = JSON.parse(readFileSync(new URL("../../server.json", import.meta.url), "utf8")) as {
+      $schema?: string;
+      title?: string;
+      description?: string;
       version?: string;
+      websiteUrl?: string;
+      icons?: Array<{ src?: string; mimeType?: string; sizes?: string[] }>;
       remotes?: Array<{ type?: string; url?: string }>;
     };
+    expect(official.$schema).toBe("https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json");
+    expect(official.title).toBe("MentionForge");
+    expect(official.description?.length ?? 0).toBeGreaterThan(0);
+    expect(official.description?.length ?? 999).toBeLessThanOrEqual(100);
+    const website = new URL(official.websiteUrl ?? "https://invalid.example");
+    expect(official.icons?.map((icon) => icon.sizes?.[0])).toEqual(["128x128", "256x256", "512x512"]);
+    for (const icon of official.icons ?? []) {
+      const src = new URL(icon.src ?? "");
+      expect(src.protocol).toBe("https:");
+      expect(src.host).toBe(website.host);
+      expect(icon.mimeType).toBe("image/png");
+      expect(icon.sizes?.[0]).toMatch(/^\d+x\d+$/);
+      expect((icon.src ?? "").length).toBeLessThanOrEqual(255);
+    }
     const pkgVersion = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")) as {
       version?: string;
     };

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Official MCP Registry `server.json` uses schema `2025-12-11` and publishes `title` plus sized HTTPS PNG icons on the Worker origin, so registry clients that render `title` and `icons` have a display name and artwork. Version stays `1.2.2`. No npm `packages` entry.
 - MCP: a 2025-era `POST /mcp` that copies a supported legacy protocol version (including `2025-06-18`) into `params._meta["io.modelcontextprotocol/protocolVersion"]` is served on the legacy lane instead of being rejected as an unsupported modern revision. `initialize` with that version is unchanged. An unsupported version, or a modern `MCP-Protocol-Version` header paired with a legacy claim, returns JSON-RPC `-32022`. Browser preflight allows `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name`.
 - Docs: `examples/README.md` lists MCP resource URIs (`mentionforge://pricing`, `openapi`, `example`, `skill`); unit test fails when README, `docs/mcp.md`, or that examples index omit a registered `server.registerResource` URI (MF-D1029).
 - Docs: `examples/README.md` lists POST-only `/v1/mentions` and `/v1/trends` with the other paid lenses; unit test fails when README, `docs/mcp.md`, or that examples index omit a registered MCP prompt or those REST paths (MF-D1028).
