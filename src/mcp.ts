@@ -46,6 +46,7 @@ import {
   TRENDS_DESC,
 } from "./lib/mcp-desc";
 import { initPaidMcpSession, mcpToolError, wrapPaidTool } from "./lib/mcp-paid";
+import { adaptLegacyProtocolClaim } from "./lib/mcp-protocol";
 import {
   compareInputSchema,
   compareOutputSchema,
@@ -143,12 +144,14 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
         ]),
       )
     : undefined;
-  const handler = createMcpHandler((info) => buildMcpServer({ env, ctx, request, origin, era: info?.era }), {
+  const adapted = await adaptLegacyProtocolClaim(request);
+  if (adapted instanceof Response) return adapted;
+  const handler = createMcpHandler((info) => buildMcpServer({ env, ctx, request: adapted, origin, era: info?.era }), {
     route: "/mcp",
     corsOptions: {
       origin: env.ALLOWED_ORIGINS === "*" || !env.ALLOWED_ORIGINS ? "*" : env.ALLOWED_ORIGINS.split(",")[0]?.trim(),
       headers:
-        "content-type, PAYMENT-SIGNATURE, X-PAYMENT, Idempotency-Key, X-Sandbox-Key, X-Wallet, Authorization, X-Api-Key, mcp-session-id",
+        "content-type, PAYMENT-SIGNATURE, X-PAYMENT, Idempotency-Key, X-Sandbox-Key, X-Wallet, Authorization, X-Api-Key, mcp-session-id, MCP-Protocol-Version, Mcp-Method, Mcp-Name",
       exposeHeaders: "PAYMENT-REQUIRED, PAYMENT-RESPONSE, X-Request-Id",
       maxAge: 86400,
     },
@@ -159,7 +162,7 @@ export async function handleMcp(request: Request, env: Env, ctx: ExecutionContex
     },
   });
   try {
-    return await handler(request, env, ctx);
+    return await handler(adapted, env, ctx);
   } catch (err) {
     if (err instanceof AgentError && err.code === "PAYMENT_REQUIRED") {
       return paymentRequiredHttp(env, origin, err);
