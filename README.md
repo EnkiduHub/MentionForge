@@ -158,7 +158,7 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 
 ### MCP
 
-`POST /mcp`, Streamable HTTP
+`POST /mcp`, Streamable HTTP. `initialize` accepts `2025-03-26` and `2025-06-18`; a supported legacy version in `params._meta["io.modelcontextprotocol/protocolVersion"]` stays on the 2025 lane (JSON-RPC `-32022` for unsupported versions). Details: [docs/mcp.md](docs/mcp.md#protocol-versions).
 
 - `get_health` — free liveness
 - `get_pricing` — free catalog
