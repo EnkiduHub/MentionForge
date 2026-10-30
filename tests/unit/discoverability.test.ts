@@ -487,7 +487,15 @@ describe("agent discoverability", () => {
     expect(missingFromReadme).toEqual([]);
     expect(missingFromDocs).toEqual([]);
     expect(mcpDocs).toContain("## MCP prompts");
+    expect(mcpDocs).toContain("## Protocol versions");
+    expect(mcpDocs).toContain("2025-06-18");
+    expect(mcpDocs).toContain("2025-03-26");
+    expect(mcpDocs).toContain('params._meta["io.modelcontextprotocol/protocolVersion"]');
+    expect(mcpDocs).toContain("-32022");
     expect(readme).toContain("[MCP prompts](docs/mcp.md#mcp-prompts)");
+    expect(readme).toContain("docs/mcp.md#protocol-versions");
+    expect(readme).toContain("2025-06-18");
+    expect(readme).toContain("2025-03-26");
     for (const uri of resources) {
       expect(readme).toContain(uri);
       expect(mcpDocs).toContain(uri);

@@ -2,6 +2,10 @@
 
 Transport: **Streamable HTTP** at `POST /mcp`. Stateless per-request factory via `createMcpHandler` from `agents/mcp/server`. No `McpAgent`, no MCP Durable Objects, no `/sse` unless a client forces it.
 
+## Protocol versions
+
+`initialize` accepts supported 2025-era protocol versions, including `2025-03-26` and `2025-06-18`. A 2025-era `POST /mcp` that copies a supported legacy version (including `2025-06-18`) into `params._meta["io.modelcontextprotocol/protocolVersion"]` is served on the legacy lane instead of being rejected as an unsupported modern revision. An unsupported version, or a modern `MCP-Protocol-Version` header paired with a legacy claim, returns JSON-RPC `-32022`. Browser CORS preflight allows `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name`.
+
 ## Tools
 
 ### `research_mentions`
