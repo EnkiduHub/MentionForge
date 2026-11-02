@@ -36,6 +36,7 @@
 - [Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge) — MCP server directory
 - [Smithery](https://smithery.ai/servers/enkiduhub/mentionforge) — MCP server directory
 - [Official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge) (`io.github.EnkiduHub/MentionForge`) — registry API entry
+- PulseMCP — no separate form; it ingests the Official MCP Registry listing above (`listings/pulsemcp.md`)
 - [Coinbase CDP x402 Bazaar](https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=MentionForge) — x402 discovery search API
 
 ## MCP tools
