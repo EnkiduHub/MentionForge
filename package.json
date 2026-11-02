@@ -41,11 +41,11 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@modelcontextprotocol/server": "^2.4.0",
-    "@x402/core": "^2.28.0",
-    "@x402/evm": "^2.28.0",
-    "@x402/extensions": "^2.28.0",
-    "@x402/hono": "^2.28.0",
-    "@x402/mcp": "^2.28.0",
+    "@x402/core": "^2.29.0",
+    "@x402/evm": "^2.29.0",
+    "@x402/extensions": "^2.29.0",
+    "@x402/hono": "^2.29.0",
+    "@x402/mcp": "^2.29.0",
     "agents": "^0.32.0",
     "hono": "^4.13.14",
     "mcp-remote": "0.14.5",
@@ -53,8 +53,8 @@
     "zod": "^4.5.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.9",
-    "@cloudflare/workers-types": "5.20261026.1",
+    "@cloudflare/vitest-plugin": "^1.4.11",
+    "@cloudflare/workers-types": "5.20261030.1",
     "@types/node": "^22.20.3",
     "tsx": "^4.20.0",
     "typescript": "^7.0.2",
