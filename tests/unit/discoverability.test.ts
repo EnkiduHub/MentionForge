@@ -238,6 +238,31 @@ describe("agent discoverability", () => {
     expect(txt).toMatch(/Do NOT use for live trading execution/);
   });
 
+  it("GET /.well-known/security.txt is UTF-8 text with the published contact", async () => {
+    const res = await call("/.well-known/security.txt");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type") ?? "").toBe("text/plain; charset=utf-8");
+    const txt = await res.text();
+    expect(txt).toContain("Contact: mailto:harbor-ops@mail.grokbot.com");
+    expect(txt).toContain("Expires: 2027-10-29T00:00:00Z");
+    expect(txt).toContain("Policy: https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md");
+    expect(txt).toContain("Preferred-Languages: en");
+  });
+
+  it("secondary pages use small WebP marks with 1x/2x srcset", () => {
+    const mark = 'src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96"';
+    for (const page of ["about", "privacy", "support", "terms"] as const) {
+      const html = readFileSync(new URL(`../../public/${page}.html`, import.meta.url), "utf8");
+      expect(html, page).toContain(mark);
+      expect(html, page).toContain('href="/logo-256x256.png"');
+    }
+    const logo96 = readFileSync(new URL("../../public/logo-96w.webp", import.meta.url));
+    const logo192 = readFileSync(new URL("../../public/logo-192w.webp", import.meta.url));
+    expect(logo96.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    expect(logo192.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    expect(logo96.byteLength).toBeLessThan(logo192.byteLength);
+  });
+
   it("robots allows skill.md and server-card.json", async () => {
     const res = await call("/robots.txt");
     expect(res.status).toBe(200);

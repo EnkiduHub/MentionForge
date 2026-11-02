@@ -34,14 +34,27 @@ export function htmlSecurityHeaders(): Record<string, string> {
   };
 }
 
+/** Ensure `text/html` responses declare UTF-8 without rewriting other types or existing charsets. */
+export function ensureHtmlUtf8Charset(headers: Headers): void {
+  const raw = headers.get("content-type") ?? headers.get("Content-Type");
+  if (!raw) return;
+  const media = raw.split(";")[0]?.trim().toLowerCase() ?? "";
+  if (media !== "text/html") return;
+  if (/(?:^|;)\s*charset\s*=/i.test(raw)) return;
+  headers.set("content-type", "text/html; charset=utf-8");
+}
+
 export function applySecurityHeaders(res: Response, kind: "html" | "asset"): Response {
   const headers = new Headers(res.headers);
   const extra = kind === "html" ? htmlSecurityHeaders() : apiSecurityHeaders();
   for (const [k, v] of Object.entries(extra)) {
     if (!headers.has(k)) headers.set(k, v);
   }
-  if (kind === "html" && !headers.has("Cache-Control")) {
-    headers.set("Cache-Control", "public, max-age=60");
+  if (kind === "html") {
+    ensureHtmlUtf8Charset(headers);
+    if (!headers.has("Cache-Control")) {
+      headers.set("Cache-Control", "public, max-age=60");
+    }
   }
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }

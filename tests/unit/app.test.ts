@@ -512,7 +512,7 @@ describe("HTTP surfaces", () => {
             `<!doctype html><title>MENTION//FORGE</title><meta property="og:image" content="/og.png"/><meta property="og:url" content=""/><link rel="canonical" href=""/>`,
             {
               status: 200,
-              headers: { "content-type": "text/html; charset=utf-8" },
+              headers: { "content-type": "text/html" },
             },
           );
         },
@@ -520,7 +520,7 @@ describe("HTTP surfaces", () => {
     });
     const res = await worker.fetch(new Request("https://mentionforge.test/"), env, executionCtx());
     expect(res.status).toBe(200);
-    expect(res.headers.get("content-type") ?? "").toMatch(/html/);
+    expect(res.headers.get("content-type") ?? "").toBe("text/html; charset=utf-8");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("content-security-policy") ?? "").toMatch(/script-src 'self'/);
     expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");

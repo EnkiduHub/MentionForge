@@ -151,6 +151,18 @@ discoveryRoutes.get("/.well-known/x402", (c) => {
   });
 });
 
+const SECURITY_TXT = `Contact: mailto:harbor-ops@mail.grokbot.com
+Expires: 2027-10-29T00:00:00Z
+Policy: https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md
+Preferred-Languages: en
+`;
+
+discoveryRoutes.get("/.well-known/security.txt", () => {
+  return new Response(SECURITY_TXT, {
+    headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" },
+  });
+});
+
 discoveryRoutes.get("/.well-known/mcp", (c) => {
   const origin = new URL(c.req.url).origin;
   const docs = discoveryDocs(origin);

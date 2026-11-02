@@ -361,7 +361,7 @@ export function trustPageHtml(slug: TrustPageSlug, env?: Pick<Env, "SUPPORT_EMAI
           <p class="lede muted">${escapeHtml(spec.description)}</p>
         </div>
         <div class="mark-wrap">
-          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+          <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
         </div>
       </header>
 
@@ -622,7 +622,7 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
           <p class="lede muted">${escapeHtml(description)}</p>
         </div>
         <div class="mark-wrap">
-          <img class="mark mark-sm" src="${BRAND_ASSETS.chrome}" width="96" height="96" alt=""/>
+          <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
         </div>
       </header>
 
