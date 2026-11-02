@@ -538,6 +538,20 @@ describe("agent discoverability", () => {
     );
   });
 
+  it("README PulseMCP listed-on line matches listings/pulsemcp.md; Smithery listing tools match mcpToolCards", () => {
+    const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+    const pulsemcp = readFileSync(new URL("../../listings/pulsemcp.md", import.meta.url), "utf8");
+    expect(pulsemcp).toContain("PulseMCP ingests the Official MCP Registry");
+    expect(readme).toContain("PulseMCP — no separate form; it ingests the Official MCP Registry listing above (`listings/pulsemcp.md`)");
+    expect(readme).toContain(DIRECTORY_LINKS.official_registry);
+
+    const smithery = readFileSync(new URL("../../listings/smithery.md", import.meta.url), "utf8");
+    const toolsJson = smithery.match(/"tools":\s*(\[[^\]]+\])/);
+    expect(toolsJson).not.toBeNull();
+    const listed = JSON.parse(toolsJson![1] as string) as string[];
+    expect(listed).toEqual(mcpToolCards().map((t) => t.name));
+  });
+
   it("Glama stdio bridge is a mcp-remote proxy to the hosted Worker, not a Worker clone", () => {
     const glama = JSON.parse(readFileSync(new URL("../../glama.json", import.meta.url), "utf8")) as {
       $schema?: string;
