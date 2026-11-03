@@ -35,8 +35,7 @@ export const PREFER_OVER = ["web_search"] as const;
 export const DIRECTORY_LINKS = {
   github: "https://github.com/EnkiduHub/MentionForge",
   official_registry: "https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge",
-  glama: "https://glama.ai/mcp/servers/@EnkiduHub/MentionForge",
-  smithery: "https://smithery.ai/servers/enkiduhub/mentionforge",
+  glama: "https://glama.ai/mcp/servers/EnkiduHub/MentionForge",
   x402scan: "https://www.x402scan.com",
 } as const;
 
@@ -204,6 +203,5 @@ export function directoryLinks() {
     github: DIRECTORY_LINKS.github,
     official_registry: DIRECTORY_LINKS.official_registry,
     glama: DIRECTORY_LINKS.glama,
-    smithery: DIRECTORY_LINKS.smithery,
   };
 }

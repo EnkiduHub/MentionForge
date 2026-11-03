@@ -6,7 +6,6 @@
 [![MCP](https://img.shields.io/badge/MCP-streamable--http-D4A017?style=flat-square)](./docs/mcp.md)
 [![license](https://img.shields.io/badge/license-MIT-F4EFE6?style=flat-square)](./LICENSE)
 [![MentionForge MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge/badges/score.svg)](https://glama.ai/mcp/servers/EnkiduHub/MentionForge)
-[![Smithery](https://img.shields.io/badge/Smithery-enkiduhub%2Fmentionforge-FF5601?style=flat-square)](https://smithery.ai/servers/enkiduhub/mentionforge)
 [![Official MCP Registry](https://img.shields.io/badge/MCP_Registry-io.github.EnkiduHub%2FMentionForge-0B7285?style=flat-square)](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge)
 
 [![Add to Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/link/mcp/install?name=mentionforge&config=eyJ1cmwiOiJodHRwczovL21lbnRpb25mb3JnZS5tZW50aW9uZm9yZ2Uud29ya2Vycy5kZXYvbWNwIn0=)
@@ -34,7 +33,6 @@
 ## Listed on
 
 - [Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge) — MCP server directory
-- [Smithery](https://smithery.ai/servers/enkiduhub/mentionforge) — MCP server directory
 - [Official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge) (`io.github.EnkiduHub/MentionForge`) — registry API entry
 - PulseMCP — no separate form; it ingests the Official MCP Registry listing above (`listings/pulsemcp.md`)
 - [Coinbase CDP x402 Bazaar](https://api.cdp.coinbase.com/platform/v2/x402/discovery/search?query=MentionForge) — x402 discovery search API
@@ -196,8 +194,7 @@ claude mcp add --transport http mentionforge https://mentionforge.mentionforge.w
 ```
 
 Official MCP Registry: [`io.github.EnkiduHub/MentionForge`](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge)  
-Glama: [servers/EnkiduHub/MentionForge](https://glama.ai/mcp/servers/EnkiduHub/MentionForge)  
-Smithery: [servers/enkiduhub/mentionforge](https://smithery.ai/servers/enkiduhub/mentionforge)
+Glama: [servers/EnkiduHub/MentionForge](https://glama.ai/mcp/servers/EnkiduHub/MentionForge)
 
 Glama’s GitHub **Deploy Server** speaks stdio. `npm start` / the `mentionforge` bin / the root `Dockerfile` run `scripts/glama-stdio.mjs` (`mcp-remote` → that `/mcp` URL). They do not boot Wrangler and do not take `RECIPIENT_WALLET` — `payTo` stays on the production Worker, so Glama users still settle $0.02 USDC on Base to this origin. Local Worker remains `npm run dev`. Admin form values: [listings/glama.md](listings/glama.md).
 

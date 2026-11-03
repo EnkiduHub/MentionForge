@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Discoverability: Glama directory URL is the canonical `https://glama.ai/mcp/servers/EnkiduHub/MentionForge` (no `@`). Smithery is omitted from shipped pages and payloads until a listing exists (MF-B21).
 - Docs: README MCP tools table copies free-tool optional params from Zod (`include_backends`, `include_catalog`, `view` full/compact). Unit test fails when that table omits a `mcpToolCards()` name or those params (MF-D1103).
 - Docs: README `Listed on` states PulseMCP has no separate form and ingests the Official MCP Registry (`listings/pulsemcp.md`). Unit test fails when that line is missing or when `listings/smithery.md` `tools` JSON drifts from `mcpToolCards()` (MF-D1102).
 - Docs: README and `docs/mcp.md` state that `POST /mcp` `initialize` accepts `2025-03-26` and `2025-06-18`, and that a supported legacy version in `params._meta["io.modelcontextprotocol/protocolVersion"]` stays on the 2025 lane (JSON-RPC `-32022` otherwise). Unit test fails when those docs omit `2025-06-18` (MF-D1030).

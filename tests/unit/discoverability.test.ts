@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
-import { DIRECTORY_LINKS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
+import { DIRECTORY_LINKS, directoryLinks, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
 import { supportPageHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
 import { planKeyMonthlyCalls } from "../../src/lib/plan-quota";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
@@ -111,9 +111,9 @@ describe("agent discoverability", () => {
     expect(html).toMatch(/web_search/);
     expect(html).toContain(DIRECTORY_LINKS.github);
     expect(html).toContain(DIRECTORY_LINKS.glama);
-    expect(html).toContain(DIRECTORY_LINKS.smithery);
     expect(html).toContain(DIRECTORY_LINKS.official_registry);
     expect(html).toContain(DIRECTORY_LINKS.x402scan);
+    expect(html).not.toMatch(/smithery\.ai/i);
     expect(html).toContain(" Base · $0.02 USDC");
     expect(html).toContain('id="network-chip">Base');
     expect(html).toContain("Loading from GET /health…");
@@ -188,7 +188,9 @@ describe("agent discoverability", () => {
     expect(card.docs.llms).toMatch(/\/llms\.txt$/);
     expect(card.docs.llms_full).toMatch(/\/llms-full\.txt$/);
     expect(card.docs.skill).toMatch(/\/skill\.md$/);
+    expect(card.directories).toEqual(directoryLinks());
     expect(card.directories.github).toBe(DIRECTORY_LINKS.github);
+    expect(card.directories).not.toHaveProperty("smithery");
     expect(card.pricing.tool).toBe("research_mentions");
     expect(card.pricing.pay_to).toMatch(/^0x/i);
   });
@@ -572,6 +574,48 @@ describe("agent discoverability", () => {
     expect(readme).toContain("Optional `include_backends` (boolean, default true)");
     expect(readme).toContain("Optional `include_catalog` (boolean, default true)");
     expect(readme).toContain('Optional `view`: `"full"` or `"compact"`');
+  });
+
+  it("shipped pages and payloads omit smithery.ai and use canonical Glama (no @)", async () => {
+    expect(DIRECTORY_LINKS.glama).toBe("https://glama.ai/mcp/servers/EnkiduHub/MentionForge");
+    expect(DIRECTORY_LINKS.glama).not.toContain("@");
+    expect(DIRECTORY_LINKS).not.toHaveProperty("smithery");
+    expect(directoryLinks()).not.toHaveProperty("smithery");
+
+    const shippedPaths = [
+      "/about",
+      "/privacy",
+      "/terms",
+      "/support",
+      "/llms.txt",
+      "/llms-full.txt",
+      "/skill.md",
+      "/server-card.json",
+      "/.well-known/mcp",
+      "/.well-known/mcp/server-card.json",
+    ] as const;
+    for (const path of shippedPaths) {
+      const body = await (await call(path)).text();
+      expect(body, path).not.toMatch(/smithery\.ai/i);
+      expect(body, path).not.toContain("glama.ai/mcp/servers/@");
+      if (path === "/about" || path === "/server-card.json") {
+        expect(body, path).toContain(DIRECTORY_LINKS.glama);
+      }
+    }
+
+    const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+    expect(readme).not.toMatch(/smithery\.ai/i);
+    expect(readme).not.toContain("glama.ai/mcp/servers/@");
+    expect(readme).toContain(DIRECTORY_LINKS.glama);
+
+    const publicDir = new URL("../../public/", import.meta.url);
+    for (const name of readdirSync(publicDir)) {
+      if (!name.endsWith(".html")) continue;
+      const html = readFileSync(new URL(name, publicDir), "utf8");
+      expect(html, name).not.toMatch(/smithery\.ai/i);
+      expect(html, name).not.toContain("glama.ai/mcp/servers/@");
+      expect(html, name).toContain(DIRECTORY_LINKS.glama);
+    }
   });
 
   it("README PulseMCP listed-on line matches listings/pulsemcp.md; Smithery listing tools match mcpToolCards", () => {
