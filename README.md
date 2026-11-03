@@ -45,9 +45,9 @@ Same 12 tools as the live [server card](https://mentionforge.mentionforge.worker
 
 | Tool | Cost | Purpose |
 | --- | --- | --- |
-| `get_health` | free | Check Worker liveness and whether paid research can settle. |
-| `get_pricing` | free | Return list price, trial policy, and CAIP-2 network. |
-| `get_example` | free | Return a frozen Cloudflare Workers research snapshot. |
+| `get_health` | free | Check Worker liveness and whether paid research can settle. Optional `include_backends` (boolean, default true). |
+| `get_pricing` | free | Return list price, trial policy, and CAIP-2 network. Optional `include_catalog` (boolean, default true). |
+| `get_example` | free | Return a frozen Cloudflare Workers research snapshot. Optional `view`: `"full"` or `"compact"`. |
 | `suggest_tool` | free | Pick exactly one MentionForge tool for a goal. |
 | `get_entity_profile` | free | Return a Wikipedia and Wikidata identity card. |
 | `research_mentions` | paid ($0.02 USDC) | Research a full cited social-listening brief (mentions, volume, themes, sentiment). |

@@ -563,6 +563,17 @@ describe("agent discoverability", () => {
     );
   });
 
+  it("README MCP tools table lists every mcpToolCards name and free-tool optional params from Zod", () => {
+    const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
+    const cards = mcpToolCards();
+    expect(readme).toContain(`Same ${cards.length} tools`);
+    const missing = cards.filter((card) => !readme.includes(`| \`${card.name}\` |`));
+    expect(missing.map((card) => card.name)).toEqual([]);
+    expect(readme).toContain("Optional `include_backends` (boolean, default true)");
+    expect(readme).toContain("Optional `include_catalog` (boolean, default true)");
+    expect(readme).toContain('Optional `view`: `"full"` or `"compact"`');
+  });
+
   it("README PulseMCP listed-on line matches listings/pulsemcp.md; Smithery listing tools match mcpToolCards", () => {
     const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
     const pulsemcp = readFileSync(new URL("../../listings/pulsemcp.md", import.meta.url), "utf8");
