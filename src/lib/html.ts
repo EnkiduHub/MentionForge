@@ -1,4 +1,7 @@
 import { BRAND_ASSETS } from "./brand-assets";
+import { DIRECTORY_LINKS } from "./discoverability";
+
+const DIRECTORY_FOOTER_HTML = `<p class="dirs"><a href="${DIRECTORY_LINKS.github}">GitHub</a> · <a href="${DIRECTORY_LINKS.glama}">Glama</a> · <a href="${DIRECTORY_LINKS.official_registry}">Official Registry</a> · <a href="${DIRECTORY_LINKS.x402scan}">x402scan</a></p>`;
 
 export function escapeHtml(s: string): string {
   return s
@@ -372,7 +375,7 @@ ${sectionsHtml}
         ${footerNav}
       </nav>
       <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
-      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+      ${DIRECTORY_FOOTER_HTML}
     </footer>
   </div>
 </body>
@@ -657,7 +660,7 @@ export function supportPageHtml(env?: Pick<Env, "SUPPORT_EMAIL">): string {
         ${footerNav}
       </nav>
       <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
-      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/@EnkiduHub/MentionForge">Glama</a> · <a href="https://smithery.ai/servers/enkiduhub/mentionforge">Smithery</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
+      ${DIRECTORY_FOOTER_HTML}
     </footer>
   </div>
 </body>

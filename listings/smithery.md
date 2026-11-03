@@ -2,7 +2,8 @@
 
 Publish the **already-hosted** Streamable HTTP server. Do not upload a local stdio/MCPB build.
 
-**Listing:** [smithery.ai/servers/enkiduhub/mentionforge](https://smithery.ai/servers/enkiduhub/mentionforge) (canonical, no `@`)  
+Do **not** advertise a Smithery directory URL until a listing exists (checked 2026-11-03: previous `servers/enkiduhub/mentionforge` path 404s). Official Registry + GitHub are the unattended discovery paths.
+
 **UI:** [smithery.ai/new](https://smithery.ai/new) — enter the public HTTPS MCP URL.
 
 ## Form fields
