@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: README MCP tools table copies free-tool optional params from Zod (`include_backends`, `include_catalog`, `view` full/compact). Unit test fails when that table omits a `mcpToolCards()` name or those params (MF-D1103).
 - Docs: README `Listed on` states PulseMCP has no separate form and ingests the Official MCP Registry (`listings/pulsemcp.md`). Unit test fails when that line is missing or when `listings/smithery.md` `tools` JSON drifts from `mcpToolCards()` (MF-D1102).
 - Docs: README and `docs/mcp.md` state that `POST /mcp` `initialize` accepts `2025-03-26` and `2025-06-18`, and that a supported legacy version in `params._meta["io.modelcontextprotocol/protocolVersion"]` stays on the 2025 lane (JSON-RPC `-32022` otherwise). Unit test fails when those docs omit `2025-06-18` (MF-D1030).
 - Official MCP Registry `server.json` uses schema `2025-12-11` and publishes `title` plus sized HTTPS PNG icons on the Worker origin, so registry clients that render `title` and `icons` have a display name and artwork. Version stays `1.2.2`. No npm `packages` entry.
