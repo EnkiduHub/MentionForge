@@ -1,15 +1,20 @@
 /// <reference types="node" />
 /**
- * Bazaar seed: unpaid MCP research_mentions (402) + unpaid REST POST /v1/research (402),
- * then PAY_ONCE settles both so CDP can index type:mcp and type:http.
+ * Bazaar seed: unpaid MCP research_mentions (402) + unpaid REST POST /v1/research (402)
+ * and POST /v1/research_mentions (402), then PAY_ONCE settles the selected paths so CDP
+ * can index type:mcp and type:http.
  *
- * Default is dry-run (no USDC). Spends $0.06 ($0.02 MCP + $0.02 /v1/research + $0.02 /v1/research_mentions)
- * when PAY_ONCE=1 and
+ * Default is dry-run (no USDC). PAY_ONCE=1 spends $0.02 per selected path.
+ * Default PAY_PATHS is all three ($0.06): mcp, rest-research, rest-research-mentions.
+ * Weekly heartbeat: PAY_ONCE=1 PAY_PATHS=mcp npm run seed-bazaar ($0.02, MCP only).
+ * Unknown PAY_PATHS values exit before any settlement.
  * TEST_PAYER_PRIVATE_KEY / TEST_SEED_PAYER_PRIVATE_KEY is 0x + 64 hex in the environment / .dev.vars.
  *
  * MCP x402 expects `_meta["x402/payment"]` to be the payload object, not REST base64.
  * CDP discovery requires paymentPayload.resource (absolute https) plus echoed bazaar extensions.
  */
+import { pathToFileURL } from "node:url";
+import { parsePayPaths, payPathCostLabel, PAY_PATH_HELP, settlePayPaths } from "./pay-paths.js";
 import {
   assertAcceptsMainnet,
   assertPayerDiffersFromPayTo,
@@ -170,6 +175,7 @@ async function mcpRpc(body: unknown, extraHeaders: Record<string, string> = {}) 
 }
 
 async function main() {
+  const paths = parsePayPaths(process.env["PAY_PATHS"]);
   const price = await assertProductionReady(origin);
   const keyInfo = describePayerKey();
   console.log("payer_key", keyInfo);
@@ -219,7 +225,9 @@ async function main() {
 
   if (!wantPayOnce()) {
     console.log("Dry-run complete. Then npm run fund-seed-payer and PAY_ONCE=1 (payer must differ from payTo).");
-    console.log("PAY_ONCE spends $0.06: MCP research_mentions, REST POST /v1/research, REST POST /v1/research_mentions.");
+    console.log(
+      `PAY_ONCE spends ${payPathCostLabel(paths)}. PAY_PATHS=${PAY_PATH_HELP} (default all three, $0.06). Weekly heartbeat: PAY_ONCE=1 PAY_PATHS=mcp npm run seed-bazaar ($0.02).`,
+    );
     return;
   }
   if (!price.payments_ready) {
@@ -230,6 +238,26 @@ async function main() {
   const { account, client } = payerClient(readPayerPrivateKey());
   assertPayerDiffersFromPayTo(account.address, price.pay_to);
   console.log("payer", account.address);
+  console.log("PAY_PATHS", payPathCostLabel(paths));
+
+  await settlePayPaths(paths, async (path) => {
+    if (path === "mcp") {
+      await settleMcp(client, required, sessionHeaders);
+      return;
+    }
+    if (path === "rest-research") {
+      await payRest(client, restRequired, "/v1/research");
+      return;
+    }
+    await payRest(client, aliasRequired, "/v1/research_mentions");
+  });
+}
+
+async function settleMcp(
+  client: { createPaymentPayload: (required: never) => Promise<unknown> },
+  required: Json,
+  sessionHeaders: Record<string, string>,
+): Promise<void> {
   const payload = echoCatalog(await client.createPaymentPayload(required as never), required);
   const recPayload = payload as {
     x402Version?: number;
@@ -296,12 +324,17 @@ async function main() {
     process.exit(1);
   }
   console.log("paid MCP ok", paid.res.status);
-
-  await payRest(client, restRequired, "/v1/research");
-  await payRest(client, aliasRequired, "/v1/research_mentions");
 }
 
-main().catch((err: unknown) => {
-  console.error(err instanceof Error ? err.message : err);
-  process.exit(1);
-});
+function invokedDirectly(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  return import.meta.url === pathToFileURL(entry).href;
+}
+
+if (invokedDirectly()) {
+  main().catch((err: unknown) => {
+    console.error(err instanceof Error ? err.message : err);
+    process.exit(1);
+  });
+}

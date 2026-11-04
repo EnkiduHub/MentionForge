@@ -1,6 +1,6 @@
 # x402scan listing
 
-Production Bazaar seed must run **after** a Worker deploy that changes settle catalog (resource URL, HTTP/MCP bazaar extensions, or search copy). Dry-run: `npm run seed-bazaar`. Paid: `PAY_ONCE=1 npm run seed-bazaar` ($0.06: MCP, then `/v1/research`, then `/v1/research_mentions`).
+Production Bazaar seed must run **after** a Worker deploy that changes settle catalog (resource URL, HTTP/MCP bazaar extensions, or search copy). Dry-run: `npm run seed-bazaar`. Paid default: `PAY_ONCE=1 npm run seed-bazaar` ($0.06: MCP, then `/v1/research`, then `/v1/research_mentions`). Weekly heartbeat: `PAY_ONCE=1 PAY_PATHS=mcp npm run seed-bazaar` ($0.02, MCP only).
 
 | Field | Value |
 | --- | --- |
