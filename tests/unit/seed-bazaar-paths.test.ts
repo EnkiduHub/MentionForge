@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { parsePayPaths, settlePayPaths } from "../../scripts/seed-bazaar";
+import { parsePayPaths, settlePayPaths, type PayPath } from "../../scripts/pay-paths";
 
 describe("PAY_PATHS settlements", () => {
   const prev = process.env["PAY_PATHS"];
@@ -20,7 +20,7 @@ describe("PAY_PATHS settlements", () => {
 
   it("default PAY_PATHS makes three settlement calls", async () => {
     delete process.env["PAY_PATHS"];
-    const settle = vi.fn(async () => {});
+    const settle = vi.fn(async (_path: PayPath) => {});
     const count = await settlePayPaths(parsePayPaths(process.env["PAY_PATHS"]), settle);
     expect(count).toBe(3);
     expect(settle.mock.calls.map((call) => call[0])).toEqual([
