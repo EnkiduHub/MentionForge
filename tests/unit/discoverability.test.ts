@@ -618,6 +618,21 @@ describe("agent discoverability", () => {
     }
   });
 
+  it("docs/api.md GET /health source_backends modes match sourceBackends() literals", () => {
+    const apiDocs = readFileSync(new URL("../../docs/api.md", import.meta.url), "utf8");
+    const healthRow = apiDocs.split("\n").find((line) => line.includes("`GET/HEAD /health`"));
+    expect(healthRow).toBeTruthy();
+    const row = healthRow!;
+    expect(row).toContain("sourceBackends()");
+    expect(row).toContain("src/lib/source-backends.ts");
+    for (const mode of ["disabled", "oauth", "public", "api", "web", "brave+wiki", "wiki", "web+reddit"] as const) {
+      expect(row, mode).toContain(`\`${mode}\``);
+    }
+    expect(row).toContain("DISABLED_SOURCES=x,reddit");
+    expect(row).not.toMatch(/reddit `public`\/`oauth`/);
+    expect(row).not.toMatch(/x `web`\/`api`/);
+  });
+
   it("README PulseMCP listed-on line matches listings/pulsemcp.md; Smithery listing tools match mcpToolCards", () => {
     const readme = readFileSync(new URL("../../README.md", import.meta.url), "utf8");
     const pulsemcp = readFileSync(new URL("../../listings/pulsemcp.md", import.meta.url), "utf8");
