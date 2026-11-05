@@ -47,20 +47,20 @@
     "@x402/hono": "^2.29.0",
     "@x402/mcp": "^2.29.0",
     "agents": "^0.32.0",
-    "hono": "^4.13.14",
+    "hono": "^4.13.16",
     "mcp-remote": "0.14.5",
-    "viem": "^2.57.11",
+    "viem": "^2.57.14",
     "zod": "^4.5.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.4.11",
-    "@cloudflare/workers-types": "5.20261030.1",
+    "@cloudflare/vitest-plugin": "^1.4.12",
+    "@cloudflare/workers-types": "5.20261102.1",
     "@types/node": "^22.20.3",
     "tsx": "^4.20.0",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
     "vitest": "^5.0.5",
-    "wrangler": "^4.154.0"
+    "wrangler": "^4.156.1"
   },
   "overrides": {
     "zod": "^4.5.0",
