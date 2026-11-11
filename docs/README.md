@@ -11,5 +11,7 @@ Operator and protocol notes for the hosted Worker. Agent-facing copy lives on th
 | [architecture.md](architecture.md) | Engine, cache, sources, SSRF, budget |
 | [operations.md](operations.md) | Secrets, D1, health, deploy |
 | [go-live.md](go-live.md) | Production checklist |
+| [DESIGN-SYSTEM.md](DESIGN-SYSTEM.md) | Website tokens, components, motion, SEO, page architecture |
+| [revamp-2026-11/](revamp-2026-11/README.md) | November 2026 website revamp: Lighthouse before/after, screenshots, verification |
 
 Version is `1.2.2` ([CHANGELOG](../CHANGELOG.md), same as `package.json`). Default CI is `npm test` (unit). Do not enable the Miniflare worker project in default CI.
