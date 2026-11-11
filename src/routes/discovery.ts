@@ -75,7 +75,7 @@ discoveryRoutes.get("/health", async (c) => {
   const cache = deep ? "private, no-store" : "public, max-age=30";
   return sendPublic(c, await healthBody(c.env, deep), 200, { "Cache-Control": cache }, {
     title: "Health",
-    hint: "Live worker status. Agents should request application/json.",
+    hint: "Live service status: uptime, payment readiness, and which sources are enabled. Agents should request application/json.",
   });
 });
 discoveryRoutes.on("HEAD", "/health", (c) => {
@@ -86,7 +86,7 @@ discoveryRoutes.get("/stats", async (c) => {
   const usage = await publicUsage(c.env);
   return sendPublic(c, usage, 200, { "Cache-Control": "public, max-age=15" }, {
     title: "Public volume",
-    hint: "Successful research completions only. calls equals paid plus trial. Validation, rate limits, and other non-completions are excluded. Revenue is not published here.",
+    hint: "Successful research completions only. calls equals paid plus trial. Failed or rate-limited requests are excluded. Revenue is not published here.",
   });
 });
 
@@ -94,7 +94,7 @@ discoveryRoutes.get("/openapi.json", (c) => {
   const origin = new URL(c.req.url).origin;
   return sendPublic(c, openApiDocument(origin, c.env), 200, { "Cache-Control": "public, max-age=300" }, {
     title: "OpenAPI",
-    hint: "Machine-readable contract for POST /v1/research. Sample query is Cloudflare Workers.",
+    hint: "OpenAPI 3.1 description of the REST API, including POST /v1/research with a Cloudflare Workers sample request.",
   });
 });
 
@@ -147,7 +147,7 @@ discoveryRoutes.get("/.well-known/x402", (c) => {
   };
   return sendPublic(c, doc, 200, { "Cache-Control": "public, max-age=120" }, {
     title: "x402",
-    hint: "Bazaar discovery document. payTo is listed here for settlement, not on the marketing landing.",
+    hint: "x402 discovery document for payment-aware clients and indexes, including the settlement details for paid calls.",
   });
 });
 
@@ -180,7 +180,7 @@ discoveryRoutes.get("/.well-known/mcp", (c) => {
     },
     200,
     { "Cache-Control": "public, max-age=300" },
-    { title: "MCP", hint: "Streamable HTTP endpoint for research_mentions." },
+    { title: "MCP", hint: "Where MCP clients connect: the Streamable HTTP endpoint for research_mentions, plus the server card and docs." },
   );
 });
 
@@ -207,7 +207,7 @@ function serverCard(c: Context<{ Bindings: Env }>) {
     },
     200,
     { "Cache-Control": "public, max-age=300" },
-    { title: "MCP server card", hint: "Tool list and pricing for this deployment." },
+    { title: "MCP server card", hint: "Every MCP tool with its inputs, plus pricing, install details, and directory listings." },
   );
 }
 
@@ -306,7 +306,7 @@ volume, sentiment, themes, mentions (id, platform, url, author, timestamp, text,
 `;
   return sendPublic(c, txt, 200, { "Cache-Control": "public, max-age=300" }, {
     title: "Full agent guide",
-    hint: "Complete REST, MCP, and source notes for this deployment.",
+    hint: "The complete agent guide: REST, MCP, payments, sources, and output format.",
   });
 });
 

@@ -5,121 +5,252 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="dark"/>
   <meta name="theme-color" content="#0B0C0F"/>
-  <title>MENTION//FORGE — Privacy</title>
-  <meta name="description" content="Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects."/>
-  <meta property="og:title" content="MENTION//FORGE — Privacy"/>
-  <meta property="og:description" content="Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects."/>
+  <title>Privacy policy — MentionForge</title>
+  <meta name="description" content="What MentionForge stores and why: free-trial and usage records, short-lived caches, public on-chain payments, and what Stripe handles for subscriptions."/>
+  <meta property="og:title" content="Privacy policy — MentionForge"/>
+  <meta property="og:description" content="What MentionForge stores and why: free-trial and usage records, short-lived caches, public on-chain payments, and what Stripe handles for subscriptions."/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="MentionForge"/>
   <meta property="og:locale" content="en_US"/>
   <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/privacy"/>
   <meta property="og:image" content="/og.png"/>
+  <meta property="og:image:type" content="image/png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="MENTION//FORGE — social listening for agents"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Privacy policy — MentionForge"/>
+  <meta name="twitter:description" content="What MentionForge stores and why: free-trial and usage records, short-lived caches, public on-chain payments, and what Stripe handles for subscriptions."/>
+  <meta name="twitter:image" content="/og.png"/>
   <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/privacy"/>
   <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="icon" href="/logo-128x128.png" type="image/png" sizes="128x128"/>
   <link rel="apple-touch-icon" href="/logo-256x256.png"/>
   <link rel="stylesheet" href="/styles.css"/>
   <script src="/app.js" defer></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mentionforge.mentionforge.workers.dev/#organization","name":"MentionForge","alternateName":"MENTION//FORGE","url":"https://mentionforge.mentionforge.workers.dev/","logo":{"@type":"ImageObject","url":"https://mentionforge.mentionforge.workers.dev/logo-512x512.png","width":512,"height":512},"sameAs":["https://github.com/EnkiduHub/MentionForge","https://glama.ai/mcp/servers/EnkiduHub/MentionForge"]},{"@type":"WebSite","@id":"https://mentionforge.mentionforge.workers.dev/#website","name":"MentionForge","url":"https://mentionforge.mentionforge.workers.dev/","inLanguage":"en","publisher":{"@id":"https://mentionforge.mentionforge.workers.dev/#organization"}},{"@type":"WebPage","@id":"https://mentionforge.mentionforge.workers.dev/privacy#webpage","url":"https://mentionforge.mentionforge.workers.dev/privacy","name":"Privacy policy — MentionForge","description":"What MentionForge stores and why: free-trial and usage records, short-lived caches, public on-chain payments, and what Stripe handles for subscriptions.","inLanguage":"en","isPartOf":{"@id":"https://mentionforge.mentionforge.workers.dev/#website"},"breadcrumb":{"@id":"https://mentionforge.mentionforge.workers.dev/privacy#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://mentionforge.mentionforge.workers.dev/privacy#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://mentionforge.mentionforge.workers.dev/"},{"@type":"ListItem","position":2,"name":"Privacy policy","item":"https://mentionforge.mentionforge.workers.dev/privacy"}]}]}</script>
 </head>
-<body>
+<body class="page-privacy">
   <a class="skip" href="#main">Skip to content</a>
   <div class="aurora" aria-hidden="true"></div>
-  <div class="wrap">
-    <header class="top">
-      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
-      <nav aria-label="Discovery">
-        <a href="/llms.txt">llms.txt</a>
-        <a href="/skill.md">skill.md</a>
-        <a href="/openapi.json">OpenAPI</a>
-        <a href="/.well-known/x402">x402</a>
-        <a href="/v1/pricing">pricing</a>
-        <a href="/v1/research/example">example</a>
-        <a href="/health">health</a>
-        <a href="https://github.com/EnkiduHub/MentionForge">GitHub</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+        <span class="brand-word">MENTION//FORGE</span>
+      </a>
+      <nav class="nav-primary" aria-label="Primary">
+        <a href="/#how">How it works</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/about">About</a>
+        <details class="menu menu-dev">
+          <summary>Developers <svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <ul class="menu-panel" role="list">
+            <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+            <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+            <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+            <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+            <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+            <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+            <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+          </ul>
+        </details>
       </nav>
-    </header>
+      <div class="header-actions">
+        <a class="icon-link" href="https://github.com/EnkiduHub/MentionForge"><svg class="icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><span class="sr-only">MentionForge on GitHub</span></a>
+        <a class="btn btn-primary btn-sm header-cta" href="/#install">Get started</a>
+        <details class="menu menu-mobile">
+          <summary><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="sr-only">Menu</span></summary>
+          <nav class="menu-panel menu-sheet" aria-label="Mobile">
+            <ul role="list">
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="/about">About</a></li>
+            </ul>
+            <p class="menu-heading">Developers</p>
+            <ul role="list">
+              <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+              <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+              <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+              <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+              <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+              <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+              <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+            </ul>
+            <a class="btn btn-primary" href="/#install">Get started free</a>
+          </nav>
+        </details>
+      </div>
+    </div>
+  </header>
     <main id="main">
-      <header class="hero hero-compact">
-        <div>
-          <h1>Privacy</h1>
-          <p class="lede muted">Plain-language summary of what MentionForge stores in Cloudflare D1, Analytics Engine, and Cache API; how on-chain x402 payments work; and what Stripe collects.</p>
-        </div>
-        <div class="mark-wrap">
-          <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+      <header class="page-hero">
+        <div class="container page-hero-inner">
+          <div class="page-hero-copy">
+            <p class="eyebrow">Legal</p>
+            <h1>Privacy policy</h1>
+            <p class="lede">A plain-language account of what MentionForge stores, why, and for how long. No account or tracking cookies are needed to use the service.</p>
+          </div>
+          <div class="page-hero-mark">
+            <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+          </div>
         </div>
       </header>
+      <div class="container doc-layout">
+        <nav class="toc" aria-label="On this page">
+          <p class="toc-title">On this page</p>
+          <ol role="list">
+            <li><a href="#privacy-summary">The short version</a></li>
+            <li><a href="#privacy-accounts">Accounts, email, and payments</a></li>
+            <li><a href="#privacy-d1">What we store</a></li>
+            <li><a href="#privacy-metrics">Metrics, caching, and rate limits</a></li>
+            <li><a href="#privacy-onchain">On-chain payments are public</a></li>
+            <li><a href="#privacy-retention">Retention and data requests</a></li>
+          </ol>
+        </nav>
+        <div class="prose">
+          <section aria-labelledby="privacy-summary">
+            <h2 id="privacy-summary">The short version</h2>
+            <ul class="check-list" role="list">
+              <li>Free tools, the free trial, and pay-per-call use need no account, sign-up, password, or tracking cookies.</li>
+              <li>We keep a small set of records to run the free trial, prevent double charges, enforce quotas, and count usage. Every one is listed below.</li>
+              <li>Payments made on-chain are public on the Base blockchain.</li>
+              <li>If you subscribe to an API key plan, Stripe handles your email address and card details. MentionForge never receives card numbers.</li>
+            </ul>
+          </section>
 
-      <section aria-labelledby="privacy-accounts">
-        <h2 id="privacy-accounts">Accounts, email, and payments</h2>
-        <p>Free trial and pay-per-call use need no account, sign-up, password, or tracking cookies. If you subscribe to an API key plan, Stripe (our payment processor) collects your email address and payment details under <a href="https://stripe.com/privacy">Stripe&rsquo;s privacy policy</a>. MentionForge does not receive card numbers. Stripe emails receipts and invoices to the subscriber.</p>
-      </section>
+          <section aria-labelledby="privacy-accounts">
+            <h2 id="privacy-accounts">Accounts, email, and payments</h2>
+            <p>Free trial and pay-per-call use need no account, sign-up, password, or tracking cookies. If you subscribe to an API key plan, Stripe (our payment processor) collects your email address and payment details under <a href="https://stripe.com/privacy">Stripe&rsquo;s privacy policy</a>. MentionForge does not receive card numbers. Stripe emails receipts and invoices to the subscriber.</p>
+          </section>
 
-      <section aria-labelledby="privacy-d1">
-        <h2 id="privacy-d1">What is stored in Cloudflare D1</h2>
-        <div class="grid">
-          <article class="card">
-            <h3><code>trial_wallets</code></h3>
-            <p>When a caller sends the <code>X-Wallet</code> header to use the 10-call free trial, the Worker stores the lowercased wallet address (<code>wallet</code>), the number of trial calls used (<code>used</code>, up to 10), and the last update timestamp (<code>updated_at</code>).</p>
-          </article>
-          <article class="card">
-            <h3><code>idempotency</code></h3>
-            <p>When a paid or trial call includes an <code>Idempotency-Key</code> header, the Worker stores the key, a SHA-256 hash of the canonical request body (<code>body_hash</code>), status, the JSON response, billing metadata (<code>amount_usdc</code>, <code>tx_hash</code>, <code>free_trial</code>), and <code>created_at</code>. Entries expire after 24 hours and are deleted on lookup after expiry.</p>
-          </article>
-          <article class="card">
-            <h3><code>stats_daily</code></h3>
-            <p>The Worker records daily aggregate totals (<code>day</code>, <code>calls</code>, <code>paid</code>, <code>usdc_micros</code>, <code>errors</code>, <code>trial</code>). No wallet addresses, IP addresses, or raw query strings are stored in this table.</p>
-          </article>
-          <article class="card">
-            <h3><code>x_id_usage</code></h3>
-            <p>The Worker records daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window to enforce the global 30-day quota.</p>
-          </article>
+          <section aria-labelledby="privacy-d1">
+            <h2 id="privacy-d1">What we store</h2>
+            <p>MentionForge keeps the records below in Cloudflare D1, the database behind the service.</p>
+            <div class="data-grid">
+              <article class="data-card">
+                <h3>Free-trial usage <code>trial_wallets</code></h3>
+                <p>When you send the <code>X-Wallet</code> header to use the 10-call free trial, we store the wallet address in lowercase (<code>wallet</code>), how many trial calls it has used (<code>used</code>, up to 10), and when it was last updated (<code>updated_at</code>).</p>
+              </article>
+              <article class="data-card">
+                <h3>Double-charge protection <code>idempotency</code></h3>
+                <p>When a paid or trial call includes an <code>Idempotency-Key</code> header, we store the key, a SHA-256 hash of the canonical request body (<code>body_hash</code>), the status, the JSON response, billing details (<code>amount_usdc</code>, <code>tx_hash</code>, <code>free_trial</code>), and <code>created_at</code>. Entries expire after 24 hours and are deleted the next time they are looked up after expiry.</p>
+              </article>
+              <article class="data-card">
+                <h3>Daily totals <code>stats_daily</code></h3>
+                <p>Daily aggregate totals (<code>day</code>, <code>calls</code>, <code>paid</code>, <code>usdc_micros</code>, <code>errors</code>, <code>trial</code>). No wallet addresses, IP addresses, or raw query strings are stored in this table.</p>
+              </article>
+              <article class="data-card">
+                <h3>Quota counter <code>x_id_usage</code></h3>
+                <p>Daily counts (<code>day</code>, <code>ids</code>) of disclosed mention and post IDs over a rolling 30-day window, used to enforce the global 30-day quota.</p>
+              </article>
+            </div>
+            <p class="callout">In plain words: if you subscribe, we keep a fingerprint (hash) of your API key, your Stripe customer and subscription IDs, billing dates and how many calls you&rsquo;ve used. We never see your card number.</p>
+            <div class="data-grid">
+              <article class="data-card">
+                <h3>API key records <code>api_keys</code></h3>
+                <p>If you subscribe to an API key plan, we store a SHA-256 hash of your API key (<code>key_hash</code>; the plain key is shown once on the claim page and is not retained after claim), your Stripe customer ID (<code>stripe_customer_id</code>), Stripe subscription ID (<code>stripe_subscription_id</code>), plan status (<code>status</code>), billing-period dates (<code>period_start</code>, <code>period_end</code>), when the record was created (<code>created_at</code>), the Checkout session ID (<code>checkout_session_id</code>), whether the key has been claimed (<code>claimed</code>), and a temporary <code>pending_key</code> that is cleared after claim.</p>
+              </article>
+              <article class="data-card">
+                <h3>Plan usage <code>plan_usage</code></h3>
+                <p>Per-key usage counts for your quota: the API key hash (<code>key_hash</code>), the billing period start (<code>period_start</code>), and calls used in that period (<code>calls</code>).</p>
+              </article>
+              <article class="data-card">
+                <h3>Billing event log <code>stripe_events</code></h3>
+                <p>Stripe webhook event IDs (<code>event_id</code>) and when they arrived (<code>received_at</code>), so the same Stripe event is never applied twice. This table does not store email addresses or card numbers.</p>
+              </article>
+            </div>
+          </section>
+
+          <section aria-labelledby="privacy-metrics">
+            <h2 id="privacy-metrics">Metrics, caching, and rate limits</h2>
+            <p><strong>Usage metrics (Cloudflare Analytics Engine, <code>METRICS</code>):</strong> for each completed or failed research call we record the event type (<code>paid</code>, <code>trial</code>, or <code>error</code>), the UTC date, a SHA-256 hash of the normalized query (never the raw query text), a count of <code>1</code>, and <code>usdc_micros</code>.</p>
+            <p><strong>Response caching (Cloudflare Cache API):</strong> research results, without billing details, <code>request_id</code>, or latency, are cached by a SHA-256 hash of the query parameters for 10 minutes (<code>24h</code> timeframe), 30 minutes (<code>7d</code> timeframe), or 2 hours (<code>30d</code> or custom timeframe).</p>
+            <p><strong>Rate limits and logs:</strong> rate limits are counted per wallet address (paid and trial requests) or per client IP address (<code>cf-connecting-ip</code>, for unpaid and discovery requests) over 60-second windows. Operational logs record <code>request_id</code> and status codes and never record payment signatures or secrets.</p>
+          </section>
+
+          <section aria-labelledby="privacy-onchain">
+            <h2 id="privacy-onchain">On-chain payments are public</h2>
+            <p>Paid calls settle $0.02 USDC per call on the Base blockchain through an x402 payment facilitator. Blockchain transactions, wallet addresses, and transaction hashes (<code>tx_hash</code>) are permanently public on Base.</p>
+          </section>
+
+          <section aria-labelledby="privacy-retention">
+            <h2 id="privacy-retention">Retention and data requests</h2>
+            <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">Support</a>. MentionForge does not automatically delete those rows when a subscription ends. Stripe keeps its own payment records under its policy; deleting our rows does not delete Stripe&rsquo;s.</p>
+            <p>Private requests (access or deletion): email harbor-ops@mail.grokbot.com.</p>
+            <p>Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+          </section>
         </div>
-        <p>In plain words: if you subscribe, we keep a fingerprint (hash) of your API key, your Stripe customer and subscription IDs, billing dates and how many calls you&rsquo;ve used. We never see your card number.</p>
-        <div class="grid">
-          <article class="card">
-            <h3><code>api_keys</code></h3>
-            <p>If you subscribe to an API key plan, the Worker stores a SHA-256 hash of your API key (<code>key_hash</code>; the plain key is shown once on the claim page and is not retained after claim), Stripe customer ID (<code>stripe_customer_id</code>), Stripe subscription ID (<code>stripe_subscription_id</code>), plan status (<code>status</code>), billing-period dates (<code>period_start</code>, <code>period_end</code>), row creation time (<code>created_at</code>), Checkout session ID (<code>checkout_session_id</code>), whether the key has been claimed (<code>claimed</code>), and a temporary <code>pending_key</code> that is cleared after claim.</p>
-          </article>
-          <article class="card">
-            <h3><code>plan_usage</code></h3>
-            <p>Per-key usage counts for quota: API key hash (<code>key_hash</code>), billing period start (<code>period_start</code>), and calls used in that period (<code>calls</code>).</p>
-          </article>
-          <article class="card">
-            <h3><code>stripe_events</code></h3>
-            <p>Webhook event IDs (<code>event_id</code>) and receive timestamps (<code>received_at</code>) so the same Stripe event is not applied twice. This table does not store email addresses or card numbers.</p>
-          </article>
-        </div>
-      </section>
-
-      <section aria-labelledby="privacy-metrics">
-        <h2 id="privacy-metrics">Metrics, caching, and rate limits</h2>
-        <p><strong>Analytics Engine (<code>METRICS</code>):</strong> On completed or errored research calls, the Worker writes an event kind (<code>paid</code>, <code>trial</code>, or <code>error</code>), the UTC date, a SHA-256 hash of the normalized query string (not the raw query text), a count of <code>1</code>, and <code>usdc_micros</code>.</p>
-        <p><strong>Cloudflare Cache API:</strong> Research responses (excluding billing metadata, <code>request_id</code>, and latency) are cached by a SHA-256 hash of the query parameters for 10 minutes (<code>24h</code> timeframe), 30 minutes (<code>7d</code> timeframe), or 2 hours (<code>30d</code> or custom timeframe).</p>
-        <p><strong>Rate limiting and logs:</strong> Cloudflare rate limiters key on wallet address (for paid and trial requests) or client IP address (<code>cf-connecting-ip</code> for unpaid and discovery requests) over 60-second windows. Structured operational logs record <code>request_id</code> and status codes and never log payment signatures or secrets.</p>
-      </section>
-
-      <section aria-labelledby="privacy-onchain">
-        <h2 id="privacy-onchain">On-chain payments are public</h2>
-        <p>Paid calls settle $0.02 USDC per call on Base (or Base Sepolia on staging) via the configured x402 facilitator. Blockchain transactions, wallet addresses, and transaction hashes (<code>tx_hash</code>) are permanently public on the Base blockchain.</p>
-      </section>
-
-      <section aria-labelledby="privacy-retention">
-        <h2 id="privacy-retention">Retention and data requests</h2>
-        <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">/support</a>. MentionForge does not automatically delete those rows when a subscription ends. Stripe keeps its own payment records under its policy; deleting our rows does not delete Stripe&rsquo;s.</p>
-        <p>Private requests (access or deletion): email harbor-ops@mail.grokbot.com.</p>
-        <p>Questions or bug reports: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
-      </section>
+      </div>
     </main>
-    <footer class="site-foot">
-      <nav aria-label="Footer">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/privacy" aria-current="page">Privacy</a>
-        <a href="/terms">Terms</a>
-      </nav>
-      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
-      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
-    </footer>
-  </div>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="/">
+            <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+            <span class="brand-word">MENTION//FORGE</span>
+          </a>
+          <p>Cited social listening and brand research for AI agents and the people who build them.</p>
+          <p class="foot-endpoints">REST <code>POST /v1/research</code> · MCP <code>research_mentions</code></p>
+        </div>
+        <nav class="foot-nav" aria-label="Footer">
+        <div class="foot-col">
+          <p class="foot-title" id="foot-product">Product</p>
+          <ul role="list" aria-labelledby="foot-product">
+            <li><a href="/">Home</a></li>
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#example">Live example</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-developers">Developers</p>
+          <ul role="list" aria-labelledby="foot-developers">
+            <li><a href="/#install">Quickstart</a></li>
+            <li><a href="/llms.txt">Agent install guide</a></li>
+            <li><a href="/llms-full.txt">Full agent guide</a></li>
+            <li><a href="/skill.md">Agent skill</a></li>
+            <li><a href="/openapi.json">OpenAPI schema</a></li>
+            <li><a href="/server-card.json">MCP server card</a></li>
+            <li><a href="/.well-known/x402">x402 discovery</a></li>
+            <li><a href="/v1/pricing">Pricing API</a></li>
+            <li><a href="/health">Service status</a></li>
+            <li><a href="/stats">Usage stats</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-company">Company</p>
+          <ul role="list" aria-labelledby="foot-company">
+            <li><a href="/about">About</a></li>
+            <li><a href="/support">Support</a></li>
+            <li><a href="/privacy" aria-current="page">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md">Security policy</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-listings">Find us</p>
+          <ul role="list" aria-labelledby="foot-listings">
+            <li><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a></li>
+            <li><a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a></li>
+            <li><a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official MCP Registry</a></li>
+            <li><a href="https://www.x402scan.com">x402scan</a></li>
+          </ul>
+        </div>
+        </nav>
+      </div>
+      <div class="foot-bottom">
+        <p>© 2026 MentionForge. Source code under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+        <p><a href="/" id="origin-link">mentionforge.mentionforge.workers.dev</a></p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

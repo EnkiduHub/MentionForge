@@ -46,6 +46,6 @@ entityRoutes.get("/v1/suggest", (c) => {
   const body = suggestTool(input.need);
   return sendPublic(c, body, 200, { "Cache-Control": "public, max-age=60" }, {
     title: "Suggest tool",
-    hint: "Free router. Call exactly one paid tool per question.",
+    hint: "Free tool picker: describe your goal and get the one tool to call. Call exactly one paid tool per question.",
   });
 });

@@ -75,9 +75,10 @@ export function createApp() {
       return c.html(
         discoveryDocumentHtml({
           title: "Not found",
-          hint: "That path is not a MentionForge surface. Use the header or GET /llms.txt.",
+          hint: "The page you are looking for does not exist or has moved. Check the address, or pick up from one of the links below.",
           path,
           body: JSON.stringify(body, null, 2),
+          status: 404,
         }),
         404,
         {
