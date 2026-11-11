@@ -90,7 +90,7 @@ describe("agent discoverability", () => {
     expect(html).toContain(`href="${BRAND_ASSETS.faviconIco}"`);
     expect(html).toContain(`href="${BRAND_ASSETS.favicon}"`);
     expect(html).toContain(`src="${BRAND_ASSETS.hero}"`);
-    expect(html).toContain('width="220" height="220" alt="MentionForge mark"');
+    expect(html).toMatch(/width="220" height="220" alt="MentionForge logo: [^"]{20,}"/);
     expect(html).toContain(`href="${BRAND_ASSETS.appleTouch}"`);
     expect(html).toContain('<main id="main">');
     expect([...html.matchAll(/<main\b[^>]*>/gi)]).toHaveLength(1);

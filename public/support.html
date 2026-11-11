@@ -6,15 +6,23 @@
   <meta name="color-scheme" content="dark"/>
   <meta name="theme-color" content="#0B0C0F"/>
   <meta name="robots" content="noindex, nofollow"/>
-  <title>MENTION//FORGE — Support</title>
-  <meta name="description" content="Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact."/>
-  <meta property="og:title" content="MENTION//FORGE — Support"/>
-  <meta property="og:description" content="Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact."/>
+  <title>Support — MentionForge</title>
+  <meta name="description" content="Help with MentionForge API keys and subscriptions: replace a lost key, check usage, manage billing or cancel, request a refund, or contact us."/>
+  <meta property="og:title" content="Support — MentionForge"/>
+  <meta property="og:description" content="Help with MentionForge API keys and subscriptions: replace a lost key, check usage, manage billing or cancel, request a refund, or contact us."/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="MentionForge"/>
   <meta property="og:locale" content="en_US"/>
   <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/support"/>
   <meta property="og:image" content="/og.png"/>
+  <meta property="og:image:type" content="image/png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="MENTION//FORGE — social listening for agents"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Support — MentionForge"/>
+  <meta name="twitter:description" content="Help with MentionForge API keys and subscriptions: replace a lost key, check usage, manage billing or cancel, request a refund, or contact us."/>
+  <meta name="twitter:image" content="/og.png"/>
   <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/support"/>
   <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="icon" href="/logo-128x128.png" type="image/png" sizes="128x128"/>
@@ -22,72 +30,184 @@
   <link rel="stylesheet" href="/styles.css"/>
   <script src="/app.js" defer></script>
 </head>
-<body>
+<body class="page-support">
   <a class="skip" href="#main">Skip to content</a>
   <div class="aurora" aria-hidden="true"></div>
-  <div class="wrap">
-    <header class="top">
-      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
-      <nav aria-label="Discovery">
-        <a href="/llms.txt">llms.txt</a>
-        <a href="/skill.md">skill.md</a>
-        <a href="/openapi.json">OpenAPI</a>
-        <a href="/.well-known/x402">x402</a>
-        <a href="/v1/pricing">pricing</a>
-        <a href="/v1/research/example">example</a>
-        <a href="/health">health</a>
-        <a href="https://github.com/EnkiduHub/MentionForge">GitHub</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+        <span class="brand-word">MENTION//FORGE</span>
+      </a>
+      <nav class="nav-primary" aria-label="Primary">
+        <a href="/#how">How it works</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/about">About</a>
+        <details class="menu menu-dev">
+          <summary>Developers <svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <ul class="menu-panel" role="list">
+            <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+            <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+            <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+            <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+            <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+            <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+            <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+          </ul>
+        </details>
       </nav>
-    </header>
+      <div class="header-actions">
+        <a class="icon-link" href="https://github.com/EnkiduHub/MentionForge"><svg class="icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><span class="sr-only">MentionForge on GitHub</span></a>
+        <a class="btn btn-primary btn-sm header-cta" href="/#install">Get started</a>
+        <details class="menu menu-mobile">
+          <summary><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="sr-only">Menu</span></summary>
+          <nav class="menu-panel menu-sheet" aria-label="Mobile">
+            <ul role="list">
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="/about">About</a></li>
+            </ul>
+            <p class="menu-heading">Developers</p>
+            <ul role="list">
+              <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+              <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+              <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+              <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+              <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+              <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+              <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+            </ul>
+            <a class="btn btn-primary" href="/#install">Get started free</a>
+          </nav>
+        </details>
+      </div>
+    </div>
+  </header>
     <main id="main">
-      <header class="hero hero-compact">
-        <div>
-          <h1>Support</h1>
-          <p class="lede muted">Support for MentionForge API keys and subscriptions: lost key reissue, checking usage, billing portal cancellation, refunds, and contact.</p>
-        </div>
-        <div class="mark-wrap">
-          <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+      <header class="page-hero">
+        <div class="container page-hero-inner">
+          <div class="page-hero-copy">
+            <p class="eyebrow">Help center</p>
+            <h1>Support</h1>
+            <p class="lede">Help with API keys and subscriptions: replace a lost key, check usage, manage billing or cancel, request a refund, or get in touch.</p>
+          </div>
+          <div class="page-hero-mark">
+            <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+          </div>
         </div>
       </header>
+      <div class="container narrow flow">
+        <nav aria-label="Support topics">
+          <ul class="quick-grid" role="list">
+            <li><a class="quick-card" href="#support-lost-key"><span class="quick-title">Lost API key</span><span class="quick-desc">Get a replacement key</span><svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+            <li><a class="quick-card" href="#support-manage"><span class="quick-title">Usage & billing</span><span class="quick-desc">Check quota, update payment, cancel</span><svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+            <li><a class="quick-card" href="#support-refunds"><span class="quick-title">Refunds</span><span class="quick-desc">How cancellations and refunds work</span><svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+            <li><a class="quick-card" href="#support-contact"><span class="quick-title">Contact</span><span class="quick-desc">Email or GitHub Issues</span><svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></li>
+          </ul>
+        </nav>
 
-      <section aria-labelledby="support-lost-key">
-        <h2 id="support-lost-key">Lost API key</h2>
-        <p>Plaintext API keys (<code>mfk_...</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards. Private requests: email harbor-ops@mail.grokbot.com.</p>
-      </section>
+        <section aria-labelledby="support-lost-key">
+          <h2 id="support-lost-key">Lost your API key?</h2>
+          <p>For your security, API keys (they start with <code>mfk_</code>) are shown once on the post-checkout claim page; only the SHA-256 hash is stored afterwards, so we cannot look a key up, but we can replace it. Private requests: email harbor-ops@mail.grokbot.com.</p>
+        </section>
 
-      <section aria-labelledby="support-manage">
-        <h2 id="support-manage">Check usage &amp; cancel anytime</h2>
-        <p>Check your current billing period and remaining quota at any time with <code>GET /v1/keys/me</code>:</p>
-        <pre>curl -sS https://mentionforge.mentionforge.workers.dev/v1/keys/me \
+        <section aria-labelledby="support-manage">
+          <h2 id="support-manage">Check usage &amp; cancel anytime</h2>
+          <p>See your current billing period and remaining quota at any time with <code>GET /v1/keys/me</code>:</p>
+          <div class="code-card code-card-inline">
+            <div class="code-head"><span class="code-lang">Check usage</span><div class="code-actions"><button type="button" class="copy" data-copy="support-usage-curl"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button></div></div>
+            <pre id="support-usage-curl" tabindex="0">curl -sS https://mentionforge.mentionforge.workers.dev/v1/keys/me \
   -H 'Authorization: Bearer YOUR_KEY'</pre>
-        <p>Cancel anytime or update your payment method through the Stripe Billing Portal by calling <code>POST /v1/keys/portal</code> with your API key:</p>
-        <pre>curl -sS -X POST https://mentionforge.mentionforge.workers.dev/v1/keys/portal \
+          </div>
+          <p>Cancel anytime or update your payment method in the Stripe Billing Portal by calling <code>POST /v1/keys/portal</code> with your API key:</p>
+          <div class="code-card code-card-inline">
+            <div class="code-head"><span class="code-lang">Open billing portal</span><div class="code-actions"><button type="button" class="copy" data-copy="support-portal-curl"><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span class="copy-label">Copy</span></button></div></div>
+            <pre id="support-portal-curl" tabindex="0">curl -sS -X POST https://mentionforge.mentionforge.workers.dev/v1/keys/portal \
   -H 'Authorization: Bearer YOUR_KEY'</pre>
-        <p>Open the returned <code>url</code> in your browser to manage or cancel your subscription. If you no longer have your API key or cannot access the billing portal, contact support below with your checkout email and we will cancel it for you.</p>
-      </section>
+          </div>
+          <p>Open the returned <code>url</code> in your browser to manage or cancel your subscription. If you no longer have your API key or cannot reach the billing portal, contact support below with your checkout email and we will cancel it for you.</p>
+        </section>
 
-      <section aria-labelledby="support-refunds">
-        <h2 id="support-refunds">Cancellations &amp; refunds</h2>
-        <p>Cancelled subscriptions stop renewing and remain active until the end of the current billing period (<code>period_end</code>). Refund requests are handled case by case via support.</p>
-      </section>
+        <section aria-labelledby="support-refunds">
+          <h2 id="support-refunds">Cancellations &amp; refunds</h2>
+          <p>Cancelled subscriptions stop renewing and stay active until the end of the current billing period (<code>period_end</code>). Refund requests are handled case by case via support.</p>
+        </section>
 
-      <section aria-labelledby="support-contact">
-        <h2 id="support-contact">Contact</h2>
-        <p>Private requests: email harbor-ops@mail.grokbot.com.</p>
-        <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>
-      </section>
+        <section aria-labelledby="support-contact">
+          <h2 id="support-contact">Contact</h2>
+            <p>Private requests: email harbor-ops@mail.grokbot.com.</p>
+            <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a></p>
+        </section>
+      </div>
     </main>
-    <footer class="site-foot">
-      <nav aria-label="Footer">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-        <a href="/support" aria-current="page">Support</a>
-      </nav>
-      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/support">Support</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
-      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
-    </footer>
-  </div>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="/">
+            <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+            <span class="brand-word">MENTION//FORGE</span>
+          </a>
+          <p>Cited social listening and brand research for AI agents and the people who build them.</p>
+          <p class="foot-endpoints">REST <code>POST /v1/research</code> · MCP <code>research_mentions</code></p>
+        </div>
+        <nav class="foot-nav" aria-label="Footer">
+        <div class="foot-col">
+          <p class="foot-title" id="foot-product">Product</p>
+          <ul role="list" aria-labelledby="foot-product">
+            <li><a href="/">Home</a></li>
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#example">Live example</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-developers">Developers</p>
+          <ul role="list" aria-labelledby="foot-developers">
+            <li><a href="/#install">Quickstart</a></li>
+            <li><a href="/llms.txt">Agent install guide</a></li>
+            <li><a href="/llms-full.txt">Full agent guide</a></li>
+            <li><a href="/skill.md">Agent skill</a></li>
+            <li><a href="/openapi.json">OpenAPI schema</a></li>
+            <li><a href="/server-card.json">MCP server card</a></li>
+            <li><a href="/.well-known/x402">x402 discovery</a></li>
+            <li><a href="/v1/pricing">Pricing API</a></li>
+            <li><a href="/health">Service status</a></li>
+            <li><a href="/stats">Usage stats</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-company">Company</p>
+          <ul role="list" aria-labelledby="foot-company">
+            <li><a href="/about">About</a></li>
+            <li><a href="/support" aria-current="page">Support</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md">Security policy</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-listings">Find us</p>
+          <ul role="list" aria-labelledby="foot-listings">
+            <li><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a></li>
+            <li><a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a></li>
+            <li><a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official MCP Registry</a></li>
+            <li><a href="https://www.x402scan.com">x402scan</a></li>
+          </ul>
+        </div>
+        </nav>
+      </div>
+      <div class="foot-bottom">
+        <p>© 2026 MentionForge. Source code under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+        <p><a href="/" id="origin-link">mentionforge.mentionforge.workers.dev</a></p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

@@ -249,7 +249,7 @@ npm test
 npm run dev
 ```
 
-`npm run dev` is the local Worker (`wrangler dev`). `npm start` is the Glama stdio bridge to production `/mcp`, not a local research engine. `npm test` is the unit project (default CI). `npm run test:worker` is the Miniflare pool and is **not** default CI.
+`npm run pages:render` regenerates the static page twins in `public/` from `src/lib/html.ts` and syncs the shared header and footer into `public/index.html` (`-- --check` only verifies). `npm run dev` is the local Worker (`wrangler dev`). `npm start` is the Glama stdio bridge to production `/mcp`, not a local research engine. `npm test` is the unit project (default CI). `npm run test:worker` is the Miniflare pool and is **not** default CI.
 
 **Production:** [https://mentionforge.mentionforge.workers.dev](https://mentionforge.mentionforge.workers.dev) (`NETWORK=base`, `eip155:8453`, CDP facilitator)  
 **Staging:** [https://mentionforge-staging.mentionforge.workers.dev](https://mentionforge-staging.mentionforge.workers.dev) (Base Sepolia)
@@ -275,6 +275,7 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - [Architecture](docs/architecture.md)
 - [Operations](docs/operations.md)
 - [Go-live](docs/go-live.md)
+- [Website design system](docs/DESIGN-SYSTEM.md)
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [Skill](skill.md) (byte-twin of `src/lib/skill-text.ts`)
@@ -287,7 +288,7 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 | Path | What |
 | --- | --- |
 | `src/` | Worker: Hono REST + Streamable HTTP MCP |
-| `public/` | CSP-safe landing (SSR sentiment/SOV bars + JS sparkline) |
+| `public/` | Website: landing, About/Privacy/Terms/Support twins, `styles.css`, `app.js`, `claim.js`, brand marks (CSP-safe, works without JS; see [docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)) |
 | `docs/` | API, MCP, payments, ops |
 | `listings/` | Directory paste (Glama, Smithery, Official Registry, …) |
 | `examples/` | Agent prompt, curl, `mcp.json` |

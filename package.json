@@ -36,7 +36,8 @@
     "test-payment": "tsx scripts/test-payment.ts",
     "fund-seed-payer": "tsx scripts/fund-seed-payer.ts",
     "purge:forbidden": "tsx scripts/purge-forbidden-cache.ts",
-    "secret-scan": "bash scripts/check-secrets.sh"
+    "secret-scan": "bash scripts/check-secrets.sh",
+    "pages:render": "tsx scripts/render-static-pages.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",

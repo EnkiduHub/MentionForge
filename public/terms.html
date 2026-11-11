@@ -5,96 +5,215 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="dark"/>
   <meta name="theme-color" content="#0B0C0F"/>
-  <title>MENTION//FORGE — Terms</title>
-  <meta name="description" content="Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC x402 settlement, 10-call wallet trial, API key subscription."/>
-  <meta property="og:title" content="MENTION//FORGE — Terms"/>
-  <meta property="og:description" content="Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC x402 settlement, 10-call wallet trial, API key subscription."/>
+  <title>Terms of service — MentionForge</title>
+  <meta name="description" content="Terms for the MentionForge API and MCP server: as-is service, $0.02 USDC per paid call via x402, a 10-call free trial per wallet, and API key subscriptions."/>
+  <meta property="og:title" content="Terms of service — MentionForge"/>
+  <meta property="og:description" content="Terms for the MentionForge API and MCP server: as-is service, $0.02 USDC per paid call via x402, a 10-call free trial per wallet, and API key subscriptions."/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="MentionForge"/>
   <meta property="og:locale" content="en_US"/>
   <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/terms"/>
   <meta property="og:image" content="/og.png"/>
+  <meta property="og:image:type" content="image/png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="MENTION//FORGE — social listening for agents"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="Terms of service — MentionForge"/>
+  <meta name="twitter:description" content="Terms for the MentionForge API and MCP server: as-is service, $0.02 USDC per paid call via x402, a 10-call free trial per wallet, and API key subscriptions."/>
+  <meta name="twitter:image" content="/og.png"/>
   <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/terms"/>
   <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="icon" href="/logo-128x128.png" type="image/png" sizes="128x128"/>
   <link rel="apple-touch-icon" href="/logo-256x256.png"/>
   <link rel="stylesheet" href="/styles.css"/>
   <script src="/app.js" defer></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mentionforge.mentionforge.workers.dev/#organization","name":"MentionForge","alternateName":"MENTION//FORGE","url":"https://mentionforge.mentionforge.workers.dev/","logo":{"@type":"ImageObject","url":"https://mentionforge.mentionforge.workers.dev/logo-512x512.png","width":512,"height":512},"sameAs":["https://github.com/EnkiduHub/MentionForge","https://glama.ai/mcp/servers/EnkiduHub/MentionForge"]},{"@type":"WebSite","@id":"https://mentionforge.mentionforge.workers.dev/#website","name":"MentionForge","url":"https://mentionforge.mentionforge.workers.dev/","inLanguage":"en","publisher":{"@id":"https://mentionforge.mentionforge.workers.dev/#organization"}},{"@type":"WebPage","@id":"https://mentionforge.mentionforge.workers.dev/terms#webpage","url":"https://mentionforge.mentionforge.workers.dev/terms","name":"Terms of service — MentionForge","description":"Terms for the MentionForge API and MCP server: as-is service, $0.02 USDC per paid call via x402, a 10-call free trial per wallet, and API key subscriptions.","inLanguage":"en","isPartOf":{"@id":"https://mentionforge.mentionforge.workers.dev/#website"},"breadcrumb":{"@id":"https://mentionforge.mentionforge.workers.dev/terms#breadcrumb"}},{"@type":"BreadcrumbList","@id":"https://mentionforge.mentionforge.workers.dev/terms#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://mentionforge.mentionforge.workers.dev/"},{"@type":"ListItem","position":2,"name":"Terms of service","item":"https://mentionforge.mentionforge.workers.dev/terms"}]}]}</script>
 </head>
-<body>
+<body class="page-terms">
   <a class="skip" href="#main">Skip to content</a>
   <div class="aurora" aria-hidden="true"></div>
-  <div class="wrap">
-    <header class="top">
-      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
-      <nav aria-label="Discovery">
-        <a href="/llms.txt">llms.txt</a>
-        <a href="/skill.md">skill.md</a>
-        <a href="/openapi.json">OpenAPI</a>
-        <a href="/.well-known/x402">x402</a>
-        <a href="/v1/pricing">pricing</a>
-        <a href="/v1/research/example">example</a>
-        <a href="/health">health</a>
-        <a href="https://github.com/EnkiduHub/MentionForge">GitHub</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+        <span class="brand-word">MENTION//FORGE</span>
+      </a>
+      <nav class="nav-primary" aria-label="Primary">
+        <a href="/#how">How it works</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/about">About</a>
+        <details class="menu menu-dev">
+          <summary>Developers <svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <ul class="menu-panel" role="list">
+            <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+            <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+            <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+            <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+            <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+            <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+            <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+          </ul>
+        </details>
       </nav>
-    </header>
+      <div class="header-actions">
+        <a class="icon-link" href="https://github.com/EnkiduHub/MentionForge"><svg class="icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><span class="sr-only">MentionForge on GitHub</span></a>
+        <a class="btn btn-primary btn-sm header-cta" href="/#install">Get started</a>
+        <details class="menu menu-mobile">
+          <summary><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="sr-only">Menu</span></summary>
+          <nav class="menu-panel menu-sheet" aria-label="Mobile">
+            <ul role="list">
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="/about">About</a></li>
+            </ul>
+            <p class="menu-heading">Developers</p>
+            <ul role="list">
+              <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+              <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+              <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+              <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+              <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+              <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+              <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+            </ul>
+            <a class="btn btn-primary" href="/#install">Get started free</a>
+          </nav>
+        </details>
+      </div>
+    </div>
+  </header>
     <main id="main">
-      <header class="hero hero-compact">
-        <div>
-          <h1>Terms</h1>
-          <p class="lede muted">Plain-language terms for using the MentionForge REST API and MCP server: as-is service, $0.02 USDC x402 settlement, 10-call wallet trial, API key subscription.</p>
-        </div>
-        <div class="mark-wrap">
-          <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+      <header class="page-hero">
+        <div class="container page-hero-inner">
+          <div class="page-hero-copy">
+            <p class="eyebrow">Legal</p>
+            <h1>Terms of service</h1>
+            <p class="lede">The terms for using the MentionForge REST API and MCP server, written to be read: pricing, the free trial, acceptable use, and subscriptions.</p>
+          </div>
+          <div class="page-hero-mark">
+            <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+          </div>
         </div>
       </header>
+      <div class="container doc-layout">
+        <nav class="toc" aria-label="On this page">
+          <p class="toc-title">On this page</p>
+          <ol role="list">
+            <li><a href="#terms-as-is">Service provided as-is</a></li>
+            <li><a href="#terms-payments">Pricing, free trial, and finality</a></li>
+            <li><a href="#terms-use">Rate limits and acceptable use</a></li>
+            <li><a href="#terms-key-subscription">API key subscription</a></li>
+            <li><a href="#terms-license">License and contact</a></li>
+          </ol>
+        </nav>
+        <div class="prose">
+          <section aria-labelledby="terms-as-is">
+            <h2 id="terms-as-is">Service provided as-is</h2>
+            <p>MentionForge is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; without warranties of any kind, express or implied, including accuracy, completeness, availability, or fitness for a particular purpose.</p>
+            <p>Responses aggregate snippets and links from public sources such as news (Google News RSS, GDELT, Hacker News), web sources (Wikipedia, Wikidata, and Brave Search when configured), and review sites. Do not use MentionForge for live trading execution or automated high-stakes decisions without human review.</p>
+          </section>
 
-      <section aria-labelledby="terms-as-is">
-        <h2 id="terms-as-is">Service provided as-is</h2>
-        <p>MentionForge is provided &ldquo;AS IS&rdquo; and &ldquo;AS AVAILABLE&rdquo; without warranties of any kind, express or implied, including accuracy, completeness, availability, or fitness for a particular purpose.</p>
-        <p>Responses aggregate snippets and links from public sources such as news (Google News RSS, GDELT, Hacker News), web sources (Wikipedia, Wikidata, and Brave Search when configured), and review sites. Do not use MentionForge for live trading execution or automated high-stakes decisions without human review.</p>
-      </section>
+          <section aria-labelledby="terms-payments">
+            <h2 id="terms-payments">Pricing, free trial, and on-chain finality</h2>
+            <p>Free discovery and grounding endpoints (<code>GET /health</code>, <code>GET /v1/pricing</code>, <code>GET /v1/research/example</code>, <code>GET /v1/entity</code>, <code>GET /v1/suggest</code>) cost $0.</p>
+            <p>Each wallet address receives 10 free trial calls shared across paid research endpoints and MCP tools by sending the <code>X-Wallet</code> header.</p>
+            <p>Paid calls cost $0.02 USDC per call on the Base blockchain via the x402 payment protocol (<code>PAYMENT-SIGNATURE</code> header) and settle on-chain through an x402 payment facilitator. Once an on-chain payment settles, the blockchain transaction is final and irreversible.</p>
+            <p>Nothing is charged when a request is denied before settlement (for example validation errors, rate limits, upstream source failures, or rolling quota limits). Replaying the same request body with the same <code>Idempotency-Key</code> within 24 hours returns the stored response without charging again.</p>
+          </section>
 
-      <section aria-labelledby="terms-payments">
-        <h2 id="terms-payments">Pricing, free trial, and on-chain finality</h2>
-        <p>Free discovery and grounding endpoints (<code>GET /health</code>, <code>GET /v1/pricing</code>, <code>GET /v1/research/example</code>, <code>GET /v1/entity</code>, <code>GET /v1/suggest</code>) cost $0.</p>
-        <p>Each wallet address receives 10 free trial calls shared across paid research endpoints and MCP tools by sending the <code>X-Wallet</code> header.</p>
-        <p>Paid calls cost $0.02 USDC per call on Base (or Base Sepolia on staging) via the x402 payment protocol (<code>PAYMENT-SIGNATURE</code> header) and settle on-chain through the configured facilitator. Once an on-chain payment settles, the blockchain transaction is final and irreversible.</p>
-        <p>Nothing is charged when a request is denied before settlement (for example validation errors, rate limits, upstream source failures, or rolling quota limits). Replaying the same request body with the same <code>Idempotency-Key</code> within 24 hours returns the stored response without charging again.</p>
-      </section>
+          <section aria-labelledby="terms-use">
+            <h2 id="terms-use">Rate limits and acceptable use</h2>
+            <p>Requests are subject to per-minute rate limits (<code>HTTP 429</code> with <code>Retry-After</code>) and a rolling 30-day disclosed-ID quota. Do not flood endpoints or attempt to bypass rate limits or payment verification.</p>
+          </section>
 
-      <section aria-labelledby="terms-use">
-        <h2 id="terms-use">Rate limits and acceptable use</h2>
-        <p>Requests are subject to per-minute rate limits (<code>HTTP 429</code> with <code>Retry-After</code>) and a rolling 30-day disclosed-ID quota. Do not flood endpoints or attempt to bypass rate limits or payment verification.</p>
-      </section>
+          <section aria-labelledby="terms-key-subscription">
+            <h2 id="terms-key-subscription">API key subscription</h2>
+            <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls. The price and billing interval are shown at Stripe Checkout before you pay.</p>
+            <p>Cancel anytime via the Stripe billing portal (<code>POST /v1/keys/portal</code>) or <a href="/support">Support</a>. Cancellation takes effect at the end of the current billing period; you keep access until then. There are no pro-rated refunds by default. Refund requests are reviewed case by case via <a href="/support">Support</a>.</p>
+            <p>If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.</p>
+            <p>Your API key is shown once. Keep it safe.</p>
+            <p>When your 1,500 calls for the billing period are used up, further key requests are denied until the next billing period, and nothing is charged. The service&rsquo;s global rate limits and rolling 30-day ID quota also apply to key plans.</p>
+            <p>Keys may be revoked for abuse. The service is provided as-is.</p>
+          </section>
 
-      <section aria-labelledby="terms-key-subscription">
-        <h2 id="terms-key-subscription">API key subscription</h2>
-        <p>An API key subscription is a monthly subscription billed in advance by Stripe. It renews automatically until cancelled. Each billing period includes a quota of 1,500 research calls. The price and billing interval are shown at Stripe Checkout before you pay.</p>
-        <p>Cancel anytime via the Stripe billing portal (<code>POST /v1/keys/portal</code>) or <a href="/support">/support</a>. Cancellation takes effect at the end of the current billing period; you keep access until then. There are no pro-rated refunds by default. Refund requests are reviewed case by case via <a href="/support">/support</a>.</p>
-        <p>If a renewal payment fails, access continues until the end of the current billing period, then stops until payment succeeds.</p>
-        <p>Your API key is shown once. Keep it safe.</p>
-        <p>When your 1,500 calls for the billing period are used up, further key requests are denied until the next billing period, and nothing is charged. The service&rsquo;s global rate limits and rolling 30-day ID quota also apply to key plans.</p>
-        <p>Keys may be revoked for abuse. The service is provided as-is.</p>
-      </section>
-
-      <section aria-labelledby="terms-license">
-        <h2 id="terms-license">Open-source license and contact</h2>
-        <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <code>TRADEMARK.md</code> in the repository.</p>
-        <p class="muted">Private requests: email harbor-ops@mail.grokbot.com.</p>
-        <p class="muted">GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
-      </section>
+          <section aria-labelledby="terms-license">
+            <h2 id="terms-license">Open-source license and contact</h2>
+            <p>The repository code is licensed under the <a href="https://opensource.org/licenses/MIT">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <a href="https://github.com/EnkiduHub/MentionForge/blob/main/TRADEMARK.md"><code>TRADEMARK.md</code></a> in the repository.</p>
+            <p>Private requests: email harbor-ops@mail.grokbot.com.</p>
+            <p>GitHub Issues (bugs and non-private questions only): <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+          </section>
+        </div>
+      </div>
     </main>
-    <footer class="site-foot">
-      <nav aria-label="Footer">
-        <a href="/">Home</a>
-        <a href="/about">About</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms" aria-current="page">Terms</a>
-      </nav>
-      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
-      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
-    </footer>
-  </div>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="/">
+            <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+            <span class="brand-word">MENTION//FORGE</span>
+          </a>
+          <p>Cited social listening and brand research for AI agents and the people who build them.</p>
+          <p class="foot-endpoints">REST <code>POST /v1/research</code> · MCP <code>research_mentions</code></p>
+        </div>
+        <nav class="foot-nav" aria-label="Footer">
+        <div class="foot-col">
+          <p class="foot-title" id="foot-product">Product</p>
+          <ul role="list" aria-labelledby="foot-product">
+            <li><a href="/">Home</a></li>
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#example">Live example</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-developers">Developers</p>
+          <ul role="list" aria-labelledby="foot-developers">
+            <li><a href="/#install">Quickstart</a></li>
+            <li><a href="/llms.txt">Agent install guide</a></li>
+            <li><a href="/llms-full.txt">Full agent guide</a></li>
+            <li><a href="/skill.md">Agent skill</a></li>
+            <li><a href="/openapi.json">OpenAPI schema</a></li>
+            <li><a href="/server-card.json">MCP server card</a></li>
+            <li><a href="/.well-known/x402">x402 discovery</a></li>
+            <li><a href="/v1/pricing">Pricing API</a></li>
+            <li><a href="/health">Service status</a></li>
+            <li><a href="/stats">Usage stats</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-company">Company</p>
+          <ul role="list" aria-labelledby="foot-company">
+            <li><a href="/about">About</a></li>
+            <li><a href="/support">Support</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms" aria-current="page">Terms</a></li>
+            <li><a href="https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md">Security policy</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-listings">Find us</p>
+          <ul role="list" aria-labelledby="foot-listings">
+            <li><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a></li>
+            <li><a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a></li>
+            <li><a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official MCP Registry</a></li>
+            <li><a href="https://www.x402scan.com">x402scan</a></li>
+          </ul>
+        </div>
+        </nav>
+      </div>
+      <div class="foot-bottom">
+        <p>© 2026 MentionForge. Source code under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+        <p><a href="/" id="origin-link">mentionforge.mentionforge.workers.dev</a></p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

@@ -64,6 +64,6 @@ pricingRoutes.get("/v1/pricing", (c) => {
   const origin = new URL(c.req.url).origin;
   return sendPublic(c, pricingPayload(c.env, origin), 200, { "Cache-Control": "public, max-age=60" }, {
     title: "Pricing",
-    hint: "Settlement details for agents. payTo is here, not on the marketing landing.",
+    hint: "Price, free-trial terms, and settlement details for agents and x402 clients.",
   });
 });

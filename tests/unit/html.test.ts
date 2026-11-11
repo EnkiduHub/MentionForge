@@ -67,9 +67,10 @@ describe("html helpers", () => {
     expect(out).toContain('class="bar-n">91%</span>');
   });
 
-  it("injects exactly one SoftwareApplication JSON-LD block without offers or ratings", () => {
+  it("injects exactly one JSON-LD graph: honest SoftwareApplication price, no ratings or reviews", async () => {
     const src = `<head>
-<meta name="description" content="Highest-quality, lowest-latency social listening for agents. Cited, multi-source intelligence for $0.02 USDC on Base."/>
+<title>MentionForge — Social listening API &amp; MCP server for AI agents</title>
+<meta name="description" content="Cited social listening for AI agents and developers. One REST or MCP call returns mentions, sentiment, themes, and sources."/>
 <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/"/>
 <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/"/>
 </head>
@@ -80,19 +81,31 @@ describe("html helpers", () => {
 <ul class="backends" id="backends"><li>Loading from GET /health…</li></ul>
 <p class="stat" id="calls">—</p>
 <div id="fixture-root"><p class="muted">Loading snapshot…</p></div>
+<details class="faq-item"><summary>What does a paid call cost?</summary><div class="faq-a"><p>$0.02 USDC per successful paid call on Base.</p></div></details>
 </body>`;
     const out = hydrateLandingHtml(src, mockEnv({ BRAVE_API_KEY: "brave" }), 0);
     const blocks = [...out.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];
     expect(blocks).toHaveLength(1);
     expect(blocks[0]![1]).not.toContain("<");
     expect(blocks[0]![1]).not.toContain("</script>");
-    const parsed = JSON.parse(blocks[0]![1]!) as Record<string, unknown>;
-    expect(parsed["@type"]).toBe("SoftwareApplication");
-    expect(parsed.name).toBe("MentionForge");
-    expect(parsed.url).toBe("https://mentionforge.mentionforge.workers.dev/");
-    expect(parsed).not.toHaveProperty("offers");
-    expect(parsed).not.toHaveProperty("aggregateRating");
-    expect(parsed).not.toHaveProperty("review");
-    expect(JSON.stringify(parsed)).not.toMatch(/0x[a-fA-F0-9]{40}/);
+    const parsed = JSON.parse(blocks[0]![1]!) as { "@context": string; "@graph": Array<Record<string, unknown>> };
+    expect(parsed["@context"]).toBe("https://schema.org");
+    const byType = (t: string) => parsed["@graph"].filter((n) => n["@type"] === t);
+    for (const t of ["Organization", "WebSite", "WebPage", "SoftwareApplication", "SoftwareSourceCode", "WebAPI", "FAQPage"]) {
+      expect(byType(t), t).toHaveLength(1);
+    }
+    const app = byType("SoftwareApplication")[0]!;
+    expect(app.name).toBe("MentionForge");
+    expect(app.url).toBe("https://mentionforge.mentionforge.workers.dev/");
+    const offer = app.offers as { price: string; priceCurrency: string };
+    expect(offer.price).toBe(mockEnv().PRICE_USDC);
+    expect(offer.priceCurrency).toBe("USDC");
+    const faq = byType("FAQPage")[0]! as { mainEntity: Array<{ name: string; acceptedAnswer: { text: string } }> };
+    expect(faq.mainEntity).toEqual([
+      expect.objectContaining({ name: "What does a paid call cost?", acceptedAnswer: expect.objectContaining({ text: "$0.02 USDC per successful paid call on Base." }) }),
+    ]);
+    const json = JSON.stringify(parsed);
+    expect(json).not.toMatch(/aggregateRating|"review"|ratingValue/);
+    expect(json).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
 });

@@ -5,78 +5,225 @@
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="color-scheme" content="dark"/>
   <meta name="theme-color" content="#0B0C0F"/>
-  <title>MENTION//FORGE — About</title>
-  <meta name="description" content="About MentionForge: MIT-licensed agent social listening and brand research over REST and MCP, citing public news, web, and review sources."/>
-  <meta property="og:title" content="MENTION//FORGE — About"/>
-  <meta property="og:description" content="About MentionForge: MIT-licensed agent social listening and brand research over REST and MCP, citing public news, web, and review sources."/>
+  <title>About MentionForge — open-source social listening for AI agents</title>
+  <meta name="description" content="MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources."/>
+  <meta property="og:title" content="About MentionForge — open-source social listening for AI agents"/>
+  <meta property="og:description" content="MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources."/>
   <meta property="og:type" content="website"/>
   <meta property="og:site_name" content="MentionForge"/>
   <meta property="og:locale" content="en_US"/>
   <meta property="og:url" content="https://mentionforge.mentionforge.workers.dev/about"/>
   <meta property="og:image" content="/og.png"/>
+  <meta property="og:image:type" content="image/png"/>
+  <meta property="og:image:width" content="1200"/>
+  <meta property="og:image:height" content="630"/>
+  <meta property="og:image:alt" content="MENTION//FORGE — social listening for agents"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <meta name="twitter:title" content="About MentionForge — open-source social listening for AI agents"/>
+  <meta name="twitter:description" content="MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources."/>
+  <meta name="twitter:image" content="/og.png"/>
   <link rel="canonical" href="https://mentionforge.mentionforge.workers.dev/about"/>
   <link rel="icon" href="/favicon.ico" sizes="any"/>
   <link rel="icon" href="/logo-128x128.png" type="image/png" sizes="128x128"/>
   <link rel="apple-touch-icon" href="/logo-256x256.png"/>
   <link rel="stylesheet" href="/styles.css"/>
   <script src="/app.js" defer></script>
+  <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"Organization","@id":"https://mentionforge.mentionforge.workers.dev/#organization","name":"MentionForge","alternateName":"MENTION//FORGE","url":"https://mentionforge.mentionforge.workers.dev/","logo":{"@type":"ImageObject","url":"https://mentionforge.mentionforge.workers.dev/logo-512x512.png","width":512,"height":512},"sameAs":["https://github.com/EnkiduHub/MentionForge","https://glama.ai/mcp/servers/EnkiduHub/MentionForge"]},{"@type":"WebSite","@id":"https://mentionforge.mentionforge.workers.dev/#website","name":"MentionForge","url":"https://mentionforge.mentionforge.workers.dev/","inLanguage":"en","publisher":{"@id":"https://mentionforge.mentionforge.workers.dev/#organization"}},{"@type":"AboutPage","@id":"https://mentionforge.mentionforge.workers.dev/about#webpage","url":"https://mentionforge.mentionforge.workers.dev/about","name":"About MentionForge — open-source social listening for AI agents","description":"MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources.","inLanguage":"en","isPartOf":{"@id":"https://mentionforge.mentionforge.workers.dev/#website"},"breadcrumb":{"@id":"https://mentionforge.mentionforge.workers.dev/about#breadcrumb"},"about":{"@id":"https://mentionforge.mentionforge.workers.dev/#organization"}},{"@type":"BreadcrumbList","@id":"https://mentionforge.mentionforge.workers.dev/about#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://mentionforge.mentionforge.workers.dev/"},{"@type":"ListItem","position":2,"name":"About MentionForge","item":"https://mentionforge.mentionforge.workers.dev/about"}]}]}</script>
 </head>
-<body>
+<body class="page-about">
   <a class="skip" href="#main">Skip to content</a>
   <div class="aurora" aria-hidden="true"></div>
-  <div class="wrap">
-    <header class="top">
-      <p class="eyebrow"><a class="brand-link" href="/">MENTION//FORGE</a></p>
-      <nav aria-label="Discovery">
-        <a href="/llms.txt">llms.txt</a>
-        <a href="/skill.md">skill.md</a>
-        <a href="/openapi.json">OpenAPI</a>
-        <a href="/.well-known/x402">x402</a>
-        <a href="/v1/pricing">pricing</a>
-        <a href="/v1/research/example">example</a>
-        <a href="/health">health</a>
-        <a href="https://github.com/EnkiduHub/MentionForge">GitHub</a>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/">
+        <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+        <span class="brand-word">MENTION//FORGE</span>
+      </a>
+      <nav class="nav-primary" aria-label="Primary">
+        <a href="/#how">How it works</a>
+        <a href="/#tools">Tools</a>
+        <a href="/#pricing">Pricing</a>
+        <a href="/#faq">FAQ</a>
+        <a href="/about" aria-current="page">About</a>
+        <details class="menu menu-dev">
+          <summary>Developers <svg class="icon icon-sm" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m6 9 6 6 6-6"/></svg></summary>
+          <ul class="menu-panel" role="list">
+            <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+            <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+            <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+            <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+            <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+            <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+            <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+          </ul>
+        </details>
       </nav>
-    </header>
+      <div class="header-actions">
+        <a class="icon-link" href="https://github.com/EnkiduHub/MentionForge"><svg class="icon" viewBox="0 0 16 16" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path fill="currentColor" stroke="none" d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg><span class="sr-only">MentionForge on GitHub</span></a>
+        <a class="btn btn-primary btn-sm header-cta" href="/#install">Get started</a>
+        <details class="menu menu-mobile">
+          <summary><svg class="icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M4 7h16M4 12h16M4 17h16"/></svg><span class="sr-only">Menu</span></summary>
+          <nav class="menu-panel menu-sheet" aria-label="Mobile">
+            <ul role="list">
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+            <li><a href="/about" aria-current="page">About</a></li>
+            </ul>
+            <p class="menu-heading">Developers</p>
+            <ul role="list">
+              <li><a href="/llms.txt"><span class="menu-label">llms.txt</span><span class="menu-desc">Agent install guide</span></a></li>
+              <li><a href="/skill.md"><span class="menu-label">skill.md</span><span class="menu-desc">Agent skill</span></a></li>
+              <li><a href="/openapi.json"><span class="menu-label">OpenAPI</span><span class="menu-desc">REST API schema</span></a></li>
+              <li><a href="/.well-known/x402"><span class="menu-label">x402</span><span class="menu-desc">Payment discovery</span></a></li>
+              <li><a href="/v1/pricing"><span class="menu-label">Pricing API</span><span class="menu-desc">Price and trial terms</span></a></li>
+              <li><a href="/v1/research/example"><span class="menu-label">Example</span><span class="menu-desc">Free sample response</span></a></li>
+              <li><a href="/health"><span class="menu-label">Status</span><span class="menu-desc">Live service status</span></a></li>
+            </ul>
+            <a class="btn btn-primary" href="/#install">Get started free</a>
+          </nav>
+        </details>
+      </div>
+    </div>
+  </header>
     <main id="main">
-      <header class="hero hero-compact">
-        <div>
-          <h1>About</h1>
-          <p class="lede muted">About MentionForge: MIT-licensed agent social listening and brand research over REST and MCP, citing public news, web, and review sources.</p>
-        </div>
-        <div class="mark-wrap">
-          <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+      <header class="page-hero">
+        <div class="container page-hero-inner">
+          <div class="page-hero-copy">
+            <p class="eyebrow">Company</p>
+            <h1>About MentionForge</h1>
+            <p class="lede">Cited social listening and brand research for AI agents and the people who build them, delivered over REST and the Model Context Protocol.</p>
+          </div>
+          <div class="page-hero-mark">
+            <img class="mark mark-sm" src="/logo-96w.webp" srcset="/logo-96w.webp 1x, /logo-192w.webp 2x" width="96" height="96" alt=""/>
+          </div>
         </div>
       </header>
+      <div class="container doc-layout doc-layout-single">
+        <div class="prose">
+          <section aria-labelledby="about-what">
+            <h2 id="about-what">What MentionForge does</h2>
+            <p>Ask about a brand, product, competitor, or topic and MentionForge returns one structured, cited brief: how much it is being discussed, the sentiment mix, recurring themes, and the individual mentions, each linked to its source.</p>
+            <p>It runs on Cloudflare Workers and offers two ways in: a REST API (<code>POST /v1/research</code> plus focused endpoints for comparisons, digests, risk, replies, mention exports, and trends) and a Streamable HTTP Model Context Protocol server at <code>/mcp</code> whose main tool is <code>research_mentions</code>.</p>
+          </section>
 
-      <section aria-labelledby="about-what">
-        <h2 id="about-what">What MentionForge is</h2>
-        <p>MentionForge is a social listening and company/product research service for software agents and developers. It runs on Cloudflare Workers and exposes both a REST API (<code>POST /v1/research</code> and specialized lenses) and a Streamable HTTP Model Context Protocol server (<code>/mcp</code>, primary tool <code>research_mentions</code>).</p>
-        <p>For a brand, product, competitor, or topic query, MentionForge searches public sources &mdash; news (Google News RSS, GDELT, Hacker News), web (Wikipedia, Wikidata, and Brave Search when configured; plus GitHub Issues and Stack Overflow for developer queries), and review sites (via web search targeting Trustpilot, G2, and Capterra) &mdash; and returns structured volume, sentiment breakdown, themes, cited mentions, and an extractive summary.</p>
-        <p>Official Reddit and X API adapters are optional upgrades and are disabled by default (<code>DISABLED_SOURCES=x,reddit</code>). Live adapter status is published at <a href="/health">GET /health</a>.</p>
-      </section>
+          <section aria-labelledby="about-who">
+            <h2 id="about-who">Who it&rsquo;s for</h2>
+            <div class="data-grid">
+              <article class="data-card">
+                <h3>Agent builders</h3>
+                <p>Give your agent one dependable tool for brand, product, and competitor questions instead of stitching together raw web searches.</p>
+              </article>
+              <article class="data-card">
+                <h3>Developers</h3>
+                <p>Call one REST endpoint and get structured JSON with citations, request IDs, and retries that never charge twice.</p>
+              </article>
+              <article class="data-card">
+                <h3>Founders</h3>
+                <p>See how your product and your competitors are discussed across news, the web, and review sites.</p>
+              </article>
+              <article class="data-card">
+                <h3>Marketers</h3>
+                <p>Get share of voice, recurring themes, and early warning of negative spikes, with every mention linked to its source.</p>
+              </article>
+            </div>
+          </section>
 
-      <section aria-labelledby="about-pricing">
-        <h2 id="about-pricing">How pricing and trials work</h2>
-        <p>Discovery and grounding endpoints are free. Paid research calls cost $0.02 USDC per completed call on Base via the x402 payment standard, with 10 free trial calls per wallet via the <code>X-Wallet</code> header. Denied requests (such as rate-limit or quota errors) do not settle and are not charged.</p>
-      </section>
+          <section aria-labelledby="about-sources">
+            <h2 id="about-sources">Where the data comes from</h2>
+            <p>MentionForge searches public sources only:</p>
+            <ul class="check-list" role="list">
+              <li><strong>News:</strong> Google News RSS, GDELT, and Hacker News.</li>
+              <li><strong>Web:</strong> Wikipedia, Wikidata, and Brave Search when configured, plus GitHub Issues and Stack Overflow for developer topics.</li>
+              <li><strong>Review sites:</strong> Trustpilot, G2, and Capterra, found through web search.</li>
+            </ul>
+            <p>Native Reddit and X feeds are optional upgrades that need official API access, and they are off by default. Which sources are live right now is always published at <a href="/health">GET /health</a>.</p>
+          </section>
 
-      <section aria-labelledby="about-open-source">
-        <h2 id="about-open-source">Open source &amp; MIT license</h2>
-        <p>MentionForge source code is released under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
-        <p>Repository: <a href="https://github.com/EnkiduHub/MentionForge">https://github.com/EnkiduHub/MentionForge</a> · Issues: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
-      </section>
+          <section aria-labelledby="about-pricing">
+            <h2 id="about-pricing">How pricing and trials work</h2>
+            <p>Discovery and grounding endpoints are free. Paid research calls cost $0.02 USDC per completed call on Base via the x402 payment standard, with 10 free trial calls per wallet via the <code>X-Wallet</code> header. Denied requests (such as rate-limit or quota errors) do not settle and are not charged. See <a href="/#pricing">pricing</a> for worked examples.</p>
+          </section>
+
+          <section aria-labelledby="about-open-source">
+            <h2 id="about-open-source">Open source &amp; MIT license</h2>
+            <p>MentionForge source code is released under the <a href="https://opensource.org/licenses/MIT">MIT License</a>: read it, fork it, and suggest improvements. The names MentionForge and MENTION//FORGE and the logo are covered by the <a href="https://github.com/EnkiduHub/MentionForge/blob/main/TRADEMARK.md">trademark policy</a>.</p>
+            <p>Repository: <a href="https://github.com/EnkiduHub/MentionForge">https://github.com/EnkiduHub/MentionForge</a> · Issues: <a href="https://github.com/EnkiduHub/MentionForge/issues">https://github.com/EnkiduHub/MentionForge/issues</a>.</p>
+          </section>
+
+          <section aria-labelledby="about-listings">
+            <h2 id="about-listings">Find MentionForge</h2>
+            <p>MentionForge is listed on <a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a> and the <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official MCP Registry</a> (<code>io.github.EnkiduHub/MentionForge</code>), and its paid endpoints are discoverable through x402 indexes such as <a href="https://www.x402scan.com">x402scan</a>.</p>
+            <p>Questions, ideas, or bugs? Open a <a href="https://github.com/EnkiduHub/MentionForge/issues">GitHub issue</a>. For help with an account or billing, visit <a href="/support">Support</a>.</p>
+          </section>
+        </div>
+      </div>
     </main>
-    <footer class="site-foot">
-      <nav aria-label="Footer">
-        <a href="/">Home</a>
-        <a href="/about" aria-current="page">About</a>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-      </nav>
-      <p>REST <code>POST /v1/research</code> · MCP <code>research_mentions</code> · <a href="/stats">volume</a> · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · MIT · <a href="https://github.com/EnkiduHub/MentionForge">source</a> · <a href="/" id="origin-link">this deployment</a></p>
-      <p class="dirs"><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a> · <a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a> · <a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official Registry</a> · <a href="https://www.x402scan.com">x402scan</a></p>
-    </footer>
-  </div>
+  <footer class="site-footer">
+    <div class="container">
+      <div class="foot-grid">
+        <div class="foot-brand">
+          <a class="brand" href="/">
+            <img class="brand-mark" src="/logo-96w.webp" width="28" height="28" alt=""/>
+            <span class="brand-word">MENTION//FORGE</span>
+          </a>
+          <p>Cited social listening and brand research for AI agents and the people who build them.</p>
+          <p class="foot-endpoints">REST <code>POST /v1/research</code> · MCP <code>research_mentions</code></p>
+        </div>
+        <nav class="foot-nav" aria-label="Footer">
+        <div class="foot-col">
+          <p class="foot-title" id="foot-product">Product</p>
+          <ul role="list" aria-labelledby="foot-product">
+            <li><a href="/">Home</a></li>
+            <li><a href="/#how">How it works</a></li>
+            <li><a href="/#example">Live example</a></li>
+            <li><a href="/#tools">Tools</a></li>
+            <li><a href="/#pricing">Pricing</a></li>
+            <li><a href="/#faq">FAQ</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-developers">Developers</p>
+          <ul role="list" aria-labelledby="foot-developers">
+            <li><a href="/#install">Quickstart</a></li>
+            <li><a href="/llms.txt">Agent install guide</a></li>
+            <li><a href="/llms-full.txt">Full agent guide</a></li>
+            <li><a href="/skill.md">Agent skill</a></li>
+            <li><a href="/openapi.json">OpenAPI schema</a></li>
+            <li><a href="/server-card.json">MCP server card</a></li>
+            <li><a href="/.well-known/x402">x402 discovery</a></li>
+            <li><a href="/v1/pricing">Pricing API</a></li>
+            <li><a href="/health">Service status</a></li>
+            <li><a href="/stats">Usage stats</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-company">Company</p>
+          <ul role="list" aria-labelledby="foot-company">
+            <li><a href="/about" aria-current="page">About</a></li>
+            <li><a href="/support">Support</a></li>
+            <li><a href="/privacy">Privacy</a></li>
+            <li><a href="/terms">Terms</a></li>
+            <li><a href="https://github.com/EnkiduHub/MentionForge/blob/main/SECURITY.md">Security policy</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <p class="foot-title" id="foot-listings">Find us</p>
+          <ul role="list" aria-labelledby="foot-listings">
+            <li><a href="https://github.com/EnkiduHub/MentionForge">GitHub</a></li>
+            <li><a href="https://glama.ai/mcp/servers/EnkiduHub/MentionForge">Glama</a></li>
+            <li><a href="https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge">Official MCP Registry</a></li>
+            <li><a href="https://www.x402scan.com">x402scan</a></li>
+          </ul>
+        </div>
+        </nav>
+      </div>
+      <div class="foot-bottom">
+        <p>© 2026 MentionForge. Source code under the <a href="https://opensource.org/licenses/MIT">MIT License</a>.</p>
+        <p><a href="/" id="origin-link">mentionforge.mentionforge.workers.dev</a></p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
