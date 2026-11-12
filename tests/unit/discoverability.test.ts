@@ -730,6 +730,14 @@ describe("agent discoverability", () => {
     const docsIndex = readFileSync(new URL("../../docs/README.md", import.meta.url), "utf8");
     const listingsIndex = readFileSync(new URL("../../listings/README.md", import.meta.url), "utf8");
     expect(docsIndex).toContain(`Version is \`${pkgVersion.version}\``);
+    const docsIndexHrefs = [...docsIndex.matchAll(/\]\(([^)]+)\)/g)].map((m) => m[1] as string);
+    const docsTableHrefs = docsIndexHrefs.filter(
+      (href) => !href.startsWith("../") && !href.startsWith("http") && href !== "mcp.md#mcp-prompts",
+    );
+    expect(docsTableHrefs.length).toBeGreaterThan(0);
+    for (const href of docsTableHrefs) {
+      expect(readme, href).toContain(`docs/${href}`);
+    }
     expect(listingsIndex).toContain(`version \`${pkgVersion.version}\``);
     expect(official.remotes?.[0]).toEqual({
       type: "streamable-http",

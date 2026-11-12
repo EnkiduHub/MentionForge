@@ -276,6 +276,7 @@ Set `RECIPIENT_WALLET` in **every** wrangler vars block (staging/production do n
 - [Operations](docs/operations.md)
 - [Go-live](docs/go-live.md)
 - [Website design system](docs/DESIGN-SYSTEM.md)
+- [November 2026 website revamp](docs/revamp-2026-11/README.md)
 - [Security](SECURITY.md)
 - [Changelog](CHANGELOG.md)
 - [Skill](skill.md) (byte-twin of `src/lib/skill-text.ts`)
