@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Fix: `POST /v1/keys/claim` (and other non-GET/HEAD API 404s) no longer fall through to `ASSETS.fetch` after the request body was read. Invalid or unknown checkout sessions keep the JSON `404 KEY_SESSION_NOT_FOUND` envelope instead of HTTP 500.
 - Docs: README Docs list includes [docs/revamp-2026-11/README.md](docs/revamp-2026-11/README.md) (same table as `docs/README.md`). Unit test fails when README omits a docs-index table href (MF-D1112).
 - Website revamp (Nov 2026): a documented design system ([docs/DESIGN-SYSTEM.md](docs/DESIGN-SYSTEM.md)) with tokens in `src/brand/tokens.ts` mirrored by a layered `public/styles.css`, and one shared head/header/footer (`src/lib/site-chrome.ts`) for the landing, About, Privacy, Terms, Support, API key claim page, developer-resource views, and 404. Sticky header with a Developers menu and a no-JS mobile menu; footer links every product, developer, company, and directory page.
 - Landing rebuilt for buyers: hero with live status and a one-line install, how it works, a server-rendered report of the frozen Cloudflare Workers example, what every response includes, example requests, free and paid tool gallery, quickstart (MCP config, Claude Code, REST curl with presets, how x402 payment works) with copy buttons, pricing with worked costs and live call count, sources with live status, comparison with raw `web_search`, FAQ, and closing call to action. Copy is plain-language; prices, trial, sources, limits, and legal terms are unchanged, and the landing and About still do not market the API key plan.

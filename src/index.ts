@@ -40,6 +40,11 @@ export default {
     }
     const res = await app.fetch(request, env, ctx);
     if (res.status !== 404) return res;
+    // Static assets are GET/HEAD only. Replaying a POST/PUT/PATCH whose body
+    // was already read (for example POST /v1/keys/claim returning 404) throws
+    // "Body is unusable" and the client sees HTTP 500 instead of the API 404.
+    const method = request.method.toUpperCase();
+    if (method !== "GET" && method !== "HEAD") return res;
     if (env.ASSETS) {
       // html_handling is none so `/` does not auto-map to index.html; keep API 404s as JSON.
       const assetRequest =

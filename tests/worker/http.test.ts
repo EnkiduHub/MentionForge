@@ -114,4 +114,21 @@ describe("worker fetch", () => {
     await waitOnExecutionContext(ctx);
     expect(res.status).toBe(200);
   });
+
+  it("POST /v1/keys/claim with an invalid session_id is JSON 404, not 500", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(
+      new Request("https://example.com/v1/keys/claim", {
+        method: "POST",
+        headers: { Accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ session_id: "not-a-session" }),
+      }),
+      env,
+      ctx,
+    );
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("KEY_SESSION_NOT_FOUND");
+  });
 });

@@ -542,6 +542,32 @@ describe("HTTP surfaces", () => {
     expect(body.error.code).toBe("NOT_FOUND");
   });
 
+  it("POST /v1/keys/claim with an invalid session_id stays JSON 404 after the ASSETS fallback", async () => {
+    const { default: worker } = await import("../../src/index");
+    const env = mockEnv({
+      ASSETS: {
+        fetch: async (input: RequestInfo | URL) => {
+          // Workers static assets read the request. After claim already parsed JSON,
+          // that throws and used to surface as HTTP 500 instead of the route's 404.
+          if (input instanceof Request) await input.arrayBuffer();
+          return new Response("not found", { status: 404 });
+        },
+      } as unknown as Env["ASSETS"],
+    });
+    const res = await worker.fetch(
+      new Request("https://mentionforge.test/v1/keys/claim", {
+        method: "POST",
+        headers: { Accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ session_id: "not-a-session" }),
+      }),
+      env,
+      executionCtx(),
+    );
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("KEY_SESSION_NOT_FOUND");
+  });
+
   it("GET /sitemap.xml is served even when ASSETS 404s", async () => {
     const { default: worker } = await import("../../src/index");
     const env = mockEnv({
