@@ -485,6 +485,27 @@ describe("agent discoverability", () => {
     expect(missing).toEqual([]);
   });
 
+  it("repository-root llms.txt follows the v2 file-list format and names every MCP tool", async () => {
+    const registered = await listedMcpToolNames();
+    const { VALUE_PROP } = await import("../../src/brand/tokens");
+    const repoLlms = readFileSync(new URL("../../llms.txt", import.meta.url), "utf8");
+    expect(repoLlms.startsWith("# MentionForge\n")).toBe(true);
+    expect(repoLlms).toContain(`> ${VALUE_PROP}`);
+    const beforeFirstH2 = repoLlms.slice(0, repoLlms.search(/^## /m));
+    expect(beforeFirstH2).toContain(`> ${VALUE_PROP}`);
+    expect(beforeFirstH2).not.toMatch(/^## /m);
+    expect(repoLlms).toMatch(/^## Install$/m);
+    expect(repoLlms).toMatch(/^## Live origin$/m);
+    expect(repoLlms).toMatch(/^## Optional$/m);
+    expect(repoLlms).toContain("https://mentionforge.mentionforge.workers.dev/mcp");
+    expect(repoLlms).toContain("https://mentionforge.mentionforge.workers.dev/llms.txt");
+    expect(repoLlms).toContain("https://llmstxt.org/");
+    expect(repoLlms).toMatch(/^- \[.+\]\(.+\)/m);
+    const missing = registered.filter((name) => !mentionsToolName(repoLlms, name));
+    expect(missing).toEqual([]);
+    expect(repoLlms).not.toMatch(/\$29|buy\.stripe\.com|staging|0x[a-fA-F0-9]{40}/i);
+  });
+
   it("README, docs/mcp.md, and examples/README list every registered MCP prompt, resource URI, and POST-only paid REST lens", () => {
     const mcpSrc = readFileSync(new URL("../../src/mcp.ts", import.meta.url), "utf8");
     const prompts = [...mcpSrc.matchAll(/server\.registerPrompt\(\s*"([^"]+)"/g)].map((m) => m[1] as string);

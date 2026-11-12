@@ -168,7 +168,8 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 
 ### Discovery
 
-- `GET /llms.txt` — agent install (Cursor JSON + Claude CLI)
+- [llms.txt](./llms.txt) — GitHub clone index in the [llms.txt v2](https://llmstxt.org/) format (H1, summary, then linked files)
+- `GET /llms.txt` — agent install on the hosted origin (Cursor JSON + Claude CLI)
 - `GET /llms-full.txt` — longer agent card
 - `GET /skill.md` — Cursor skill
 - `GET /openapi.json` — OpenAPI 3.1
