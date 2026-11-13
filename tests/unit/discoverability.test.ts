@@ -11,6 +11,7 @@ import { planKeyMonthlyCalls } from "../../src/lib/plan-quota";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
 import { healthInputSchema } from "../../src/schemas/lenses";
 import { researchRequestSchema } from "../../src/schemas/research";
+import { AgentError, errorCodeSchema, statusForCode } from "../../src/schemas/errors";
 import { executionCtx, mockEnv } from "../helpers/env";
 
 const app = createApp();
@@ -652,6 +653,17 @@ describe("agent discoverability", () => {
     expect(row).toContain("DISABLED_SOURCES=x,reddit");
     expect(row).not.toMatch(/reddit `public`\/`oauth`/);
     expect(row).not.toMatch(/x `web`\/`api`/);
+  });
+
+  it("docs/api.md error table lists every error code with its HTTP status and recoverable flag (MF-D1113)", () => {
+    const apiDocs = readFileSync(new URL("../../docs/api.md", import.meta.url), "utf8");
+    const rows = new Map<string, string>();
+    for (const m of apiDocs.matchAll(/^\| `([A-Z_]+)` \| (\d{3}) \| (yes|no) \|$/gm)) rows.set(m[1]!, `${m[2]} ${m[3]}`);
+    expect([...rows.keys()]).toEqual([...errorCodeSchema.options]);
+    for (const code of errorCodeSchema.options) {
+      const recoverable = new AgentError(code, "x", { request_id: "t" }).body().error.recoverable;
+      expect(rows.get(code), code).toBe(`${statusForCode(code)} ${recoverable ? "yes" : "no"}`);
+    }
   });
 
   it("README PulseMCP listed-on line matches listings/pulsemcp.md; Smithery listing tools match mcpToolCards", () => {
