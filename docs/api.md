@@ -79,6 +79,28 @@ GET `/v1/research` is supported via query string (`view` / `focus` / `include_ma
 
 JSON `{ error: { code, message, recoverable, hint, details }, request_id }`.
 
+Every `error.code`, its HTTP status, and `error.recoverable` (from `src/schemas/errors.ts`). `recoverable: yes` means the same request can succeed later or after the fix in `error.hint`; `no` means retrying the same request will not help.
+
+| `error.code` | HTTP | Recoverable |
+| --- | --- | --- |
+| `VALIDATION_ERROR` | 400 | yes |
+| `NOT_FOUND` | 404 | yes |
+| `PAYLOAD_TOO_LARGE` | 413 | yes |
+| `PAYMENT_REQUIRED` | 402 | yes |
+| `PAYMENT_UNAVAILABLE` | 503 | yes |
+| `UNAUTHORIZED` | 401 | yes |
+| `RATE_LIMITED` | 429 | yes |
+| `TRIAL_EXHAUSTED` | 402 | yes |
+| `SOURCE_UNAVAILABLE` | 503 | yes |
+| `X_ID_CAP_REACHED` | 429 | yes |
+| `PLAN_QUOTA_REACHED` | 429 | yes |
+| `KEY_ALREADY_CLAIMED` | 410 | no |
+| `KEY_SESSION_NOT_FOUND` | 404 | no |
+| `PORTAL_UNAVAILABLE` | 503 | yes |
+| `QUOTA_UNAVAILABLE` | 503 | yes |
+| `IDEMPOTENCY_CONFLICT` | 409 | yes |
+| `INTERNAL_ERROR` | 500 | no |
+
 `402 PAYMENT_REQUIRED` includes `error.hint` with amount `0.02 USDC`, CAIP-2 network, `payTo`, trial header, `Idempotency-Key` example, and a curl retry.
 
 Limits (per colo): paid 120/60s, unpaid 20/60s, trial 10/60s, discovery 120/60s.

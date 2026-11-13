@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Docs: `docs/api.md` Errors lists every `error.code` with its HTTP status and `recoverable` flag (including `KEY_SESSION_NOT_FOUND` 404 and `KEY_ALREADY_CLAIMED` 410). Unit test fails when the table drifts from `src/schemas/errors.ts` (MF-D1113).
 - Discoverability: add a repository-root [llms.txt](llms.txt) in the llms.txt v2 shape (H1, blockquote summary, H2 file lists) so GitHub clones and llms.txt directories can index MentionForge without fetching the Worker. README Discovery links it. Hosted `GET /llms.txt` is unchanged.
 - Fix: `POST /v1/keys/claim` (and other non-GET/HEAD API 404s) no longer fall through to `ASSETS.fetch` after the request body was read. Invalid or unknown checkout sessions keep the JSON `404 KEY_SESSION_NOT_FOUND` envelope instead of HTTP 500.
 - Docs: README Docs list includes [docs/revamp-2026-11/README.md](docs/revamp-2026-11/README.md) (same table as `docs/README.md`). Unit test fails when README omits a docs-index table href (MF-D1112).
