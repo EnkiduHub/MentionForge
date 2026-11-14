@@ -170,7 +170,11 @@ export function discoveryDocs(origin: string) {
   };
 }
 
-/** Public GET surfaces for /sitemap.xml: landing, agent docs, and existing discovery routes. */
+/**
+ * Public GET surfaces for /sitemap.xml: pages and agent docs worth indexing.
+ * Live JSON endpoints (/health, /stats, /v1/pricing, /v1/research/example) stay out: they change on every
+ * request and search engines report them as crawled-but-not-indexed noise.
+ */
 export const PUBLIC_SITEMAP_PATHS = [
   "/",
   "/about",
@@ -183,10 +187,6 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/server-card.json",
   "/.well-known/mcp",
   "/.well-known/x402",
-  "/health",
-  "/stats",
-  "/v1/pricing",
-  "/v1/research/example",
 ] as const;
 
 export function sitemapXml(origin: string): string {
