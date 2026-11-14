@@ -101,7 +101,9 @@ describe("site pages", () => {
       const title = attr(html, /<title>([^<]+)<\/title>/);
       const description = attr(html, /<meta name="description" content="([^"]+)"/);
       expect(title, label).toBeTruthy();
-      expect(title!.length, `${label} title`).toBeLessThanOrEqual(70);
+      // Google cuts titles near 60 characters; count entities like &amp; as one character (MF-D1114).
+      const visibleTitle = title!.replace(/&(?:amp|lt|gt|quot|#39);/g, "&");
+      expect(visibleTitle.length, `${label} title`).toBeLessThanOrEqual(60);
       expect(description, label).toBeTruthy();
       expect(description!.length, `${label} description`).toBeLessThanOrEqual(160);
       expect(description!.length, `${label} description`).toBeGreaterThanOrEqual(50);

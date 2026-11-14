@@ -356,7 +356,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
   },
   about: {
     heading: "About MentionForge",
-    title: "About MentionForge — open-source social listening for AI agents",
+    title: "About MentionForge — open-source social listening for agents",
     eyebrow: "Company",
     description:
       "MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources.",
