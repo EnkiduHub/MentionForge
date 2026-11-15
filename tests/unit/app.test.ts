@@ -390,6 +390,21 @@ describe("HTTP surfaces", () => {
     expect(body.circuits.news).toMatch(/open|closed/);
   });
 
+  it("llms.txt and llms-full.txt give VS Code and Claude Desktop install steps", async () => {
+    for (const path of ["/llms.txt", "/llms-full.txt"] as const) {
+      const res = await call(path);
+      expect(res.status, path).toBe(200);
+      const txt = await res.text();
+      const vscode = txt.match(/VS Code \(\.vscode\/mcp\.json\):\n\n```json\n([\s\S]*?)\n```/);
+      expect(vscode, path).not.toBeNull();
+      const cfg = JSON.parse(vscode?.[1] ?? "{}") as { servers: Record<string, { type: string; url: string }> };
+      expect(cfg.servers.mentionforge).toEqual({ type: "http", url: "https://mentionforge.test/mcp" });
+      expect(txt, path).toContain(
+        'Claude Desktop / claude.ai: Customize > Connectors > Add custom connector, name "MentionForge", URL https://mentionforge.test/mcp',
+      );
+    }
+  });
+
   it("llms.txt does not claim Base mainnet on sepolia", async () => {
     const res = await call("/llms.txt");
     expect(res.status).toBe(200);

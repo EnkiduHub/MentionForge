@@ -21,6 +21,8 @@ import {
   discoveryDocs,
   mcpInstall,
   mcpInstallJson,
+  vscodeMcpInstallJson,
+  claudeDesktopConnector,
   mcpServerInfo,
   mcpToolCards,
   PREFER_OVER,
@@ -227,6 +229,14 @@ ${mcpInstallJson(origin)}
 
 Claude CLI: ${claudeMcpAdd(origin)}
 
+VS Code (.vscode/mcp.json):
+
+\`\`\`json
+${vscodeMcpInstallJson(origin)}
+\`\`\`
+
+Claude Desktop / claude.ai: ${claudeDesktopConnector(origin)}
+
 Free first: get_health, get_pricing, get_example, suggest_tool, get_entity_profile.
 Paid ($0.02 USDC, 10 trial calls shared): research_mentions, compare_brands, get_digest, detect_risk, draft_reply, list_mentions, get_trends.
 Call exactly one paid tool per question. Use suggest_tool when unsure.
@@ -292,6 +302,14 @@ ${mcpInstallJson(origin)}
 \`\`\`
 
 Claude CLI: ${claudeMcpAdd(origin)}
+
+VS Code (.vscode/mcp.json):
+
+\`\`\`json
+${vscodeMcpInstallJson(origin)}
+\`\`\`
+
+Claude Desktop / claude.ai: ${claudeDesktopConnector(origin)}
 
 Skill: ${origin}/skill.md
 

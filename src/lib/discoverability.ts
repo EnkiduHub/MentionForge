@@ -55,6 +55,24 @@ export function claudeMcpAdd(origin: string): string {
   return `claude mcp add --transport http mentionforge ${origin}/mcp`;
 }
 
+/** VS Code `.vscode/mcp.json` uses a top-level `servers` key and needs `type: "http"` for a remote server. */
+export function vscodeMcpInstall(origin: string) {
+  return {
+    servers: {
+      mentionforge: { type: "http", url: `${origin}/mcp` },
+    },
+  };
+}
+
+export function vscodeMcpInstallJson(origin: string): string {
+  return JSON.stringify(vscodeMcpInstall(origin), null, 2);
+}
+
+/** Claude Desktop and claude.ai add a remote MCP server as a custom connector by URL (no local config file). */
+export function claudeDesktopConnector(origin: string): string {
+  return `Customize > Connectors > Add custom connector, name "MentionForge", URL ${origin}/mcp`;
+}
+
 /** JSON Schema for a live MCP Zod input, same `z.toJSONSchema` call MCP clients see. */
 export function toolInputJsonSchema(schema: z.ZodType) {
   return z.toJSONSchema(schema, { target: "draft-2020-12", io: "input" });
