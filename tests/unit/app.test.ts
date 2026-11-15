@@ -531,6 +531,30 @@ describe("HTTP surfaces", () => {
     expect(requested).toEqual(["/index.html"]);
   });
 
+  it("IndexNow key file in public/ is served as plain text after Hono 404", async () => {
+    const { readFileSync } = await import("node:fs");
+    const key = "7d4f8a6c69a279a7612903d2e9baca04";
+    const file = readFileSync(new URL(`../../public/${key}.txt`, import.meta.url), "utf8");
+    expect(file.trim()).toBe(key);
+    const { default: worker } = await import("../../src/index");
+    const requested: string[] = [];
+    const env = mockEnv({
+      ASSETS: {
+        fetch: async (input: RequestInfo | URL) => {
+          const path = input instanceof Request ? new URL(input.url).pathname : String(input);
+          requested.push(path);
+          return path === `/${key}.txt`
+            ? new Response(file, { status: 200, headers: { "content-type": "text/plain; charset=utf-8" } })
+            : new Response("not found", { status: 404 });
+        },
+      } as unknown as Env["ASSETS"],
+    });
+    const res = await worker.fetch(new Request(`https://mentionforge.test/${key}.txt`), env, executionCtx());
+    expect(res.status).toBe(200);
+    expect((await res.text()).trim()).toBe(key);
+    expect(requested).toEqual([`/${key}.txt`]);
+  });
+
   it("unknown API paths stay JSON 404 instead of SPA HTML", async () => {
     const { default: worker } = await import("../../src/index");
     const env = mockEnv({
