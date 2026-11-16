@@ -38,6 +38,25 @@ export function trailingSlashRedirect(method: string, rawUrl: string): string | 
   return `${trimmed}${url.search}`;
 }
 
+/**
+ * Common guessed paths that have no page of their own. Each one 301s to the landing section that
+ * answers it, so a visitor who types /pricing or /docs lands on the content instead of a 404.
+ * The JSON price list stays at /v1/pricing.
+ */
+export const PATH_ALIASES: Readonly<Record<string, string>> = {
+  "/pricing": "/#pricing",
+  "/docs": "/#install",
+  "/install": "/#install",
+};
+
+/** `Location` for a GET/HEAD request to a {@link PATH_ALIASES} path (trailing slash ignored), or null. */
+export function pathAliasRedirect(method: string, rawUrl: string): string | null {
+  const m = method.toUpperCase();
+  if (m !== "GET" && m !== "HEAD") return null;
+  const path = new URL(rawUrl).pathname.replace(/\/+$/, "");
+  return Object.hasOwn(PATH_ALIASES, path) ? (PATH_ALIASES[path] ?? null) : null;
+}
+
 export function createApp() {
   const app = new Hono<{ Bindings: Env }>();
 
@@ -54,7 +73,7 @@ export function createApp() {
   // GET/HEAD /about/ → 301 /about (query string kept). Other methods are untouched so a POST is
   // never turned into a GET. Runs after CORS so browser clients can follow the redirect.
   app.use("*", async (c, next) => {
-    const target = trailingSlashRedirect(c.req.method, c.req.url);
+    const target = pathAliasRedirect(c.req.method, c.req.url) ?? trailingSlashRedirect(c.req.method, c.req.url);
     if (target) {
       c.header("Cache-Control", "public, max-age=86400");
       return c.redirect(target, 301);
