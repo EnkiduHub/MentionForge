@@ -150,6 +150,116 @@ export function fixtureHtml(): string {
   return `<article class="fixture-summary report"><header class="report-head"><div><p class="report-kicker"><code>research_mentions</code> · ${escapeHtml(typeof ex.timeframe === "string" ? ex.timeframe : "custom range")} · sources: ${escapeHtml(sources)}</p><h3>${escapeHtml(ex.query)} · ${escapeHtml(String(ex.volume?.total ?? 0))} mentions</h3></div><ul class="kpis" role="list">${kpis}</ul></header><p class="report-summary">${escapeHtml(ex.summary ?? "")}</p><div class="report-grid"><div class="report-col"><h4>Sentiment mix</h4><div class="bars" role="group" aria-label="Sentiment mix">${sentBars}</div>${sovBars ? `<h4>Share of voice</h4><div class="bars" role="group" aria-label="Share of voice">${sovBars}</div>` : ""}<h4>Themes</h4><ul class="themes" role="list">${themes}</ul></div><div class="report-col"><h4>Top mentions <span class="count">4 of ${totalMentions}</span></h4>${mentions}<h4>Citations <span class="count">6 of ${totalCites}</span></h4><ul class="cite-list" role="list">${cites}</ul></div></div><footer class="report-foot"><span>Captured ${escapeHtml(formatUtc(ex.meta?.as_of))} · <code>as_of ${escapeHtml(String(ex.meta?.as_of ?? "—"))}</code></span><a class="link-arrow" href="/v1/research/example">See the full JSON response</a></footer></article>`;
 }
 
+/**
+ * Query presets: the hero preview radios and the "Query builder" buttons in public/index.html use
+ * these labels, and PRESETS in public/app.js uses these parameters. A unit test keeps all three in sync.
+ */
+export const QUERY_PRESETS: ReadonlyArray<{ value: string; label: string; query: string; timeframe: string }> = [
+  { value: "brand", label: "Brand", query: "Cloudflare Workers", timeframe: "7d" },
+  { value: "vs", label: "Vs competitor", query: "Cloudflare Workers vs AWS Lambda", timeframe: "7d" },
+  { value: "reviews", label: "Reviews", query: "Cloudflare Workers reviews", timeframe: "30d" },
+  { value: "risk", label: "24h risk", query: "Cloudflare Workers", timeframe: "24h" },
+];
+
+/** "2026-09-20T00:00:00.000Z" → "20 Sep 2026" (UTC, locale-independent). */
+function formatDay(iso: string | undefined): string {
+  const ms = Date.parse(iso ?? "");
+  if (!Number.isFinite(ms)) return iso ?? "";
+  const d = new Date(ms);
+  return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+}
+
+function kpiListHtml(rows: Array<[string, string]>): string {
+  const items = rows.map(([k, v]) => `<li><span>${escapeHtml(k)}</span><strong>${escapeHtml(v)}</strong></li>`).join("");
+  return `<ul class="hq-kpis" role="list">${items}</ul>`;
+}
+
+function pct(n: number | undefined): string {
+  const v = Number(n);
+  return Number.isFinite(v) ? `${Number(v.toFixed(1))}%` : "—";
+}
+
+/**
+ * The hero query preview: one compact card per preset, built only from the frozen example
+ * (EXAMPLE_RESPONSE, the same data as GET /v1/research/example). Nothing is fetched. When a preset
+ * is not the frozen query and window, the card says so and shows the closest frozen data instead.
+ */
+export function heroPreviewHtml(): string {
+  const ex = EXAMPLE_RESPONSE;
+  const total = ex.volume?.total ?? 0;
+  const timeframe = typeof ex.timeframe === "string" ? ex.timeframe : "custom range";
+  const overall = Number(ex.sentiment?.overall);
+  const mentions = ex.mentions ?? [];
+  const byPlatform = (ex.volume?.by_platform ?? {}) as Record<string, number>;
+  const sov = ex.share_of_voice ?? [];
+
+  const bodies: Record<string, () => string> = {
+    brand: () => {
+      const themes = (ex.themes ?? []).slice(0, 3).map((t) => `<li>${escapeHtml(t.theme)}</li>`).join("");
+      return `${kpiListHtml([
+        ["Mentions", String(total)],
+        ["Sentiment", Number.isFinite(overall) ? overall.toFixed(2) : "—"],
+        ["Risk", ex.signals?.risk ?? "—"],
+        ["Confidence", String(ex.meta?.confidence ?? "—")],
+      ])}<div class="bars" role="group" aria-label="Sentiment mix">${barRow("positive", ex.sentiment.positive)}${barRow("neutral", ex.sentiment.neutral)}${barRow("negative", ex.sentiment.negative)}</div><ul class="themes" role="list" aria-label="Top themes">${themes}</ul>`;
+    },
+    vs: () => {
+      const brand = sov.find((r) => r.brand !== "other");
+      const others = sov.filter((r) => r.brand === "other");
+      const rows: Array<[string, string]> = [["Mentions", String(total)]];
+      for (const r of sov) rows.push([r.brand, String(r.mentions)]);
+      const note = brand && others.length
+        ? `<p class="hq-note">“other” counts mentions that do not name ${escapeHtml(brand.brand)}.</p>`
+        : "";
+      return `${kpiListHtml(rows)}<div class="bars" role="group" aria-label="Share of voice">${sov.map((r) => barRow(r.brand, r.share * 100)).join("")}</div>${note}`;
+    },
+    reviews: () => {
+      const rows: Array<[string, string]> = [
+        ["Review sites", String(byPlatform.reviews ?? 0)],
+        ["Web", String(byPlatform.web ?? 0)],
+        ["News", String(byPlatform.news ?? 0)],
+      ];
+      const opinion = mentions.find((m) => m.intent === "complaint" || m.intent === "praise") ?? mentions[0];
+      if (!opinion) return kpiListHtml(rows);
+      const head = opinion.text.split(" — ")[0] ?? opinion.text;
+      const text = head.length > 110 ? `${head.slice(0, 107).trimEnd()}…` : head;
+      const href = httpUrl(opinion.url);
+      const quote = href
+        ? `<a class="mention-link" href="${escapeHtml(href)}" rel="nofollow noopener">${escapeHtml(text)}</a>`
+        : escapeHtml(text);
+      const meta = [
+        opinion.platform,
+        opinion.intent ? `intent ${opinion.intent}` : "",
+        opinion.aspects?.length ? `aspect ${opinion.aspects.join(", ")}` : "",
+        `sentiment ${Number(opinion.sentiment).toFixed(2)}`,
+      ].filter(Boolean).join(" · ");
+      return `${kpiListHtml(rows)}<div class="hq-quote"><p class="hq-quote-k">Closest opinion in the run</p><p class="hq-quote-t">${quote}</p><p class="hq-quote-m">${escapeHtml(meta)}</p></div>`;
+    },
+    risk: () => {
+      const reasons = (ex.signals?.reasons ?? []).join("; ");
+      const trend = (ex.volume?.trend ?? [])
+        .map((b) => `${formatDay(b.t)}: ${b.count} ${b.count === 1 ? "mention" : "mentions"}`)
+        .join(" · ");
+      return `${kpiListHtml([
+        ["Risk", ex.signals?.risk ?? "—"],
+        ["Spike", ex.signals?.spike ? "yes" : "no"],
+        ["Negative", pct(ex.sentiment?.negative)],
+      ])}<dl class="hq-facts"><div><dt>Reason</dt><dd>${escapeHtml(reasons || "—")}</dd></div><div><dt>Volume</dt><dd>${escapeHtml(trend || "—")}</dd></div></dl>`;
+    },
+  };
+
+  const cards = QUERY_PRESETS.map((p) => {
+    const exact = p.query === ex.query && p.timeframe === ex.timeframe;
+    const match = exact
+      ? `<p class="hq-match" data-match="exact">Exact match: this is the frozen run.</p>`
+      : `<p class="hq-match" data-match="closest">No frozen run for this query. Closest frozen example: “${escapeHtml(ex.query)}” · ${escapeHtml(timeframe)}.</p>`;
+    const body = (bodies[p.value] ?? bodies.brand!)();
+    return `<div class="hq-card" id="hq-card-${escapeHtml(p.value)}" data-hq="${escapeHtml(p.value)}" role="group" aria-labelledby="hq-req-${escapeHtml(p.value)}"><p class="hq-req" id="hq-req-${escapeHtml(p.value)}"><span class="hq-k">query</span> <span class="hq-v">${escapeHtml(p.query)}</span> <span class="hq-k">timeframe</span> <span class="hq-v">${escapeHtml(p.timeframe)}</span></p>${match}${body}</div>`;
+  }).join("");
+  const sources = (ex.meta?.sources_used ?? []).join(", ");
+  return `${cards}<p class="hq-foot"><span>Captured ${escapeHtml(formatUtc(ex.meta?.as_of))}${sources ? ` · sources: ${escapeHtml(sources)}` : ""}</span><a class="link-arrow" href="#example">Full report</a></p>`;
+}
+
 function stripTags(html: string): string {
   return html
     .replace(/<[^>]*>/g, " ")
@@ -295,6 +405,7 @@ export function hydrateLandingHtml(html: string, env: Env, calls: number): strin
     .replaceAll('<span class="net-name">Base</span>', `<span class="net-name">${escapeHtml(named)}</span>`)
     .replace("<li>Loading from GET /health…</li>", items || "<li>Loading from GET /health…</li>")
     .replace('<p class="stat" id="calls">—</p>', `<p class="stat" id="calls">${count}</p>`)
+    .replace('<div class="hq-cards" id="hq-cards"></div>', `<div class="hq-cards" id="hq-cards">${heroPreviewHtml()}</div>`)
     .replace('<p class="muted">Loading snapshot…</p>', fixtureHtml())
     .replace('<div id="tool-gallery" class="tool-gallery"></div>', `<div id="tool-gallery" class="tool-gallery">${toolGalleryHtml(env)}</div>`);
   if (!out.includes('type="application/ld+json"')) {

@@ -242,6 +242,22 @@
     });
   });
 
+  /* ---------- hero query preview: frozen cards are server-rendered; CSS :has() switches them.
+     This only mirrors the choice for browsers without :has() and announces it. No requests. ---------- */
+  const hqStage = document.getElementById("hq-stage");
+  const hqRadios = Array.from(document.querySelectorAll('input[name="hq"]'));
+  function syncPreview(announceIt) {
+    const on = hqRadios.find((r) => r.checked);
+    if (!hqStage || !on) return;
+    hqStage.setAttribute("data-active", on.value);
+    if (!announceIt) return;
+    const label = document.querySelector(`label[for="${on.id}"]`);
+    const match = document.querySelector(`#hq-card-${on.value} .hq-match`);
+    announce(`${label ? label.textContent : on.value} preview. ${match ? match.textContent : ""} Frozen example. No call made.`);
+  }
+  hqRadios.forEach((r) => r.addEventListener("change", () => syncPreview(true)));
+  syncPreview(false);
+
   /* ---------- scroll reveals (one-shot; skipped for reduced motion) ---------- */
   const revealables = document.querySelectorAll("[data-reveal]");
   const reduced = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;

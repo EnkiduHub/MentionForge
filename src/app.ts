@@ -17,6 +17,27 @@ import { logRequest } from "./lib/logger";
 import { wantsHtmlDocument } from "./lib/http-json";
 import { discoveryDocumentHtml } from "./lib/html";
 
+/**
+ * Paths whose trailing slash must reach their handler untouched. src/index.ts hands `/mcp/` to the
+ * MCP handler before this app runs; it is listed here too so MCP clients are never redirected.
+ */
+const TRAILING_SLASH_KEEP = new Set(["/mcp/"]);
+
+/**
+ * Relative `Location` for a non-root GET/HEAD path ending in "/", or null. Trailing slashes are
+ * removed in one hop and leading slashes collapse to one, so `//evil.example/` can never become a
+ * protocol-relative (open) redirect.
+ */
+export function trailingSlashRedirect(method: string, rawUrl: string): string | null {
+  const m = method.toUpperCase();
+  if (m !== "GET" && m !== "HEAD") return null;
+  const url = new URL(rawUrl);
+  const path = url.pathname;
+  if (path === "/" || !path.endsWith("/") || TRAILING_SLASH_KEEP.has(path)) return null;
+  const trimmed = path.replace(/\/+$/, "").replace(/^\/+/, "/") || "/";
+  return `${trimmed}${url.search}`;
+}
+
 export function createApp() {
   const app = new Hono<{ Bindings: Env }>();
 
@@ -29,6 +50,17 @@ export function createApp() {
   });
 
   app.use("*", (c, next) => corsMiddleware(c.env.ALLOWED_ORIGINS)(c, next));
+
+  // GET/HEAD /about/ → 301 /about (query string kept). Other methods are untouched so a POST is
+  // never turned into a GET. Runs after CORS so browser clients can follow the redirect.
+  app.use("*", async (c, next) => {
+    const target = trailingSlashRedirect(c.req.method, c.req.url);
+    if (target) {
+      c.header("Cache-Control", "public, max-age=86400");
+      return c.redirect(target, 301);
+    }
+    await next();
+  });
 
   app.use("*", async (c, next) => {
     const path = new URL(c.req.url).pathname;

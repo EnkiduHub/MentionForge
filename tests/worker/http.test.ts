@@ -59,6 +59,31 @@ describe("worker fetch", () => {
     expect(html).not.toContain("mailto:");
   });
 
+  it("GET /about/ is a 301 to /about with the query string kept; / and /about are not redirected", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(new Request("https://example.com/about/?ref=x"), env, ctx);
+    await waitOnExecutionContext(ctx);
+    expect(res.status).toBe(301);
+    expect(res.headers.get("location")).toBe("/about?ref=x");
+    for (const path of ["/", "/about"]) {
+      const c = createExecutionContext();
+      const ok = await worker.fetch(new Request(`https://example.com${path}`), env, c);
+      await waitOnExecutionContext(c);
+      expect(ok.status, path).toBe(200);
+      expect(ok.headers.get("location"), path).toBeNull();
+    }
+  });
+
+  it("the landing hero preview is server-rendered from the frozen example", async () => {
+    const ctx = createExecutionContext();
+    const res = await worker.fetch(new Request("https://example.com/"), env, ctx);
+    await waitOnExecutionContext(ctx);
+    const html = await res.text();
+    expect(html).toContain("Frozen example. No call made.");
+    expect([...html.matchAll(/<div class="hq-card" id="hq-card-/g)]).toHaveLength(4);
+    expect(html).not.toContain('<div class="hq-cards" id="hq-cards"></div>');
+  });
+
   it("GET /support and /claim.js are served with <main>, mailto, and security headers", async () => {
     const ctx1 = createExecutionContext();
     const supportRes = await worker.fetch(new Request("https://example.com/support"), env, ctx1);

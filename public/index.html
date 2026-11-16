@@ -89,9 +89,24 @@
   <main id="main">
     <section class="hero" aria-labelledby="hero-title">
       <div class="container hero-grid">
-        <div class="hero-copy">
+        <div class="hero-head">
           <a class="status-pill" id="live-status" href="/health"><span class="dot" data-ready></span><span id="live-label"> Base · $0.02 USDC</span><span class="sr-only"> (view service status)</span></a>
           <h1 id="hero-title">Social listening your agents can <span class="grad">cite</span>.</h1>
+        </div>
+        <fieldset class="hq-bar">
+          <legend class="hq-legend">Query preview</legend>
+          <div class="hq-options">
+            <input class="hq-radio" type="radio" name="hq" id="hq-brand" value="brand" aria-describedby="hq-flag" checked/><label for="hq-brand">Brand</label>
+            <input class="hq-radio" type="radio" name="hq" id="hq-vs" value="vs" aria-describedby="hq-flag"/><label for="hq-vs">Vs competitor</label>
+            <input class="hq-radio" type="radio" name="hq" id="hq-reviews" value="reviews" aria-describedby="hq-flag"/><label for="hq-reviews">Reviews</label>
+            <input class="hq-radio" type="radio" name="hq" id="hq-risk" value="risk" aria-describedby="hq-flag"/><label for="hq-risk">24h risk</label>
+          </div>
+        </fieldset>
+        <div class="hq-stage" id="hq-stage">
+          <p class="hq-flag" id="hq-flag"><span class="hq-flag-dot" aria-hidden="true"></span>Frozen example. No call made.</p>
+          <div class="hq-cards" id="hq-cards"></div>
+        </div>
+        <div class="hero-body">
           <p class="lede">One REST or MCP call returns a structured brief on any brand, product, or competitor: mentions, sentiment, themes, and risk signals, with every mention linked to its source.</p>
           <ul class="price" role="list" aria-label="Product facts">
             <li><span class="chip">$0.02 USDC / call</span></li>

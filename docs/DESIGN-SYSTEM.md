@@ -70,6 +70,7 @@ Shared chrome lives in `src/lib/site-chrome.ts`:
 | `<span class="net-name">Base</span>` (every one) | Network name for this deployment |
 | `<li>Loading from GET /health…</li>` | Source status rows from `sourceBackends()` |
 | `<p class="stat" id="calls">—</p>` | Completed research calls from `GET /stats` |
+| `<div class="hq-cards" id="hq-cards"></div>` | The hero query preview cards from `heroPreviewHtml()` (built from `EXAMPLE_RESPONSE`) |
 | `<p class="muted">Loading snapshot…</p>` | The example report from `EXAMPLE_RESPONSE` |
 | `<div id="tool-gallery" class="tool-gallery"></div>` | Free and paid tool cards from `mcpToolCards()` |
 
@@ -147,6 +148,7 @@ Headings use weight 650 and tight negative tracking with `text-wrap: balance`; b
 | Cards | `.panel`, `.data-card`, `.feature`, `.tool-card`, `.source-card`, `.step-card`, `.plan-card`, `.stat-card`, `.quick-card` | `--mf-surface-1`, 1px hairline, soft depth shadow; hover lifts by 2px |
 | Code | `.code-card` > `.code-head` + `pre`; tokens `.tok-k` `.tok-s` `.tok-n` `.tok-c` `.tok-cmd` `.tok-f` `.tok-u` | `app.js` highlights `pre[data-lang="json"|"shell"]` with DOM nodes (no `innerHTML`) |
 | Example report | `.report-frame` > `#fixture-root` > `.report` (`.kpis`, `.bars`, `.themes`, `.mention`, `.cite-list`) | Server-rendered from `EXAMPLE_RESPONSE`; bar widths use 5% `data-w` buckets, refined by `app.js` |
+| Hero query preview | `fieldset.hq-bar` (native radios `input[name="hq"]` + labels) and `.hq-stage` > `.hq-flag` + `#hq-cards` > `.hq-card[data-hq]` + `.hq-foot` | Directly under the landing `<h1>`. Presets mirror the query builder (`QUERY_PRESETS` in `src/lib/landing.ts`, `PRESETS` in `app.js`). Cards come only from `EXAMPLE_RESPONSE` and are always labelled “Frozen example. No call made.”; a preset that is not the frozen query and window says so and shows the closest frozen data. CSS `:has()` shows the checked card (works without JavaScript); every card shares one grid cell so the stage never changes height. `app.js` only announces the change and mirrors it into `data-active` for browsers without `:has()`. Never fetches |
 | Tables | `.compare-table` (stacks into labelled rows under 40rem), `.cost-table` | Header cells use `scope` |
 | Lists | `.check-list`, `.pay-steps`, `.steps` (claim progress, `aria-current="step"`) | |
 | Menus | `details.menu` > `summary` + `.menu-panel` | Close on Escape (focus returns to the trigger), outside click, or link click |
@@ -157,7 +159,8 @@ Headings use weight 650 and tight negative tracking with `text-wrap: balance`; b
 
 - Animate only `transform`, `opacity`, `clip-path`, and `filter`: never layout properties.
 - Hero: signal rings breathe, source chips drift, the mark glows, and the install command types
-  itself once.
+  itself once. Choosing a query-preview preset cross-fades to its card and grows its bars; nothing
+  animates on first paint.
 - Header: gains depth as the page scrolls (CSS scroll-driven animation, progressive).
 - Scroll reveals: `app.js` adds `.js` to `<html>`, then `.is-in` to `[data-reveal]` elements as
   they enter the viewport (IntersectionObserver, one-shot). Above-the-fold content is never
@@ -182,9 +185,9 @@ Headings use weight 650 and tight negative tracking with `text-wrap: balance`; b
 
 | Asset | Budget | Today (gzip) |
 | --- | --- | --- |
-| `styles.css` (render-blocking) | ≤ 16 KB | ~12 KB |
+| `styles.css` (render-blocking) | ≤ 16 KB | ~14 KB |
 | `app.js` (deferred) | ≤ 8 KB | ~6 KB |
-| Hydrated landing HTML | ≤ 16 KB | ~13 KB |
+| Hydrated landing HTML | ≤ 16 KB | ~14 KB |
 | Hero mark | WebP via `srcset` | 17 KB (`logo-440w.webp`) |
 | Header/footer/page marks | WebP | 1.5 KB / 3.8 KB (`logo-96w`, `logo-192w`) |
 
