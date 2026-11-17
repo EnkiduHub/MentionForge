@@ -472,6 +472,23 @@ describe("agent discoverability", () => {
     expect(JSON.stringify(cards)).not.toMatch(/0x[a-fA-F0-9]{40}/);
   });
 
+
+  it("hosted llms.txt and llms-full.txt list About and discovery pages as markdown links (MF-D1117)", async () => {
+    const llms = await (await call("/llms.txt")).text();
+    const full = await (await call("/llms-full.txt")).text();
+    for (const body of [llms, full]) {
+      expect(body).toMatch(/^## Pages$/m);
+      expect(body).toMatch(/\[About MentionForge — open-source social listening for agents\]\(https?:\/\/[^)]+\/about\)/);
+      expect(body).toContain(
+        "MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources.",
+      );
+      expect(body).toMatch(/\[OpenAPI\]\(https?:\/\/[^)]+\/openapi\.json\)/);
+      expect(body).toMatch(/\[Cursor skill\]\(https?:\/\/[^)]+\/skill\.md\)/);
+      expect(body).toMatch(/\[Full agent guide\]\(https?:\/\/[^)]+\/llms-full\.txt\)/);
+      expect(body).not.toMatch(/\$29|buy\.stripe\.com/i);
+    }
+  });
+
   it("server-card tools and llms.txt list every registered MCP tool name", async () => {
     const registered = await listedMcpToolNames();
     const cardRes = await call("/server-card.json");

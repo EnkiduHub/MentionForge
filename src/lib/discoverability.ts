@@ -216,6 +216,18 @@ export function sitemapXml(origin: string): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 }
 
+
+/** Markdown page index for hosted llms.txt / llms-full.txt. Descriptions match live page metas or existing discovery labels. */
+export function llmsPagesSection(origin: string): string {
+  const base = origin.replace(/\/$/, "");
+  return `## Pages
+- [About MentionForge — open-source social listening for agents](${base}/about): MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources.
+- [OpenAPI](${base}/openapi.json): HTTP routes
+- [Cursor skill](${base}/skill.md): when to use MentionForge and which tool to call
+- [Full agent guide](${base}/llms-full.txt): REST, MCP, trial headers, and payment retry
+`;
+}
+
 export function directoryLinks() {
   return {
     github: DIRECTORY_LINKS.github,
