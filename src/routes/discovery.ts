@@ -27,6 +27,7 @@ import {
   mcpToolCards,
   PREFER_OVER,
   sitemapXml,
+  llmsMcpPromptsSection,
   llmsPagesSection,
 } from "../lib/discoverability";
 
@@ -314,6 +315,8 @@ ${vscodeMcpInstallJson(origin)}
 Claude Desktop / claude.ai: ${claudeDesktopConnector(origin)}
 
 Skill: ${origin}/skill.md
+
+${llmsMcpPromptsSection()}
 
 Payment meta: _meta["x402/payment"] / _meta["x402/payment-response"]
 
