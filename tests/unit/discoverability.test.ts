@@ -5,7 +5,7 @@ import { z } from "zod";
 import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
-import { DIRECTORY_LINKS, directoryLinks, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
+import { DIRECTORY_LINKS, directoryLinks, MCP_PROMPT_SUMMARIES, MCP_RESOURCE_URIS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
 import { supportPageHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
 import { planKeyMonthlyCalls } from "../../src/lib/plan-quota";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
@@ -522,6 +522,36 @@ describe("agent discoverability", () => {
     const missing = registered.filter((name) => !mentionsToolName(repoLlms, name));
     expect(missing).toEqual([]);
     expect(repoLlms).not.toMatch(/\$29|buy\.stripe\.com|staging|0x[a-fA-F0-9]{40}/i);
+  });
+
+  it("hosted llms-full.txt lists every registered MCP prompt (name, title, args, tool, timeframe) and resource URI (MF-D1118)", async () => {
+    const mcpSrc = readFileSync(new URL("../../src/mcp.ts", import.meta.url), "utf8");
+    const blocks = mcpSrc.split(/server\.registerPrompt\(/).slice(1);
+    const registered = blocks.map((block) => ({
+      name: block.match(/^\s*"([^"]+)"/)?.[1],
+      title: block.match(/title:\s*"([^"]+)"/)?.[1],
+      args: [...(block.match(/argsSchema:\s*\{([\s\S]*?)\n\s*\},/)?.[1] ?? "").matchAll(/^\s*([a-z_]+):\s*z\./gm)].map((m) => m[1]),
+      tool: block.match(/text: `Call ([a-z_]+) /)?.[1],
+      timeframe: block.match(/timeframe (\d+[a-z]+)/)?.[1],
+    }));
+    expect(registered.length).toBe(6);
+    expect(MCP_PROMPT_SUMMARIES.map((p) => p.name)).toEqual(registered.map((p) => p.name));
+    for (const [i, reg] of registered.entries()) {
+      const summary = MCP_PROMPT_SUMMARIES[i]!;
+      expect(summary.title, reg.name).toBe(reg.title);
+      expect([...summary.args], reg.name).toEqual(reg.args);
+      expect(summary.calls.startsWith(`${reg.tool}`), reg.name).toBe(true);
+      expect(summary.calls.endsWith(`timeframe ${reg.timeframe}`), reg.name).toBe(true);
+    }
+    const resources = [...mcpSrc.matchAll(/server\.registerResource\(\s*"[^"]+"\s*,\s*"(mentionforge:\/\/[^"]+)"/g)].map((m) => m[1]);
+    expect([...MCP_RESOURCE_URIS]).toEqual(resources);
+
+    const full = await (await call("/llms-full.txt")).text();
+    expect(full).toContain("MCP prompts (slash commands; each tells the client to call exactly one paid tool):");
+    for (const p of MCP_PROMPT_SUMMARIES) expect(full).toContain(`- ${p.name} (${p.args.join(", ")}): ${p.title}.`);
+    for (const uri of MCP_RESOURCE_URIS) expect(full).toContain(uri);
+    const mcpSection = full.slice(full.indexOf("## MCP"), full.indexOf("## Sources"));
+    expect(mcpSection).toContain("MCP prompts");
   });
 
   it("README, docs/mcp.md, and examples/README list every registered MCP prompt, resource URI, and POST-only paid REST lens", () => {

@@ -228,6 +228,36 @@ export function llmsPagesSection(origin: string): string {
 `;
 }
 
+/**
+ * MCP prompts and resources for hosted llms-full.txt. Names, titles, and args mirror the
+ * registerPrompt / registerResource calls in src/mcp.ts (tests/unit/discoverability.test.ts fails on drift).
+ */
+export const MCP_PROMPT_SUMMARIES = [
+  { name: "competitor_brief", title: "Draft a competitor brief", args: ["brand", "competitor"], calls: "compare_brands, timeframe 7d" },
+  { name: "crisis_watch", title: "Watch for a mention crisis", args: ["brand"], calls: "detect_risk, timeframe 24h" },
+  { name: "review_digest", title: "Digest reviews and pain", args: ["brand"], calls: "get_digest, timeframe 7d" },
+  { name: "pain_mining", title: "Mine complaint themes", args: ["brand"], calls: "get_digest on \"{brand} complaints\", timeframe 7d" },
+  { name: "mention_export", title: "Export cited mention rows", args: ["brand"], calls: "list_mentions, timeframe 7d" },
+  { name: "trend_watch", title: "Chart mention volume over time", args: ["brand"], calls: "get_trends, timeframe 30d" },
+] as const;
+
+export const MCP_RESOURCE_URIS = [
+  "mentionforge://pricing",
+  "mentionforge://openapi",
+  "mentionforge://example",
+  "mentionforge://skill",
+] as const;
+
+export function llmsMcpPromptsSection(): string {
+  const prompts = MCP_PROMPT_SUMMARIES.map(
+    (p) => `- ${p.name} (${p.args.join(", ")}): ${p.title}. Calls ${p.calls}.`,
+  ).join("\n");
+  return `MCP prompts (slash commands; each tells the client to call exactly one paid tool):
+${prompts}
+
+MCP resources (free, read-only): ${MCP_RESOURCE_URIS.join(", ")}`;
+}
+
 export function directoryLinks() {
   return {
     github: DIRECTORY_LINKS.github,
