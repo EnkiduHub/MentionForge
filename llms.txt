@@ -29,3 +29,7 @@ Native X and Reddit feeds are off by default. Default queries still run on news,
 - [Official MCP Registry](https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.EnkiduHub/MentionForge): `io.github.EnkiduHub/MentionForge`
 - [Glama](https://glama.ai/mcp/servers/EnkiduHub/MentionForge): GitHub listing used by awesome-mcp-servers quality-score checks
 - [llms.txt specification](https://llmstxt.org/): v2 file format this index follows
+
+## Contact
+
+- Mailing address: 1701 South Figueroa #1392, Los Angeles, CA 90015, United States

@@ -23,6 +23,23 @@ export const MIT_LICENSE_URL = "https://opensource.org/licenses/MIT";
 export const THEME_COLOR = "#0B0C0F";
 export const COPYRIGHT_YEAR = 2026;
 
+/** Public mailing address for MentionForge. */
+export const mailingAddress = {
+  streetAddress: "1701 South Figueroa #1392",
+  addressLocality: "Los Angeles",
+  addressRegion: "CA",
+  postalCode: "90015",
+  addressCountry: "US",
+} as const;
+
+export const mailingAddressLines = [
+  "1701 South Figueroa #1392",
+  "Los Angeles, CA 90015",
+  "United States",
+] as const;
+
+export const mailingAddressOneLine = mailingAddressLines.join(", ");
+
 type Link = { href: string; label: string };
 type ResourceLink = Link & { desc: string };
 
@@ -274,6 +291,7 @@ ${columns}
       </div>
       <div class="foot-bottom">
         <p>© ${COPYRIGHT_YEAR} ${SITE_NAME}. Source code under the <a href="${MIT_LICENSE_URL}">MIT License</a>.</p>
+        <address class="mailing-address">1701 South Figueroa #1392<br>Los Angeles, CA 90015<br>United States</address>
         <p><a href="/" id="origin-link">${SITE_HOST}</a></p>
       </div>
     </div>
@@ -334,6 +352,7 @@ export function siteGraphNodes(origin = SITE_ORIGIN) {
       alternateName: "MENTION//FORGE",
       url: `${origin}/`,
       logo: { "@type": "ImageObject", url: `${origin}${BRAND_ASSETS.hero}`, width: 512, height: 512 },
+      address: { "@type": "PostalAddress", ...mailingAddress },
       sameAs: [DIRECTORY_LINKS.github, DIRECTORY_LINKS.glama],
     },
     {

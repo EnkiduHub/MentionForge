@@ -1131,7 +1131,7 @@
   .foot-col a { display: inline-block; padding-block: 0.2rem; color: var(--mf-muted); font-size: var(--text-sm); text-decoration: none; }
   .foot-col a:hover { color: var(--mf-paper); }
   .foot-col a[aria-current="page"] { color: var(--mf-ember); }
-  .foot-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-12); padding-top: var(--space-6); border-top: 1px solid var(--line); color: var(--mf-muted); font-size: var(--text-xs); }
+  address.mailing-address{font-style:normal;display:block;margin:.5em 0 0;line-height:1.45}.foot-bottom { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); margin-top: var(--space-12); padding-top: var(--space-6); border-top: 1px solid var(--line); color: var(--mf-muted); font-size: var(--text-xs); }
   .foot-bottom a { color: var(--mf-text-2); }
   @media (min-width: 56rem) {
     .foot-grid { grid-template-columns: minmax(0, 0.9fr) minmax(0, 2.1fr); }
