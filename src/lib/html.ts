@@ -301,6 +301,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
             <h2 id="privacy-retention">Retention and data requests</h2>
             <p>Rows in <code>api_keys</code> and <code>plan_usage</code> are kept while the subscription exists and afterwards until you ask us to delete them via <a href="/support">Support</a>. MentionForge does not automatically delete those rows when a subscription ends. Stripe keeps its own payment records under its policy; deleting our rows does not delete Stripe&rsquo;s.</p>
             <p>Private requests (access or deletion): email harbor-ops@mail.grokbot.com.</p>
+            <p>Mailing address: 1701 South Figueroa #1392, Los Angeles, CA 90015, United States.</p>
             <p>Questions or bug reports: ${ISSUES_LINK}.</p>
           </section>`,
   },
@@ -351,6 +352,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
             <h2 id="terms-license">Open-source license and contact</h2>
             <p>The repository code is licensed under the <a href="${MIT_LICENSE_URL}">MIT License</a>. Product names (MentionForge, MENTION//FORGE) and brand marks are covered by <a href="${TRADEMARK_URL}"><code>TRADEMARK.md</code></a> in the repository.</p>
             <p>Private requests: email harbor-ops@mail.grokbot.com.</p>
+            <p>Mailing address: 1701 South Figueroa #1392, Los Angeles, CA 90015, United States.</p>
             <p>GitHub Issues (bugs and non-private questions only): ${ISSUES_LINK}.</p>
           </section>`,
   },
@@ -415,6 +417,7 @@ const TRUST_PAGES: Record<TrustPageSlug, TrustPageSpec> = {
             <h2 id="about-listings">Find MentionForge</h2>
             <p>MentionForge is listed on <a href="${DIRECTORY_LINKS.glama}">Glama</a> and the <a href="${DIRECTORY_LINKS.official_registry}">Official MCP Registry</a> (<code>io.github.EnkiduHub/MentionForge</code>), and its paid endpoints are discoverable through x402 indexes such as <a href="${DIRECTORY_LINKS.x402scan}">x402scan</a>.</p>
             <p>Questions, ideas, or bugs? Open a <a href="${ISSUES_URL}">GitHub issue</a>. For help with an account or billing, visit <a href="/support">Support</a>.</p>
+            <p>Mailing address: 1701 South Figueroa #1392, Los Angeles, CA 90015, United States.</p>
           </section>`,
   },
 };
