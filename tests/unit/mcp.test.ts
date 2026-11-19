@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { GET_PRICING_DESC, GET_EXAMPLE_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC, ENTITY_PROFILE_DESC, SUGGEST_TOOL_DESC } from "../../src/mcp";
+import { GET_PRICING_DESC, GET_EXAMPLE_DESC, HEALTH_DESC, handleMcp, mcpPaymentExtraFromContext, TOOL_DESC, COMPARE_DESC, DIGEST_DESC, RISK_DESC, REPLY_DESC, LIST_DESC, TRENDS_DESC, ENTITY_PROFILE_DESC, SUGGEST_TOOL_DESC, MCP_LIST_CACHE_HINTS, MCP_LIST_CACHE_TTL_MS } from "../../src/mcp";
 import { bazaarExtension, bazaarHttpExtension, BAZAAR_RESOURCE_DESC, BAZAAR_TOOL_DESC, encodeHeader } from "../../src/lib/x402";
 import { createApp } from "../../src/app";
 import { executionCtx, mockEnv, stubCaches, stubSourcesFetch } from "../helpers/env";
@@ -706,5 +706,118 @@ describe("MCP protocol negotiation", () => {
     expect(parsed.error?.code).toBe(-32022);
     expect(parsed.error?.message).toBe("Unsupported protocol version: 1999-01-01");
     expect(parsed.error?.data?.requested).toBe("1999-01-01");
+  });
+});
+
+const MODERN_VERSION = "2026-07-28";
+const CLIENT_CAPS_META = "io.modelcontextprotocol/clientCapabilities";
+const CLIENT_INFO_META = "io.modelcontextprotocol/clientInfo";
+
+function modernListParams() {
+  return {
+    _meta: {
+      [PROTOCOL_META]: MODERN_VERSION,
+      [CLIENT_CAPS_META]: {},
+      [CLIENT_INFO_META]: { name: "t", version: "1" },
+    },
+  };
+}
+
+async function modernMcpMethod(
+  method: string,
+  extraHeaders: Record<string, string> = {},
+  env = mockEnv(),
+) {
+  const res = await handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        host: "mentionforge.test",
+        accept: "application/json, text/event-stream",
+        "MCP-Protocol-Version": MODERN_VERSION,
+        "Mcp-Method": method,
+        ...extraHeaders,
+      },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: modernListParams() }),
+    }),
+    env,
+    executionCtx(),
+  );
+  return { res, parsed: (await mcpJson(res)) as { result?: Json; error?: { message?: string } } };
+}
+
+function listResultBytes(parsed: { result?: Json }): string {
+  const result = parsed.result ?? {};
+  const { ttlMs: _ttl, cacheScope: _scope, ...rest } = result;
+  return JSON.stringify(rest);
+}
+
+describe("MCP 2026-07-28 cache hints", () => {
+  it("tools/list is byte-identical for a sandbox caller and a paid (no-trial) caller", async () => {
+    const sandbox = await modernMcpMethod("tools/list", { "X-Sandbox-Key": "test-sandbox" });
+    const paid = await modernMcpMethod("tools/list");
+    expect(sandbox.parsed.error).toBeUndefined();
+    expect(paid.parsed.error).toBeUndefined();
+    expect(listResultBytes(sandbox.parsed)).toBe(listResultBytes(paid.parsed));
+    expect(MCP_LIST_CACHE_HINTS["tools/list"].cacheScope).toBe("public");
+  });
+
+  it("prompts/list, resources/list, and resources/templates/list are caller-independent", async () => {
+    for (const method of ["prompts/list", "resources/list", "resources/templates/list"] as const) {
+      const sandbox = await modernMcpMethod(method, { "X-Sandbox-Key": "test-sandbox" });
+      const paid = await modernMcpMethod(method);
+      expect(sandbox.parsed.error, method).toBeUndefined();
+      expect(listResultBytes(sandbox.parsed)).toBe(listResultBytes(paid.parsed));
+      expect(MCP_LIST_CACHE_HINTS[method].cacheScope).toBe("public");
+    }
+  });
+
+  it("stateless 2026-07-28 tools/list returns ttlMs 300000 and public cacheScope", async () => {
+    const { res, parsed } = await modernMcpMethod("tools/list");
+    expect(res.status).toBe(200);
+    expect(parsed.error).toBeUndefined();
+    expect(parsed.result?.ttlMs).toBe(MCP_LIST_CACHE_TTL_MS);
+    expect(parsed.result?.cacheScope).toBe("public");
+    expect(parsed.result?.ttlMs).toBe(MCP_LIST_CACHE_HINTS["tools/list"].ttlMs);
+  });
+
+  it("2025-11-25 initialize plus tools/list omits ttlMs and cacheScope", async () => {
+    const env = mockEnv();
+    const headers = {
+      "content-type": "application/json",
+      host: "mentionforge.test",
+      accept: "application/json, text/event-stream",
+    };
+    const init = await handleMcp(
+      new Request("https://mentionforge.test/mcp", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: { protocolVersion: "2025-11-25", capabilities: {}, clientInfo: { name: "t", version: "1" } },
+        }),
+      }),
+      env,
+      executionCtx(),
+    );
+    expect(init.status).toBe(200);
+    const session = init.headers.get("mcp-session-id");
+    const listed = await handleMcp(
+      new Request("https://mentionforge.test/mcp", {
+        method: "POST",
+        headers: { ...headers, ...(session ? { "mcp-session-id": session } : {}) },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
+      }),
+      env,
+      executionCtx(),
+    );
+    expect(listed.status).toBe(200);
+    const parsed = (await mcpJson(listed)) as { result?: Json };
+    expect(parsed.result).toBeTruthy();
+    expect(parsed.result).not.toHaveProperty("ttlMs");
+    expect(parsed.result).not.toHaveProperty("cacheScope");
   });
 });

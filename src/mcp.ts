@@ -87,6 +87,22 @@ export {
 
 export { mcpPaymentExtraFromContext } from "./lib/mcp-paid";
 
+/** 2026-07-28 list/discover cache lifetime; matches HTTP `Cache-Control: max-age=300`. */
+export const MCP_LIST_CACHE_TTL_MS = 300_000;
+
+/**
+ * Cache hints for 2026-07-28 catalog operations. `tools/list` is `public` because a
+ * trial/sandbox caller and a paid (no-trial) caller receive the same list bytes (see tests).
+ * `resources/read` is omitted so only per-resource hints apply.
+ */
+export const MCP_LIST_CACHE_HINTS = {
+  "tools/list": { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" as const },
+  "prompts/list": { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" as const },
+  "resources/list": { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" as const },
+  "resources/templates/list": { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" as const },
+  "server/discover": { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" as const },
+} as const;
+
 function originOk(request: Request, env: Env): boolean {
   const origin = request.headers.get("Origin");
   if (!origin) return true;
@@ -237,7 +253,7 @@ async function buildMcpServer(opts: {
       name: SERVICE_NAME,
       version: SERVICE_VERSION,
     },
-    { instructions: MCP_INSTRUCTIONS },
+    { instructions: MCP_INSTRUCTIONS, cacheHints: MCP_LIST_CACHE_HINTS },
   );
 
   const sandbox = sandboxOk(env, request.headers.get("X-Sandbox-Key"));
@@ -631,7 +647,11 @@ async function buildMcpServer(opts: {
   server.registerResource(
     "pricing",
     "mentionforge://pricing",
-    { description: "Free JSON catalog: $0.02 USDC list price, trial headers, and CAIP-2 network. Same facts as get_pricing; does not run research.", mimeType: "application/json" },
+    {
+      description: "Free JSON catalog: $0.02 USDC list price, trial headers, and CAIP-2 network. Same facts as get_pricing; does not run research.",
+      mimeType: "application/json",
+      cacheHint: { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" },
+    },
     async () => ({
       contents: [
         {
@@ -646,7 +666,11 @@ async function buildMcpServer(opts: {
   server.registerResource(
     "openapi",
     "mentionforge://openapi",
-    { description: "OpenAPI 3.1 for REST POST /v1/research. Use get_pricing for the short price catalog; use research_mentions for live mentions.", mimeType: "application/json" },
+    {
+      description: "OpenAPI 3.1 for REST POST /v1/research. Use get_pricing for the short price catalog; use research_mentions for live mentions.",
+      mimeType: "application/json",
+      cacheHint: { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" },
+    },
     async () => ({
       contents: [
         {
@@ -661,7 +685,11 @@ async function buildMcpServer(opts: {
   server.registerResource(
     "example",
     "mentionforge://example",
-    { description: "Frozen Cloudflare Workers research snapshot. Same payload as get_example and GET /v1/research/example.", mimeType: "application/json" },
+    {
+      description: "Frozen Cloudflare Workers research snapshot. Same payload as get_example and GET /v1/research/example.",
+      mimeType: "application/json",
+      cacheHint: { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" },
+    },
     async () => ({
       contents: [
         {
@@ -676,7 +704,11 @@ async function buildMcpServer(opts: {
   server.registerResource(
     "skill",
     "mentionforge://skill",
-    { description: "Cursor skill.md for MentionForge. Byte-identical to GET /skill.md.", mimeType: "text/markdown" },
+    {
+      description: "Cursor skill.md for MentionForge. Byte-identical to GET /skill.md.",
+      mimeType: "text/markdown",
+      cacheHint: { ttlMs: MCP_LIST_CACHE_TTL_MS, cacheScope: "public" },
+    },
     async () => ({
       contents: [
         {
