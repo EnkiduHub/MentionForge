@@ -5,7 +5,9 @@ import { z } from "zod";
 import { createApp } from "../../src/app";
 import { GET_PRICING_DESC, HEALTH_DESC, TOOL_DESC, GET_EXAMPLE_DESC, handleMcp } from "../../src/mcp";
 import { BRAND_ASSETS } from "../../src/lib/brand-assets";
-import { DIRECTORY_LINKS, directoryLinks, MCP_PROMPT_SUMMARIES, MCP_RESOURCE_URIS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema } from "../../src/lib/discoverability";
+import { DIRECTORY_LINKS, directoryLinks, MCP_PROMPT_SUMMARIES, MCP_RESOURCE_URIS, mcpServerInfo, mcpToolCards, PUBLIC_SITEMAP_PATHS, toolInputJsonSchema, mcpServerCardV1, MCP_SERVER_JSON_NAME, MCP_SERVER_JSON_DESCRIPTION, MCP_SERVER_CARD_MEDIA_TYPE, AI_CATALOG_MEDIA_TYPE } from "../../src/lib/discoverability";
+import { ACCEPTED_MCP_PROTOCOL_VERSIONS, MODERN_PROTOCOL_VERSION, PROTOCOL_VERSION_META_KEY } from "../../src/lib/mcp-protocol";
+import worker from "../../src/index";
 import { supportPageHtml, TRUST_PAGE_SLUGS, trustPageHtml } from "../../src/lib/html";
 import { planKeyMonthlyCalls } from "../../src/lib/plan-quota";
 import { SKILL_MARKDOWN } from "../../src/lib/skill-text";
@@ -206,6 +208,8 @@ describe("agent discoverability", () => {
     };
     expect(body.endpoint).toBe("https://mentionforge.test/mcp");
     expect(body.server_card).toBe("https://mentionforge.test/.well-known/mcp/server-card.json");
+    expect((body as { server_card_v1?: string }).server_card_v1).toBe("https://mentionforge.test/mcp/server-card");
+    expect((body as { ai_catalog?: string }).ai_catalog).toBe("https://mentionforge.test/.well-known/ai-catalog.json");
     expect(body.prefer_over).toEqual(["web_search"]);
     expect(body.docs.llms).toMatch(/\/llms\.txt$/);
     expect(body.docs.skill).toMatch(/\/skill\.md$/);
@@ -272,6 +276,8 @@ describe("agent discoverability", () => {
     const txt = await res.text();
     expect(txt).toMatch(/Allow: \/skill\.md/);
     expect(txt).toMatch(/Allow: \/server-card\.json/);
+    expect(txt).toMatch(/Allow: \/mcp\/server-card/);
+    expect(txt).toMatch(/Allow: \/\.well-known\/ai-catalog\.json/);
     expect(txt).toMatch(/Allow: \/v1\/entity/);
     expect(txt).toMatch(/Allow: \/v1\/suggest/);
     expect(txt).toMatch(/^Sitemap: https:\/\/mentionforge\.test\/sitemap\.xml$/m);
@@ -483,6 +489,8 @@ describe("agent discoverability", () => {
         "MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources.",
       );
       expect(body).toMatch(/\[OpenAPI\]\(https?:\/\/[^)]+\/openapi\.json\)/);
+      expect(body).toMatch(/\[MCP server card\]\(https?:\/\/[^)]+\/mcp\/server-card\)/);
+      expect(body).toMatch(/\[AI catalog\]\(https?:\/\/[^)]+\/\.well-known\/ai-catalog\.json\)/);
       expect(body).toMatch(/\[Cursor skill\]\(https?:\/\/[^)]+\/skill\.md\)/);
       expect(body).toMatch(/\[Full agent guide\]\(https?:\/\/[^)]+\/llms-full\.txt\)/);
       expect(body).not.toMatch(/\$29|buy\.stripe\.com/i);
@@ -833,5 +841,152 @@ describe("agent discoverability", () => {
     expect(pkg.scripts?.start).toBe("node scripts/glama-stdio.mjs");
     expect(pkg.scripts?.dev).toBe("wrangler dev");
     expect(pkg.dependencies?.["mcp-remote"]).toBe("0.14.5");
+  });
+});
+
+async function mcpRpc(body: unknown, extra: Record<string, string> = {}) {
+  return handleMcp(
+    new Request("https://mentionforge.test/mcp", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        host: "mentionforge.test",
+        accept: "application/json, text/event-stream",
+        ...extra,
+      },
+      body: JSON.stringify(body),
+    }),
+    mockEnv(),
+    executionCtx(),
+  );
+}
+
+async function mcpRpcJson(res: Response): Promise<{ error?: { message?: string }; result?: Record<string, unknown> }> {
+  const raw = await res.text();
+  const ct = res.headers.get("content-type") ?? "";
+  if (ct.includes("text/event-stream")) {
+    const last = raw
+      .split("\n")
+      .filter((line) => line.startsWith("data:"))
+      .map((line) => line.replace(/^data:\s?/, "").trim())
+      .filter(Boolean)
+      .at(-1);
+    return JSON.parse(last ?? "null") as { error?: { message?: string }; result?: Record<string, unknown> };
+  }
+  return JSON.parse(raw) as { error?: { message?: string }; result?: Record<string, unknown> };
+}
+
+describe("SEP-2127 server card and AI catalog", () => {
+  it("GET /mcp/server-card is a SEP-2127 card with CORS, media type, and no primitives", async () => {
+    const res = await call("/mcp/server-card", { headers: { Accept: "application/mcp-server-card+json" } });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe(MCP_SERVER_CARD_MEDIA_TYPE);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=300");
+    expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+    const card = (await res.json()) as ReturnType<typeof mcpServerCardV1> & {
+      tools?: unknown;
+      prompts?: unknown;
+      resources?: unknown;
+      pricing?: unknown;
+    };
+    expect(card.$schema).toBe("https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json");
+    expect(card.name).toBe(MCP_SERVER_JSON_NAME);
+    expect(card.name).toMatch(/^[a-zA-Z0-9.-]+\/[a-zA-Z0-9._-]+$/);
+    expect(card.description.length).toBeLessThanOrEqual(100);
+    expect(card.description).toBe(MCP_SERVER_JSON_DESCRIPTION);
+    expect(card.title).toBe("MentionForge");
+    expect(card.websiteUrl).toBe("https://mentionforge.test");
+    expect(card.version).toBe(mcpServerInfo().version);
+    expect(card.tools).toBeUndefined();
+    expect(card.prompts).toBeUndefined();
+    expect(card.resources).toBeUndefined();
+    expect(card.pricing).toBeUndefined();
+    expect(card.remotes).toEqual([
+      {
+        type: "streamable-http",
+        url: "https://mentionforge.test/mcp",
+        supportedProtocolVersions: [...ACCEPTED_MCP_PROTOCOL_VERSIONS],
+      },
+    ]);
+    for (const icon of card.icons ?? []) {
+      expect(icon.src.startsWith("https://mentionforge.test/")).toBe(true);
+    }
+  });
+
+  it("HEAD /mcp/server-card is 200 with the same media type", async () => {
+    const res = await call("/mcp/server-card", { method: "HEAD" });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe(MCP_SERVER_CARD_MEDIA_TYPE);
+    expect(await res.text()).toBe("");
+  });
+
+  it("GET /.well-known/ai-catalog.json points at the server card", async () => {
+    const res = await call("/.well-known/ai-catalog.json");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toBe(AI_CATALOG_MEDIA_TYPE);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("cache-control")).toBe("public, max-age=300");
+    const doc = (await res.json()) as {
+      specVersion: string;
+      entries: Array<{ identifier: string; type: string; url: string }>;
+    };
+    expect(doc.specVersion).toBe("1.0");
+    expect(doc.entries).toEqual([
+      {
+        identifier: "urn:air:mentionforge.test:mcp:mentionforge",
+        type: "application/mcp-server-card+json",
+        url: "https://mentionforge.test/mcp/server-card",
+      },
+    ]);
+  });
+
+  it("GET /mcp is still 405", async () => {
+    const res = await worker.fetch(new Request("https://mentionforge.test/mcp"), mockEnv(), executionCtx());
+    expect(res.status).toBe(405);
+  });
+
+  it("OpenAPI discovery paths include the SEP-2127 card and AI catalog", async () => {
+    const openapi = (await (await call("/openapi.json")).json()) as { paths: Record<string, unknown> };
+    expect(openapi.paths["/mcp/server-card"]).toBeTruthy();
+    expect(openapi.paths["/.well-known/ai-catalog.json"]).toBeTruthy();
+    expect(openapi.paths["/server-card.json"]).toBeTruthy();
+  });
+
+  it("accepted protocol versions on the card are ones this app actually serves", async () => {
+    expect(ACCEPTED_MCP_PROTOCOL_VERSIONS).toEqual(["2026-07-28", "2025-11-25", "2025-06-18", "2025-03-26"]);
+
+    const modern = await mcpRpc(
+      {
+        jsonrpc: "2.0",
+        id: 1,
+        method: "tools/list",
+        params: {
+          _meta: {
+            [PROTOCOL_VERSION_META_KEY]: MODERN_PROTOCOL_VERSION,
+            "io.modelcontextprotocol/clientCapabilities": {},
+            "io.modelcontextprotocol/clientInfo": { name: "t", version: "1" },
+          },
+        },
+      },
+      { "MCP-Protocol-Version": MODERN_PROTOCOL_VERSION, "Mcp-Method": "tools/list" },
+    );
+    expect(modern.status).toBe(200);
+    const modernParsed = await mcpRpcJson(modern);
+    expect(modernParsed.error).toBeUndefined();
+    expect(Array.isArray(modernParsed.result?.tools) ? modernParsed.result.tools.length : 0).toBeGreaterThan(0);
+
+    for (const version of ["2025-11-25", "2025-06-18", "2025-03-26"] as const) {
+      const init = await mcpRpc({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: { protocolVersion: version, capabilities: {}, clientInfo: { name: "t", version: "1" } },
+      });
+      expect(init.status, version).toBe(200);
+      const parsed = await mcpRpcJson(init);
+      expect(parsed.error, version).toBeUndefined();
+      expect(parsed.result?.protocolVersion, version).toBe(version);
+    }
   });
 });

@@ -1,6 +1,8 @@
 import { z } from "zod";
 import packageJson from "../../package.json" with { type: "json" };
-import { SERVICE_NAME } from "./constants";
+import officialServer from "../../server.json" with { type: "json" };
+import { SERVICE_NAME, SERVICE_VERSION } from "./constants";
+import { ACCEPTED_MCP_PROTOCOL_VERSIONS } from "./mcp-protocol";
 import { researchRequestSchema } from "../schemas/research";
 import {
   compareInputSchema,
@@ -188,6 +190,72 @@ export function discoveryDocs(origin: string) {
   };
 }
 
+export const MCP_SERVER_CARD_SCHEMA =
+  "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json";
+export const MCP_SERVER_CARD_MEDIA_TYPE = "application/mcp-server-card+json; charset=utf-8";
+export const AI_CATALOG_MEDIA_TYPE = "application/ai-catalog+json; charset=utf-8";
+export const MCP_SERVER_JSON_NAME = officialServer.name;
+export const MCP_SERVER_JSON_DESCRIPTION = officialServer.description;
+export const MCP_SERVER_JSON_REPOSITORY = officialServer.repository;
+export const MCP_SERVER_JSON_TITLE = officialServer.title;
+
+export function mcpServerCardPath(origin: string): string {
+  return `${origin.replace(/\/$/, "")}/mcp/server-card`;
+}
+
+export function aiCatalogPath(origin: string): string {
+  return `${origin.replace(/\/$/, "")}/.well-known/ai-catalog.json`;
+}
+
+function absolutizeIconSrc(src: string, origin: string): string {
+  try {
+    const path = new URL(src).pathname;
+    return `${origin.replace(/\/$/, "")}${path}`;
+  } catch {
+    return src.startsWith("/") ? `${origin.replace(/\/$/, "")}${src}` : src;
+  }
+}
+
+/** SEP-2127 Server Card (identity + transport only; no tools/prompts/resources/pricing). */
+export function mcpServerCardV1(origin: string) {
+  const base = origin.replace(/\/$/, "");
+  return {
+    $schema: MCP_SERVER_CARD_SCHEMA,
+    name: MCP_SERVER_JSON_NAME,
+    version: SERVICE_VERSION,
+    description: MCP_SERVER_JSON_DESCRIPTION,
+    title: MCP_SERVER_JSON_TITLE ?? SERVICE_NAME,
+    websiteUrl: base,
+    repository: MCP_SERVER_JSON_REPOSITORY,
+    icons: officialServer.icons.map((icon) => ({
+      ...icon,
+      src: absolutizeIconSrc(icon.src, base),
+    })),
+    remotes: [
+      {
+        type: "streamable-http" as const,
+        url: `${base}/mcp`,
+        supportedProtocolVersions: [...ACCEPTED_MCP_PROTOCOL_VERSIONS],
+      },
+    ],
+  };
+}
+
+export function aiCatalogDocument(origin: string) {
+  const base = origin.replace(/\/$/, "");
+  const host = new URL(base).host;
+  return {
+    specVersion: "1.0",
+    entries: [
+      {
+        identifier: `urn:air:${host}:mcp:mentionforge`,
+        type: "application/mcp-server-card+json",
+        url: mcpServerCardPath(base),
+      },
+    ],
+  };
+}
+
 /**
  * Public GET surfaces for /sitemap.xml: pages and agent docs worth indexing.
  * Live JSON endpoints (/health, /stats, /v1/pricing, /v1/research/example) stay out: they change on every
@@ -203,7 +271,9 @@ export const PUBLIC_SITEMAP_PATHS = [
   "/skill.md",
   "/openapi.json",
   "/server-card.json",
+  "/mcp/server-card",
   "/.well-known/mcp",
+  "/.well-known/ai-catalog.json",
   "/.well-known/x402",
 ] as const;
 
@@ -223,6 +293,8 @@ export function llmsPagesSection(origin: string): string {
   return `## Pages
 - [About MentionForge — open-source social listening for agents](${base}/about): MentionForge is MIT-licensed social listening and brand research for AI agents and developers, over REST and MCP, citing public news, web, and review sources.
 - [OpenAPI](${base}/openapi.json): HTTP routes
+- [MCP server card](${base}/mcp/server-card): SEP-2127 identity and Streamable HTTP endpoint
+- [AI catalog](${base}/.well-known/ai-catalog.json): well-known pointer at the server card
 - [Cursor skill](${base}/skill.md): when to use MentionForge and which tool to call
 - [Full agent guide](${base}/llms-full.txt): REST, MCP, trial headers, and payment retry
 `;
