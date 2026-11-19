@@ -52,7 +52,7 @@ export const RESOURCE_LINKS: readonly ResourceLink[] = [
   { href: "/server-card.json", label: "MCP server card", desc: "Tools and install" },
   { href: "/.well-known/x402", label: "x402", desc: "Payment discovery" },
   { href: "/v1/pricing", label: "Pricing API", desc: "Price and trial terms" },
-  { href: "/v1/research/example", label: "Example", desc: "Free sample response" },
+  { href: "/v1/research/example", label: "Example", desc: "Free example response" },
   { href: "/v1/entity?query=Cloudflare", label: "Entity", desc: "Free identity card" },
   { href: "/v1/suggest?need=compare%20two%20brands", label: "Suggest", desc: "Free tool picker" },
   { href: "/health", label: "Status", desc: "Live service status" },

@@ -97,9 +97,19 @@ describe("html helpers", () => {
     const app = byType("SoftwareApplication")[0]!;
     expect(app.name).toBe("MentionForge");
     expect(app.url).toBe("https://mentionforge.mentionforge.workers.dev/");
-    const offer = app.offers as { price: string; priceCurrency: string };
+    const offer = app.offers as {
+      price: string;
+      priceCurrency: string;
+      description: string;
+      priceSpecification: { price: string; priceCurrency: string };
+    };
     expect(offer.price).toBe(mockEnv().PRICE_USDC);
-    expect(offer.priceCurrency).toBe("USDC");
+    expect(offer.priceCurrency).toBe("USD");
+    expect(offer.priceSpecification.price).toBe(mockEnv().PRICE_USDC);
+    expect(offer.priceSpecification.priceCurrency).toBe("USD");
+    expect(offer.description).toContain(`Each successful paid call is $${mockEnv().PRICE_USDC}`);
+    expect(offer.description).toContain("settled in USDC on Base Sepolia via x402");
+    expect(offer.description).toContain("The first 10 paid calls per wallet are free; free tools never charge.");
     const faq = byType("FAQPage")[0]! as { mainEntity: Array<{ name: string; acceptedAnswer: { text: string } }> };
     expect(faq.mainEntity).toEqual([
       expect.objectContaining({ name: "What does a paid call cost?", acceptedAnswer: expect.objectContaining({ text: "$0.02 USDC per successful paid call on Base." }) }),

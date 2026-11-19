@@ -36,6 +36,17 @@ describe("HTTP surfaces", () => {
     expect(example.citations.some((c) => /wikipedia\.org|cloudflare\.com/i.test(c.url))).toBe(true);
   });
 
+  it("the example document view hint is a free example, not a sample", async () => {
+    const res = await call("/v1/research/example", {
+      headers: { Accept: "text/html", "Sec-Fetch-Dest": "document" },
+    });
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain("frozen as a free example");
+    expect(html).not.toMatch(/\bsample\b/i);
+    expect(html).not.toMatch(/\bfiction\b/i);
+  });
+
   it("HEAD /health is 200", async () => {
     const res = await call("/health", { method: "HEAD" });
     expect(res.status).toBe(200);

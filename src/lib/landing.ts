@@ -305,6 +305,7 @@ export function landingJsonLdScript(html: string, env?: Env): string {
   }
   const price = env ? paymentConfig(env).price : "0.02";
   const trial = env ? trialCalls(env) : DEFAULT_TRIAL_CALLS;
+  const network = env ? networkPublicName(env) : "Base";
   const faq = faqEntries(html);
   const graph: Array<Record<string, unknown>> = [
     ...siteGraphNodes(origin),
@@ -343,13 +344,13 @@ export function landingJsonLdScript(html: string, env?: Env): string {
       offers: {
         "@type": "Offer",
         price,
-        priceCurrency: "USDC",
-        description: `Per successful paid research call, settled in USDC on Base via x402. The first ${trial} paid calls per wallet are free; free tools never charge.`,
+        priceCurrency: "USD",
+        description: `Each successful paid call is $${price}, settled in USDC on ${network} via x402. The first ${trial} paid calls per wallet are free; free tools never charge.`,
         url: `${origin}/#pricing`,
         priceSpecification: {
           "@type": "UnitPriceSpecification",
           price,
-          priceCurrency: "USDC",
+          priceCurrency: "USD",
           referenceQuantity: { "@type": "QuantitativeValue", value: 1, unitText: "API call" },
         },
       },
