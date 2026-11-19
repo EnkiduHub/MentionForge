@@ -43,27 +43,27 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@modelcontextprotocol/server": "^2.4.0",
-    "@x402/core": "^2.30.0",
-    "@x402/evm": "^2.30.0",
-    "@x402/extensions": "^2.30.0",
-    "@x402/hono": "^2.30.0",
-    "@x402/mcp": "^2.30.0",
+    "@x402/core": "^2.31.0",
+    "@x402/evm": "^2.31.0",
+    "@x402/extensions": "^2.31.0",
+    "@x402/hono": "^2.31.0",
+    "@x402/mcp": "^2.31.0",
     "agents": "^0.33.0",
-    "hono": "^4.13.17",
+    "hono": "^4.13.19",
     "mcp-remote": "0.14.5",
-    "viem": "^2.57.17",
+    "viem": "^2.57.20",
     "zod": "^4.5.0"
   },
   "devDependencies": {
-    "@cloudflare/vitest-plugin": "^1.6.0",
-    "@cloudflare/workers-types": "5.20261109.1",
+    "@cloudflare/vitest-plugin": "^1.8.3",
+    "@cloudflare/workers-types": "5.20261116.1",
     "@types/node": "^22.20.3",
     "lightningcss": "^1.33.0",
     "tsx": "^4.20.0",
     "typescript": "^7.0.2",
-    "vite": "^8.3.6",
+    "vite": "^8.3.8",
     "vitest": "^5.1.0",
-    "wrangler": "^4.158.0"
+    "wrangler": "^4.163.0"
   },
   "overrides": {
     "zod": "^4.5.0",
