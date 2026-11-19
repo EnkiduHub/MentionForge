@@ -4,6 +4,8 @@ Transport: **Streamable HTTP** at `POST /mcp`. Stateless per-request factory via
 
 ## Protocol versions
 
+On protocol `2026-07-28`, list and discover results carry `ttlMs: 300000` and `cacheScope: public` (same 300s window as HTTP `Cache-Control: max-age=300`); 2025-era responses omit those fields.
+
 `initialize` accepts supported 2025-era protocol versions, including `2025-03-26` and `2025-06-18`. A 2025-era `POST /mcp` that copies a supported legacy version (including `2025-06-18`) into `params._meta["io.modelcontextprotocol/protocolVersion"]` is served on the legacy lane instead of being rejected as an unsupported modern revision. An unsupported version, or a modern `MCP-Protocol-Version` header paired with a legacy claim, returns JSON-RPC `-32022`. Browser CORS preflight allows `MCP-Protocol-Version`, `Mcp-Method`, and `Mcp-Name`.
 
 ## Tools
