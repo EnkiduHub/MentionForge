@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Discovery: SEP-2127 Server Card at `GET /mcp/server-card` (`application/mcp-server-card+json`) and AI Catalog at `GET /.well-known/ai-catalog.json`. Existing `/.well-known/mcp/server-card.json` and `/server-card.json` keep their current shape; `/.well-known/mcp` adds `server_card_v1` and `ai_catalog` URLs.
 - MCP: 2026-07-28 `tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, and `server/discover` advertise `ttlMs: 300000` and `cacheScope: public`; the four static `mentionforge://` resources set the same `cacheHint` on `resources/read`. 2025-era list responses are unchanged.
 - Site JSON-LD: SoftwareApplication Offer and UnitPriceSpecification use ISO 4217 `priceCurrency` `USD` while keeping price `0.02`; the Offer description states each successful paid call is `$0.02`, settled in USDC on the configured network via x402 (MF-B24).
 - Stylesheet: readable source is `src/styles/site.css`; `/styles.css` ships the minified copy (`npm run css:minify`). A unit test fails if the committed file drifts (MF-B25).

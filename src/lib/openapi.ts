@@ -199,6 +199,13 @@ export function openApiDocument(origin: string, env?: Env): Record<string, unkno
       "/llms-full.txt": { get: { tags: ["discovery"] } },
       "/skill.md": { get: { tags: ["discovery"], summary: "Cursor skill.md" } },
       "/server-card.json": { get: { tags: ["discovery"], summary: "MCP server card" } },
+      "/mcp/server-card": {
+        get: { tags: ["discovery"], summary: "SEP-2127 MCP Server Card (application/mcp-server-card+json)" },
+        head: { tags: ["discovery"], summary: "SEP-2127 MCP Server Card headers" },
+      },
+      "/.well-known/ai-catalog.json": {
+        get: { tags: ["discovery"], summary: "AI Catalog (application/ai-catalog+json) pointing at /mcp/server-card" },
+      },
       "/.well-known/x402": { get: { tags: ["discovery"] } },
     },
     components: {

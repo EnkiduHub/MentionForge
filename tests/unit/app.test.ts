@@ -436,6 +436,8 @@ describe("HTTP surfaces", () => {
     expect(paths["/skill.md"]).toBeTruthy();
     expect(paths["/llms-full.txt"]).toBeTruthy();
     expect(paths["/server-card.json"]).toBeTruthy();
+    expect(paths["/mcp/server-card"]).toBeTruthy();
+    expect(paths["/.well-known/ai-catalog.json"]).toBeTruthy();
     expect(doc.paths["/v1/research"].post.requestBody.content["application/json"].examples.sample.value.query).toBe("Cloudflare Workers");
     expect(doc.paths["/v1/research"].post.responses["402"]).toBeTruthy();
     expect(doc.paths["/v1/research"].post.responses["402"].content["application/json"].examples.pay.value.error.hint).toMatch(/Cloudflare Workers/);

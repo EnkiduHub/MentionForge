@@ -97,6 +97,8 @@ export function createApp() {
       path === "/stats" ||
       path === "/skill.md" ||
       path === "/server-card.json" ||
+      path === "/mcp/server-card" ||
+      path === "/.well-known/ai-catalog.json" ||
       path === "/v1/pricing" ||
       path === "/v1/research/example" ||
       path === "/v1/entity" ||

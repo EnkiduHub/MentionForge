@@ -10,11 +10,21 @@ import { SUPPORTED_PROTOCOL_VERSIONS } from "@modelcontextprotocol/sdk/types.js"
 export const PROTOCOL_VERSION_META_KEY = "io.modelcontextprotocol/protocolVersion";
 
 /** First modern-era revision. ISO dates compare in chronological order. */
-const FIRST_MODERN_PROTOCOL_VERSION = "2026-07-28";
+export const MODERN_PROTOCOL_VERSION = "2026-07-28";
 
 export const LEGACY_PROTOCOL_VERSIONS: readonly string[] = SUPPORTED_PROTOCOL_VERSIONS.filter(
-  (version) => version < FIRST_MODERN_PROTOCOL_VERSION,
+  (version) => version < MODERN_PROTOCOL_VERSION,
 );
+
+/**
+ * Protocol versions this Worker actually serves, newest first.
+ * 2026-07-28 is the stateless modern lane; 2025-* are initialize/legacy.
+ * Pre-2025 SDK versions are not advertised (they are not exercised here).
+ */
+export const ACCEPTED_MCP_PROTOCOL_VERSIONS: readonly string[] = [
+  MODERN_PROTOCOL_VERSION,
+  ...LEGACY_PROTOCOL_VERSIONS.filter((version) => version.startsWith("2025-")),
+];
 
 const UNSUPPORTED_PROTOCOL_CODE = -32022;
 
@@ -23,7 +33,7 @@ export function isLegacyProtocolVersion(version: string): boolean {
 }
 
 function isModernProtocolVersion(version: string): boolean {
-  return version >= FIRST_MODERN_PROTOCOL_VERSION;
+  return version >= MODERN_PROTOCOL_VERSION;
 }
 
 type JsonRecord = Record<string, unknown>;
