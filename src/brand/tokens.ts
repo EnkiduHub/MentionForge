@@ -8,7 +8,7 @@ export type BrandTokens = {
   wordmark: string;
 };
 
-/** Core brand palette. `public/styles.css` declares the same hex values as `--mf-*` custom properties. */
+/** Core brand palette. `src/styles/site.css` declares the same hex values as `--mf-*` custom properties. */
 export const BRAND: BrandTokens = {
   canvas: "#0B0C0F",
   paper: "#F4EFE6",
@@ -20,9 +20,9 @@ export const BRAND: BrandTokens = {
 };
 
 /**
- * Website design system. Each key maps 1:1 to a CSS custom property in `public/styles.css`
- * (`colors.surface1` → `--mf-surface-1`, `space[4]` → `--space-4`, …). A unit test keeps the
- * two in sync. Documented in `docs/DESIGN-SYSTEM.md`.
+ * Website design system. Each key maps 1:1 to a CSS custom property in `src/styles/site.css`
+ * (`colors.surface1` → `--mf-surface-1`, `space[4]` → `--space-4`, …). `public/styles.css` is the
+ * minified copy served at `/styles.css`. A unit test keeps the source and tokens in sync.
  *
  * Every text colour below clears WCAG 2.2 AA (4.5:1) on every surface colour.
  */

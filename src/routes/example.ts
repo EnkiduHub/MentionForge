@@ -12,7 +12,7 @@ exampleRoutes.get("/v1/research/example", (c) => {
     { "Cache-Control": "public, max-age=60, must-revalidate" },
     {
       title: "Example snapshot",
-      hint: "A real Cloudflare Workers research result, frozen as a free sample so you can inspect the format. Not live traffic.",
+      hint: "A real Cloudflare Workers research result, frozen as a free example so you can inspect the format. Not live traffic.",
     },
   );
 });

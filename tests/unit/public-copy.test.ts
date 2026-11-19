@@ -121,6 +121,16 @@ describe("public pages contain no leftovers", () => {
     for (const { url } of ALLOWLIST) expect(corpus, url).toContain(`href="${url}"`);
   });
 
+  it("indexable site pages have no sample or fiction in visible text", async () => {
+    const pages = new Map(await allPublicPages());
+    const labels = ["public/index.html", "public/about.html", "public/privacy.html", "public/terms.html"];
+    for (const label of labels) {
+      const text = visibleText(pages.get(label)!);
+      expect(text, label).not.toMatch(/\bsample\b/i);
+      expect(text, label).not.toMatch(/\bfiction\b/i);
+    }
+  });
+
   it("the guard itself catches representative leftovers", () => {
     const samples = [
       "<p>TODO: tighten copy</p>",

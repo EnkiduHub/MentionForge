@@ -12,6 +12,7 @@ import { mcpToolCards } from "../../src/lib/discoverability";
 import { faqEntries, TOOL_COPY } from "../../src/lib/landing";
 import { siteFooterHtml, siteHeaderHtml } from "../../src/lib/site-chrome";
 import { executionCtx, stubCaches, stubSourcesFetch } from "../helpers/env";
+import { minifySiteCss } from "../../scripts/minify-css";
 import { allPublicPages, prodEnv, PUBLIC_DIR } from "../helpers/pages";
 
 const ORIGIN = "https://mentionforge.mentionforge.workers.dev";
@@ -146,8 +147,24 @@ describe("site pages", () => {
     const landing = pages.get("/ (hydrated, production)")!;
     expect([...landing.matchAll(/application\/ld\+json/g)]).toHaveLength(1);
     const graph = JSON.parse(landing.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)![1]!) as {
-      "@graph": Array<{ "@type": string; mainEntity?: unknown[] }>;
+      "@graph": Array<{
+        "@type": string;
+        mainEntity?: unknown[];
+        offers?: {
+          price: string;
+          priceCurrency: string;
+          description: string;
+          priceSpecification: { price: string; priceCurrency: string };
+        };
+      }>;
     };
+    const software = graph["@graph"].find((n) => n["@type"] === "SoftwareApplication");
+    expect(software?.offers?.price).toBe("0.02");
+    expect(software?.offers?.priceCurrency).toBe("USD");
+    expect(software?.offers?.priceSpecification.price).toBe("0.02");
+    expect(software?.offers?.priceSpecification.priceCurrency).toBe("USD");
+    expect(software?.offers?.description).toContain("Each successful paid call is $0.02");
+    expect(software?.offers?.description).toContain("settled in USDC on Base via x402");
     const faq = graph["@graph"].find((n) => n["@type"] === "FAQPage");
     const index = readFileSync(new URL("index.html", PUBLIC_DIR), "utf8");
     expect(faq?.mainEntity).toHaveLength([...index.matchAll(/<details class="faq-item">/g)].length);
@@ -160,8 +177,8 @@ describe("site pages", () => {
     expect(index).toContain(siteFooterHtml("/"));
   });
 
-  it("styles.css declares every design token from src/brand/tokens.ts", () => {
-    const css = readFileSync(new URL("styles.css", PUBLIC_DIR), "utf8");
+  it("src/styles/site.css declares every design token from src/brand/tokens.ts", () => {
+    const css = readFileSync(new URL("../../src/styles/site.css", import.meta.url), "utf8");
     const kebab = (k: string) => k.replace(/([a-z])([A-Z0-9])/g, "$1-$2").toLowerCase();
     const expectVar = (name: string, value: string) => {
       const m = css.match(new RegExp(`--${name}:\\s*([^;]+);`));
@@ -180,6 +197,13 @@ describe("site pages", () => {
     expectVar("prose", DESIGN_TOKENS.layout.prose);
     expectVar("header-h", DESIGN_TOKENS.layout.header);
     expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/);
+  });
+
+  it("public/styles.css is the minified form of src/styles/site.css", () => {
+    const source = readFileSync(new URL("../../src/styles/site.css", import.meta.url), "utf8");
+    const shipped = readFileSync(new URL("styles.css", PUBLIC_DIR), "utf8");
+    expect(shipped).toBe(minifySiteCss(source));
+    expect(Buffer.byteLength(shipped)).toBeLessThan(Buffer.byteLength(source) * 0.85);
   });
 
   it("the landing tool section matches the live MCP catalog", () => {

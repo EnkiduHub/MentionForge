@@ -79,7 +79,7 @@ Shared chrome lives in `src/lib/site-chrome.ts`:
 ## Tokens
 
 Defined once in `src/brand/tokens.ts` (`BRAND`, `DESIGN_TOKENS`) and declared as CSS custom
-properties at the top of `public/styles.css`. `tests/unit/site-pages.test.ts` fails if they drift.
+properties at the top of `src/styles/site.css` (minified to `public/styles.css`). `tests/unit/site-pages.test.ts` fails if they drift.
 
 ### Colour
 
@@ -175,7 +175,8 @@ Headings use weight 650 and tight negative tracking with `text-wrap: balance`; b
   Twitter card tags. `absolutizePublicHtml()` rewrites canonical, `og:url`, OG images, and JSON-LD
   URLs to the serving origin.
 - JSON-LD: the landing has one `@graph` with Organization, WebSite, WebPage, SoftwareApplication
-  (with the real per-call price from `PRICE_USDC`, in USDC), SoftwareSourceCode, WebAPI, and
+  (with the real per-call price from `PRICE_USDC`, ISO 4217 `USD`, settled in USDC on the
+  configured network), SoftwareSourceCode, WebAPI, and
   FAQPage built from the visible FAQ. About, Privacy, and Terms add a WebPage/AboutPage and
   BreadcrumbList. Never `aggregateRating` or reviews.
 - `/support` and the claim page are `noindex` (meta tag and `X-Robots-Tag`). `/sitemap.xml` lists

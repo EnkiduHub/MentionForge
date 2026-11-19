@@ -13,7 +13,7 @@ import { PUBLIC_DIR } from "../helpers/pages";
 
 const index = readFileSync(new URL("index.html", PUBLIC_DIR), "utf8");
 const appJs = readFileSync(new URL("app.js", PUBLIC_DIR), "utf8");
-const css = readFileSync(new URL("styles.css", PUBLIC_DIR), "utf8");
+const css = readFileSync(new URL("../../src/styles/site.css", import.meta.url), "utf8");
 const ex = EXAMPLE_RESPONSE;
 
 function card(html: string, value: string): string {
