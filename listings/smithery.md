@@ -2,9 +2,11 @@
 
 Publish the **already-hosted** Streamable HTTP server. Do not upload a local stdio/MCPB build.
 
-Do **not** advertise a Smithery directory URL until a listing exists (checked 2026-11-03: previous `servers/enkiduhub/mentionforge` path 404s). Official Registry + GitHub are the unattended discovery paths.
+**Status (checked 2026-11-25):** listed as `enkiduhub/mentionforge`. The registry API returns it at [registry.smithery.ai/servers/enkiduhub/mentionforge](https://registry.smithery.ai/servers/enkiduhub/mentionforge). The public smithery.ai server page 404 seen on 2026-11-03 was a site-wide issue, not a missing listing.
 
-**UI:** [smithery.ai/new](https://smithery.ai/new) — enter the public HTTPS MCP URL.
+**Stale snapshot:** the listing shows 3 tools, 1 prompt and 2 resources; the live server has 12 tools, 6 prompts and 4 resources. A signed-in owner can trigger a free rescan from the server's Smithery settings to refresh it.
+
+**New listing UI (only if the listing is ever removed):** [smithery.ai/new](https://smithery.ai/new) — enter the public HTTPS MCP URL.
 
 ## Form fields
 
@@ -32,4 +34,4 @@ Do **not** advertise a Smithery directory URL until a listing exists (checked 20
 }
 ```
 
-Requires a Smithery account. Skip until you can sign in; Official Registry + GitHub are the unattended discovery paths.
+Rescans and edits require the owner's Smithery sign-in. Official Registry + GitHub remain the unattended discovery paths.
