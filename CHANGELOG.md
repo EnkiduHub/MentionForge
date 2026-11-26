@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Research: a turned-off platform is skipped, not filled in from the web. Successful calls set `meta.sources_disabled` and `meta.coverage_note` (also appended to `summary`) so a zero count is not read as silence. Paid lenses keep both fields. A call that asks only for turned-off platforms returns `SOURCE_UNAVAILABLE` whose hint names the `platforms` values to retry, and nothing is charged.
 - Discovery: SEP-2127 Server Card at `GET /mcp/server-card` (`application/mcp-server-card+json`) and AI Catalog at `GET /.well-known/ai-catalog.json`. Existing `/.well-known/mcp/server-card.json` and `/server-card.json` keep their current shape; `/.well-known/mcp` adds `server_card_v1` and `ai_catalog` URLs.
 - MCP: 2026-07-28 `tools/list`, `prompts/list`, `resources/list`, `resources/templates/list`, and `server/discover` advertise `ttlMs: 300000` and `cacheScope: public`; the four static `mentionforge://` resources set the same `cacheHint` on `resources/read`. 2025-era list responses are unchanged.
 - Site JSON-LD: SoftwareApplication Offer and UnitPriceSpecification use ISO 4217 `priceCurrency` `USD` while keeping price `0.02`; the Offer description states each successful paid call is `$0.02`, settled in USDC on the configured network via x402 (MF-B24).

@@ -281,7 +281,7 @@ Discovery alias (same body and price as POST /v1/research): POST ${origin}/v1/re
 Price: $0.02 USDC per successful POST ${origin}/v1/research (x402 exact, ${net}).
 Trial: 10 calls with X-Wallet or X-Sandbox-Key.
 Always send Idempotency-Key (UUID). On HTTP 402, retry with PAYMENT-SIGNATURE.
-Reddit OAuth and X recent-search are optional; default queries still run on news, Wikipedia/Wikidata, Brave, and review sites.
+Reddit and X are turned off. Default queries still run on news, Wikipedia/Wikidata, Brave, and review sites. If every requested platform is turned off, the error names the platforms to retry. A zero count for a turned-off source is not an empty window.
 
 MCP: ${origin}/mcp  tools: research_mentions (and compare_brands, get_digest, detect_risk, draft_reply, list_mentions, get_trends)
 SEP-2127 server card: ${origin}/mcp/server-card
@@ -360,10 +360,10 @@ Payment meta: _meta["x402/payment"] / _meta["x402/payment-response"]
 
 ## Sources
 Default live sources: Wikipedia/Wikidata, Brave web results, Google News RSS, GDELT, Hacker News, and Trustpilot/G2/Capterra review targeting. News rows include title plus a short snippet; citation labels are headlines.
-Native X and Reddit stay off (DISABLED_SOURCES=x,reddit) until developer API keys exist. GET /health lists source_backends.
+Native X and Reddit stay off until developer API keys exist. GET /health lists source_backends. A turned-off platform is skipped, not filled in from the web. meta.coverage_note explains a zero count. If every requested platform is turned off, error.hint names the platforms to retry and nothing is charged.
 
 ## Output
-volume, sentiment, themes, mentions (id, platform, url, author, timestamp, text, engagement, sentiment, optional intent/aspects/relevance), citations, summary, optional share_of_voice / signals / voices / markdown, meta.billing, meta.as_of, meta.freshness, meta.next_queries
+volume, sentiment, themes, mentions (id, platform, url, author, timestamp, text, engagement, sentiment, optional intent/aspects/relevance), citations, summary, optional share_of_voice / signals / voices / markdown, meta.billing, meta.as_of, meta.freshness, meta.next_queries, meta.sources_disabled, meta.coverage_note
 
 ${llmsPagesSection(origin)}`;
   return sendPublic(c, txt, 200, { "Cache-Control": "public, max-age=300" }, {

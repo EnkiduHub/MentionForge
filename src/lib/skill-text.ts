@@ -38,9 +38,11 @@ Headers: \`Idempotency-Key\` (UUID, new per unique tool+body). Payment: x402 \`P
 
 On HTTP 402, follow \`error.hint\` (amount, CAIP-2 network, payTo, curl retry). Do not invent a new Idempotency-Key on retry of the same body.
 
+Reddit and X are turned off. Paid calls still search web, news, and reviews. If a tool error says those sources are turned off, retry with the platforms named in the hint. A zero count on a turned-off source is not an empty window.
+
 Read [GET /v1/research/example](https://mentionforge.mentionforge.workers.dev/v1/research/example), [GET /v1/suggest](https://mentionforge.mentionforge.workers.dev/v1/suggest), and [GET /llms.txt](https://mentionforge.mentionforge.workers.dev/llms.txt) first.
 
 ## Output
 
-\`volume\`, \`sentiment\`, \`themes\`, \`mentions\` (id, platform, url, author, timestamp, text ≤500, engagement, sentiment, optional intent/aspects/relevance), \`citations\`, optional \`summary\` / \`share_of_voice\` / \`signals\` / \`voices\` / \`markdown\`, \`meta.billing\`, \`meta.as_of\`, \`meta.freshness\`, \`meta.next_queries\`.
+\`volume\`, \`sentiment\`, \`themes\`, \`mentions\` (id, platform, url, author, timestamp, text ≤500, engagement, sentiment, optional intent/aspects/relevance), \`citations\`, optional \`summary\` / \`share_of_voice\` / \`signals\` / \`voices\` / \`markdown\`, \`meta.billing\`, \`meta.as_of\`, \`meta.freshness\`, \`meta.next_queries\`, \`meta.sources_disabled\`, \`meta.coverage_note\`.
 `;

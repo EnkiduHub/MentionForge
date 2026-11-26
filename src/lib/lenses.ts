@@ -50,6 +50,8 @@ function lensMeta(full: ResearchResponse) {
     request_id: full.meta.request_id,
     latency_ms: full.meta.latency_ms,
     sources_used: full.meta.sources_used,
+    ...(full.meta.sources_disabled?.length ? { sources_disabled: full.meta.sources_disabled } : {}),
+    ...(full.meta.coverage_note ? { coverage_note: full.meta.coverage_note } : {}),
     billing: full.meta.billing,
     as_of: full.meta.as_of,
     freshness: full.meta.freshness,

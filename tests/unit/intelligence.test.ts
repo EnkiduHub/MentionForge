@@ -59,7 +59,14 @@ describe("researchOnly + cache key overlays", () => {
       signals: { risk: "low", spike: false, reasons: ["no spike or negative concentration"] },
       voices: [{ author: "u/ops", platform: "reddit", mentions: 1, engagement: 3 }],
       markdown: "should not cache",
-      meta: { sources_used: ["reddit"], request_id: "x", latency_ms: 1, billing: { amount_usdc: "0.02", tx_hash: null, free_trial: false } },
+      meta: {
+        sources_used: ["reddit"],
+        sources_disabled: ["x"],
+        coverage_note: "x was not searched because that source is turned off. A zero count for it is not an empty window.",
+        request_id: "x",
+        latency_ms: 1,
+        billing: { amount_usdc: "0.02", tx_hash: null, free_trial: false },
+      },
     } as unknown as CachedResearch;
     const out = researchOnly(body);
     expect(out.share_of_voice?.[0]?.brand).toBe("ForgeCo");
@@ -68,6 +75,8 @@ describe("researchOnly + cache key overlays", () => {
     expect("markdown" in out).toBe(false);
     expect(out.meta).not.toHaveProperty("billing");
     expect(out.meta).not.toHaveProperty("request_id");
+    expect(out.meta.sources_disabled).toEqual(["x"]);
+    expect(out.meta.coverage_note).toContain("not an empty window");
   });
 
   it("omits view/focus/include_markdown from the cache key", () => {

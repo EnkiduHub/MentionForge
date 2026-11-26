@@ -18,7 +18,7 @@ Base URL is the Worker origin. Prefer **POST** `/v1/research` so payment headers
 }
 ```
 
-Unknown keys are stripped. Do not send payment fields in the body. Omit `platforms` to use all five. Native Reddit OAuth and X recent-search are optional Worker secrets; without them those platforms degrade and news/web/reviews still complete the call.
+Unknown keys are stripped. Do not send payment fields in the body. Omit `platforms` to use all five. A platform that is turned off is skipped, not searched through another adapter. The response lists it on `meta.sources_disabled` and explains the zero count in `meta.coverage_note` and, when a summary is included, in `summary`. If every requested platform is turned off, the call returns `SOURCE_UNAVAILABLE` and `error.hint` names the `platforms` values to retry. Nothing is charged. Production turns off `x` and `reddit`; `web`, `news`, and `reviews` still run.
 
 Optional overlay fields (not in the cache key): `view` (`full` default, or `compact`), `focus` (intent filter on returned mentions only), `include_markdown`.
 

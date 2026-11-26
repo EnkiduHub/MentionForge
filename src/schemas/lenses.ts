@@ -10,6 +10,7 @@ import {
   volumeSchema,
   REQUEST_FIELD_DESC,
 } from "./research";
+import { COVERAGE_NOTE_DESC, SOURCES_DISABLED_DESC } from "../lib/research/coverage";
 import { MAX_QUERY_CHARS } from "../lib/constants";
 
 const compactMentionSchema = z.object({
@@ -26,6 +27,8 @@ const lensMetaSchema = z.object({
   request_id: z.string().describe("Request correlation id"),
   latency_ms: z.number().describe("Engine wall time in milliseconds (not billed)"),
   sources_used: z.array(z.string()).describe("Adapter ids that contributed data"),
+  sources_disabled: z.array(z.string()).optional().describe(SOURCES_DISABLED_DESC),
+  coverage_note: z.string().optional().describe(COVERAGE_NOTE_DESC),
   billing: z
     .object({
       amount_usdc: z.string().describe("USDC charged for this call (`0` on trial/sandbox/replay)"),

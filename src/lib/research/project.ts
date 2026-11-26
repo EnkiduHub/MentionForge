@@ -40,6 +40,8 @@ export function projectResearch(res: ResearchResponse, req: ResearchRequest): Re
       summary = parts.slice(0, 2).join(" ");
     }
   }
+  const note = res.meta.coverage_note;
+  if (note && summary && !summary.includes(note)) summary = `${summary} ${note}`;
   const out: ResearchResponse = { ...res, mentions, citations, themes, summary };
   if (req.include_markdown) out.markdown = renderMarkdown(out);
   else delete out.markdown;

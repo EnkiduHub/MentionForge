@@ -12,6 +12,10 @@ describe("engine failure", () => {
     const env = mockEnv();
     await expect(
       runResearch(env, parseResearchInput({ query: "ForgeCo", platforms: ["reddit"] }), "req", executionCtx()),
-    ).rejects.toMatchObject({ code: "SOURCE_UNAVAILABLE" });
+    ).rejects.toMatchObject({
+      code: "SOURCE_UNAVAILABLE",
+      message: "All upstream sources failed.",
+      hint: "All upstream sources failed. Retry once after 15s with the same Idempotency-Key.",
+    });
   });
 });

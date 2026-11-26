@@ -521,7 +521,8 @@ describe("HTTP surfaces", () => {
     const txt = await res.text();
     expect(txt).toMatch(/x402 exact, Base\)/);
     expect(txt).not.toMatch(/Base Sepolia/);
-    expect(txt).toMatch(/Reddit OAuth and X recent-search are optional/);
+    expect(txt).toMatch(/Reddit and X are turned off/);
+    expect(txt).toMatch(/not an empty window/);
     expect(txt).toMatch(/claude mcp add --transport http mentionforge/);
     expect(txt).toMatch(/"mcpServers"/);
     expect(txt).toMatch(/Free first: get_health, get_pricing/);
