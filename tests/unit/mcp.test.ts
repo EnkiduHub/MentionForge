@@ -191,7 +191,9 @@ describe("MCP origin + factory", () => {
     expect(TOOL_DESC).toMatch(/Idempotency-Key/);
     expect(TOOL_DESC).toMatch(/Send only query/);
     expect(TOOL_DESC).not.toMatch(/0x[a-fA-F0-9]{40}/);
-    expect(TOOL_DESC).toMatch(/optional operator upgrades, not the default/);
+    expect(TOOL_DESC).toMatch(/turned-off platform is skipped/);
+    expect(TOOL_DESC).toMatch(/meta\.coverage_note/);
+    expect(TOOL_DESC).not.toMatch(/optional operator upgrades, not the default/);
   });
 
   it("paid specialty tools front-load purpose, keep cost in the first 200 chars, and never include wallets", () => {

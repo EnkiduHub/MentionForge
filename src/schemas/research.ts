@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { MAX_QUERY_CHARS, MAX_TIMEFRAME_DAYS, PLATFORMS, SAMPLE_QUERY, type Platform } from "../lib/constants";
+import { COVERAGE_NOTE_DESC, SOURCES_DISABLED_DESC } from "../lib/research/coverage";
 
 /** Shared with OpenAPI `researchJsonSchema()` so REST and MCP stay aligned. */
 export const REQUEST_FIELD_DESC = {
   query:
     "Natural-language or structured query about a product, company, brand, topic, or competitor. Required. Max 200 characters.",
   platforms:
-    "Which surfaces to search. Default all of x, reddit, web, reviews, news. x and reddit use public/web adapters unless the operator enabled native APIs — this is not a guarantee of official Reddit or X search.",
+    "Which surfaces to search. Default all of x, reddit, web, reviews, news. A turned-off platform is skipped and listed in meta.sources_disabled. It is not searched through another adapter. A zero count for a skipped platform is not an empty window. If every requested platform is turned off, the call fails and error.hint names the platforms to send instead. Check get_health source_backends.",
   timeframe:
     "Lookback window: 24h, 7d, 30d, or 90d, or a {from,to} ISO-8601 range (max 90 days). Default 7d.",
   timeframe_named: "Named lookback: 24h, 7d, 30d, or 90d.",
@@ -185,10 +186,8 @@ export const metaSchema = z.object({
   request_id: z.string().describe("Request correlation id"),
   latency_ms: z.number().describe("Engine wall time in milliseconds (not billed)"),
   sources_used: z.array(z.string()).describe("Adapter ids that contributed data"),
-  sources_disabled: z
-    .array(z.string())
-    .optional()
-    .describe("Requested platform ids skipped because they are in DISABLED_SOURCES"),
+  sources_disabled: z.array(z.string()).optional().describe(SOURCES_DISABLED_DESC),
+  coverage_note: z.string().optional().describe(COVERAGE_NOTE_DESC),
   billing: billingSchema.describe("Charge record for this call (never cached)"),
   confidence: z.number().min(0).max(1).optional().describe("Optional 0–1 confidence in the aggregate"),
   degraded: z.array(z.string()).optional().describe("Optional list of degraded or skipped adapters"),
@@ -218,7 +217,10 @@ export const researchResponseSchema = z.object({
 export type ResearchResponse = z.infer<typeof researchResponseSchema>;
 export type Mention = z.infer<typeof mentionSchema>;
 export type CachedResearch = Omit<ResearchResponse, "meta"> & {
-  meta: Pick<ResearchResponse["meta"], "sources_used" | "sources_disabled" | "confidence" | "degraded" | "as_of">;
+  meta: Pick<
+    ResearchResponse["meta"],
+    "sources_used" | "sources_disabled" | "coverage_note" | "confidence" | "degraded" | "as_of"
+  >;
 };
 
 export function emptyPlatformCounts(): Record<Platform, number> {

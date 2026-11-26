@@ -26,6 +26,7 @@ import { classifyIntent, relevanceScore } from "./intent";
 import { detectSignals, sentimentByPlatform, topVoices } from "./signals";
 import { disabledSourcesFromEnv, urlUsesDisabledSocial } from "../disabled-sources";
 import type { Platform } from "../constants";
+import { applyCoverage, disabledSourcesError } from "./coverage";
 
 const failCounts = new Map<string, number>();
 
@@ -70,7 +71,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   const enabled = [...wanted].filter((p) => !disabled.has(p));
 
   if (wanted.size > 0 && enabled.length === 0) {
-    throw new AgentError("SOURCE_UNAVAILABLE", "All requested sources are disabled.", { request_id: requestId });
+    throw disabledSourcesError(sourcesDisabled, requestId);
   }
 
   const jobs: Array<() => Promise<SourceResult>> = [];
@@ -209,7 +210,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
   const signals = detectSignals(volume, sentiment);
   const voices = topVoices(mentions);
 
-  return {
+  return applyCoverage({
     query: req.query,
     timeframe: req.timeframe,
     volume,
@@ -228,7 +229,7 @@ async function gather(env: Env, req: ResearchRequest, requestId: string): Promis
       as_of: new Date().toISOString(),
       ...(sourcesDisabled.length ? { sources_disabled: sourcesDisabled } : {}),
     },
-  };
+  });
 }
 
 async function collectWithBudget(jobs: Array<() => Promise<SourceResult>>, ms: number): Promise<SourceResult[]> {
@@ -383,12 +384,12 @@ export function overlayBilling(
   extras: ResearchResponse["meta"],
   freshness: "live" | "cached",
 ): ResearchResponse {
-  return {
+  return applyCoverage({
     ...research,
     meta: {
       ...research.meta,
       ...extras,
       freshness,
     },
-  };
+  });
 }

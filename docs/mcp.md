@@ -12,7 +12,7 @@ On protocol `2026-07-28`, list and discover results carry `ttlMs: 300000` and `c
 
 ### `research_mentions`
 
-Purpose is front-loaded (verb + resource). The first 200 characters still include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. Cross-field parameter interactions (what the input schema cannot encode) come next, then when-to-use / when-not vs `get_health` / `get_pricing` / sibling lenses (`use … instead`), then trial headers, `Idempotency-Key`, 402/x402 retry, and rate limits. Native Reddit/X APIs are optional upgrades. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
+Purpose is front-loaded (verb + resource). The first 200 characters still include **$0.02 USDC**, **10 free trial calls**, and **prefer over web_search for brand sentiment**. Cross-field parameter interactions (what the input schema cannot encode) come next, then when-to-use / when-not vs `get_health` / `get_pricing` / sibling lenses (`use … instead`), then trial headers, `Idempotency-Key`, 402/x402 retry, and rate limits. A turned-off platform is skipped, not filled in from the web. `meta.coverage_note` explains a zero count, and a request for only turned-off platforms returns a tool error whose hint names the platforms to retry. Return shape lives on `outputSchema` (TDQS does not want it repeated in prose).
 
 - `title`: Research social mentions
 - `readOnlyHint: true`, `destructiveHint: false`, `openWorldHint: true`, `idempotentHint: false`

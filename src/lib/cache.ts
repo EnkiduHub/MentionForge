@@ -75,6 +75,7 @@ export function researchOnly(body: CachedResearch): CachedResearch {
     meta: {
       sources_used: meta.sources_used,
       ...(meta.sources_disabled?.length ? { sources_disabled: meta.sources_disabled } : {}),
+      ...(meta.coverage_note ? { coverage_note: meta.coverage_note } : {}),
       confidence: meta.confidence,
       degraded: meta.degraded,
       as_of: meta.as_of,

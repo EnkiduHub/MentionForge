@@ -120,7 +120,7 @@ describe("DISABLED_SOURCES", () => {
         query: "ForgeCo",
         platforms: ["x", "reddit", "web", "reviews", "news"],
         timeframe: "7d",
-        include_summary: false,
+        include_summary: true,
       }),
       "req",
       executionCtx(),
@@ -140,6 +140,10 @@ describe("DISABLED_SOURCES", () => {
     expect(body.mentions.some((m) => m.platform === "x" || m.platform === "reddit")).toBe(false);
     expect(body.meta.sources_used).not.toEqual(expect.arrayContaining(["x", "reddit"]));
     expect(body.meta.sources_disabled).toEqual(["reddit", "x"]);
+    expect(body.meta.coverage_note).toBe(
+      "reddit and x were not searched because those sources are turned off. A zero count for them is not an empty window.",
+    );
+    expect(body.summary).toContain(body.meta.coverage_note);
   });
 
   it("throws SOURCE_UNAVAILABLE without fetching when only disabled sources are requested", async () => {
@@ -156,7 +160,12 @@ describe("DISABLED_SOURCES", () => {
         "req",
         executionCtx(),
       ),
-    ).rejects.toMatchObject({ code: "SOURCE_UNAVAILABLE" });
+    ).rejects.toMatchObject({
+      code: "SOURCE_UNAVAILABLE",
+      message: "Requested sources are turned off: reddit, x.",
+      hint: "reddit and x were not searched because those sources are turned off. A zero count for them is not an empty window. Retry this question with platforms set to web, reviews, news. Do not retry the same platforms. Nothing was charged.",
+      details: { reason: "sources_disabled", sources_disabled: ["reddit", "x"], retry_platforms: ["web", "reviews", "news"] },
+    });
     expect(seen).toEqual([]);
   });
 });
