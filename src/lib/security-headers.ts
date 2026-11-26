@@ -1,3 +1,5 @@
+import { appendDescribedBy } from "./llms-link";
+
 const API_HEADERS: Record<string, string> = {
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "no-referrer",
@@ -52,6 +54,7 @@ export function applySecurityHeaders(res: Response, kind: "html" | "asset"): Res
   }
   if (kind === "html") {
     ensureHtmlUtf8Charset(headers);
+    appendDescribedBy(headers);
     if (!headers.has("Cache-Control")) {
       headers.set("Cache-Control", "public, max-age=60");
     }

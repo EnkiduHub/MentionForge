@@ -169,7 +169,7 @@ Production origin: [https://mentionforge.mentionforge.workers.dev](https://menti
 ### Discovery
 
 - [llms.txt](./llms.txt) — GitHub clone index in the [llms.txt v2](https://llmstxt.org/) format (H1, summary, then linked files)
-- `GET /llms.txt` — agent install on the hosted origin (Cursor JSON + Claude CLI)
+- `GET /llms.txt` — agent install on the hosted origin (Cursor JSON + Claude CLI). HTML pages link to it with `rel="describedby"`, and HTML responses plus `GET /llms.txt`, `GET /llms-full.txt`, and `GET /skill.md` send `Link: </llms.txt>; rel="describedby"` so an agent can find this file from the page it opened.
 - `GET /llms-full.txt` — longer agent card
 - `GET /skill.md` — Cursor skill
 - `GET /openapi.json` — OpenAPI 3.1

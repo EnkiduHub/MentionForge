@@ -10,6 +10,7 @@
 import { BRAND_ASSETS } from "./brand-assets";
 import { DIRECTORY_LINKS } from "./discoverability";
 import { escapeHtml, jsonLdScript } from "./escape";
+import { LLMS_DESCRIBEDBY_PATH } from "./llms-link";
 
 /** Production origin. Canonical/OG URLs are rewritten to the serving origin by `absolutizePublicHtml`. */
 export const SITE_ORIGIN = "https://mentionforge.mentionforge.workers.dev";
@@ -195,6 +196,7 @@ export function siteHeadHtml(meta: PageMeta): string {
     );
   }
   lines.push(
+    `<link rel="describedby" href="${LLMS_DESCRIBEDBY_PATH}"/>`,
     `<link rel="icon" href="${BRAND_ASSETS.faviconIco}" sizes="any"/>`,
     `<link rel="icon" href="${BRAND_ASSETS.favicon}" type="image/png" sizes="128x128"/>`,
     `<link rel="apple-touch-icon" href="${BRAND_ASSETS.appleTouch}"/>`,
