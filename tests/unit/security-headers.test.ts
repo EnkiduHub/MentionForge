@@ -24,6 +24,15 @@ describe("HTML charset", () => {
       "html",
     );
     expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
+    expect(res.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
     expect(await res.text()).toBe("<!doctype html>");
+  });
+
+  it("does not add the llms.txt link to non-HTML assets", () => {
+    const res = applySecurityHeaders(
+      new Response("{}", { headers: { "content-type": "application/json" } }),
+      "asset",
+    );
+    expect(res.headers.get("link")).toBeNull();
   });
 });

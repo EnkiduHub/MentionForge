@@ -84,6 +84,7 @@ describe("agent discoverability", () => {
 
   it("landing HTML uses the same brand asset paths as BRAND_ASSETS", () => {
     const html = readFileSync(new URL("../../public/index.html", import.meta.url), "utf8");
+    expect(html).toContain('<link rel="describedby" href="/llms.txt"/>');
     expect(html).toContain(`content="${BRAND_ASSETS.og}"`);
     expect(html).toContain(`property="og:image:type" content="${BRAND_ASSETS.ogType}"`);
     expect(html).toContain(`property="og:image:width" content="${String(BRAND_ASSETS.ogWidth)}"`);
@@ -344,6 +345,8 @@ describe("agent discoverability", () => {
       expect(html).toContain('href="/privacy"');
       expect(html).toContain('href="/terms"');
       expect(html).toContain(`<link rel="canonical" href="https://mentionforge.test/${slug}"/>`);
+      expect(html).toContain('<link rel="describedby" href="/llms.txt"/>');
+      expect(res.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
       expect(html).not.toMatch(/\$29\b/);
       if (slug === "about") {
         expect(html).not.toMatch(/\bstripe\b|\bkey plan\b|\bapi_keys\b|\bplan_usage\b/i);

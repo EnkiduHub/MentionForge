@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { corsMiddleware } from "./lib/cors";
 import { apiSecurityHeaders, htmlSecurityHeaders, WWW_AUTHENTICATE } from "./lib/security-headers";
+import { appendDescribedBy, shouldDescribeForAgents } from "./lib/llms-link";
 import { AgentError } from "./schemas/errors";
 import { researchRoutes } from "./routes/research";
 import { lensRoutes } from "./routes/lenses";
@@ -66,6 +67,9 @@ export function createApp() {
     c.header("X-Request-Id", id);
     for (const [k, v] of Object.entries(apiSecurityHeaders())) c.header(k, v);
     await next();
+    const path = new URL(c.req.url).pathname;
+    if (!shouldDescribeForAgents(path, c.res.headers.get("content-type"))) return;
+    appendDescribedBy(c.res.headers);
   });
 
   app.use("*", (c, next) => corsMiddleware(c.env.ALLOWED_ORIGINS)(c, next));

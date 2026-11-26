@@ -518,6 +518,7 @@ describe("HTTP surfaces", () => {
     });
     const res = await call("/llms.txt", {}, env);
     expect(res.status).toBe(200);
+    expect(res.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
     const txt = await res.text();
     expect(txt).toMatch(/x402 exact, Base\)/);
     expect(txt).not.toMatch(/Base Sepolia/);
@@ -526,6 +527,28 @@ describe("HTTP surfaces", () => {
     expect(txt).toMatch(/"mcpServers"/);
     expect(txt).toMatch(/Free first: get_health, get_pricing/);
     expect(txt).toMatch(/\/skill\.md/);
+  });
+
+  it("points agents at /llms.txt from HTML and markdown, and not from JSON APIs", async () => {
+    const about = await call("/about");
+    expect(about.headers.get("content-type") ?? "").toMatch(/text\/html/);
+    expect(about.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
+    expect(await about.text()).toContain('<link rel="describedby" href="/llms.txt"/>');
+
+    const skill = await call("/skill.md");
+    expect(skill.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
+
+    const full = await call("/llms-full.txt");
+    expect(full.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
+
+    const health = await call("/health");
+    expect(health.headers.get("content-type") ?? "").toMatch(/application\/json/);
+    expect(health.headers.get("link")).toBeNull();
+
+    const doc = await call("/llms.txt", { headers: { "Sec-Fetch-Dest": "document", Accept: "text/html" } });
+    expect(doc.headers.get("content-type") ?? "").toMatch(/text\/html/);
+    expect(doc.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
+    expect(await doc.text()).toContain('<link rel="describedby" href="/llms.txt"/>');
   });
 
   it("landing HTML is served from ASSETS after Hono 404", async () => {
@@ -551,6 +574,7 @@ describe("HTTP surfaces", () => {
     expect(res.headers.get("content-type") ?? "").toBe("text/html; charset=utf-8");
     expect(res.headers.get("x-content-type-options")).toBe("nosniff");
     expect(res.headers.get("content-security-policy") ?? "").toMatch(/script-src 'self'/);
+    expect(res.headers.get("link")).toBe('</llms.txt>; rel="describedby"');
     expect(res.headers.get("cross-origin-resource-policy")).toBe("same-origin");
     const html = await res.text();
     expect(html).toMatch(/MENTION\/\/FORGE/);
